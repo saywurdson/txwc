@@ -1,5 +1,5 @@
 with base as (
-    select distinct
+    select
         coalesce(billing_provider_fein, rendering_bill_provider_fein, referring_provider_fein) as provider_fein,
         case
             when billing_provider_fein is not null then 'Billing'
@@ -15,16 +15,16 @@ with base as (
         coalesce(billing_provider_city, rendering_bill_provider_city) as provider_city,
         coalesce(billing_provider_state_code, rendering_bill_provider_state, referring_provider_state) as provider_state_code,
         coalesce(billing_provider_postal_code, rendering_bill_provider_postal) as provider_postal_code,
-        coalesce(billing_provider_country, rendering_bill_provider_country) as provider_country,
-        coalesce(billing_provider_state_license, rendering_bill_provider_state_license) as provider_state_license,
-        coalesce(billing_provider_medicare, rendering_bill_provider_medicare, referring_provider_medicare) as provider_medicare,
-        coalesce(billing_provider_national, rendering_bill_provider_national, referring_provider_national) as provider_national,
+        billing_provider_country as provider_country,
+        billing_provider_state_license as provider_state_license,
+        coalesce(billing_provider_medicare, referring_provider_medicare) as provider_medicare,
+        coalesce(billing_provider_national, referring_provider_national) as provider_national,
         referring_provider_specialty as provider_specialty
     from {{ ref('stg_pharmacy_header') }}
 
     union
 
-    select distinct
+    select
         coalesce(billing_provider_fein, rendering_bill_provider_fein, referring_provider_fein) as provider_fein,
         case
             when billing_provider_fein is not null then 'Billing'
@@ -40,16 +40,16 @@ with base as (
         coalesce(billing_provider_city, rendering_bill_provider_city) as provider_city,
         coalesce(billing_provider_state_code, rendering_bill_provider_state, referring_provider_state) as provider_state_code,
         coalesce(billing_provider_postal_code, rendering_bill_provider_postal) as provider_postal_code,
-        coalesce(billing_provider_country, rendering_bill_provider_country) as provider_country,
-        coalesce(billing_provider_state_license, rendering_bill_provider_state_license) as provider_state_license,
-        coalesce(billing_provider_medicare, rendering_bill_provider_medicare, referring_provider_medicare) as provider_medicare,
-        coalesce(billing_provider_national, rendering_bill_provider_national, referring_provider_national) as provider_national,
+        billing_provider_country as provider_country,
+        billing_provider_state_license as provider_state_license,
+        coalesce(billing_provider_medicare, referring_provider_medicare) as provider_medicare,
+        coalesce(billing_provider_national, referring_provider_national) as provider_national,
         referring_provider_specialty as provider_specialty
     from {{ ref('stg_institutional_header') }}
 
     union
 
-    select distinct
+    select
         coalesce(billing_provider_fein, rendering_bill_provider_fein, referring_provider_fein) as provider_fein,
         case
             when billing_provider_fein is not null then 'Billing'
@@ -65,15 +65,15 @@ with base as (
         coalesce(billing_provider_city, rendering_bill_provider_city) as provider_city,
         coalesce(billing_provider_state_code, rendering_bill_provider_state, referring_provider_state) as provider_state_code,
         coalesce(billing_provider_postal_code, rendering_bill_provider_postal) as provider_postal_code,
-        coalesce(billing_provider_country, rendering_bill_provider_country) as provider_country,
-        coalesce(billing_provider_state_license, rendering_bill_provider_state_license) as provider_state_license,
-        coalesce(billing_provider_medicare, rendering_bill_provider_medicare, referring_provider_medicare) as provider_medicare,
-        coalesce(billing_provider_national, rendering_bill_provider_national, referring_provider_national) as provider_national,
+        billing_provider_country as provider_country,
+        billing_provider_state_license as provider_state_license,
+        coalesce(billing_provider_medicare, referring_provider_medicare) as provider_medicare,
+        coalesce(billing_provider_national, referring_provider_national) as provider_national,
         referring_provider_specialty as provider_specialty
     from {{ ref('stg_professional_header') }}
 )
 
-select
+select distinct
     provider_fein,
     provider_type,
     provider_last_name,

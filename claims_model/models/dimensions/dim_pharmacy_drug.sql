@@ -1,5 +1,5 @@
 with base as (
-    select distinct
+    select
         ndc_billed_code,
         drug_name,
         dispensed_as_written_code,
@@ -7,7 +7,7 @@ with base as (
     from {{ ref('stg_pharmacy_detail') }}
 )
 
-select
+select distinct
     ndc_billed_code,
     drug_name,
     dispensed_as_written_code,

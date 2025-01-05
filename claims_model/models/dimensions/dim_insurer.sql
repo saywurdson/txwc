@@ -1,5 +1,5 @@
 with base as (
-    select distinct
+    select
         insurer_fein,
         insurer_postal_code,
         claim_administrator_fein,
@@ -9,7 +9,7 @@ with base as (
 
     union
 
-    select distinct
+    select
         insurer_fein,
         insurer_postal_code,
         claim_administrator_fein,
@@ -19,7 +19,7 @@ with base as (
 
     union
 
-    select distinct
+    select
         insurer_fein,
         insurer_postal_code,
         claim_administrator_fein,
@@ -28,7 +28,7 @@ with base as (
     from {{ ref('stg_professional_header') }}
 )
 
-select
+select distinct
     insurer_fein,
     insurer_postal_code,
     claim_administrator_fein,

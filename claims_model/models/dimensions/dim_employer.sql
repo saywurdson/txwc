@@ -1,5 +1,5 @@
 with base as (
-    select distinct
+    select
         employer_fein,
         employer_physical_city,
         employer_physical_state_code,
@@ -9,7 +9,7 @@ with base as (
 
     union
 
-    select distinct
+    select
         employer_fein,
         employer_physical_city,
         employer_physical_state_code,
@@ -19,7 +19,7 @@ with base as (
 
     union
 
-    select distinct
+    select
         employer_fein,
         employer_physical_city,
         employer_physical_state_code,
@@ -28,7 +28,7 @@ with base as (
     from {{ ref('stg_professional_header') }}
 )
 
-select
+select distinct
     employer_fein,
     employer_physical_city,
     employer_physical_state_code,

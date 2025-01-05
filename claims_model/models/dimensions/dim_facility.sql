@@ -1,5 +1,5 @@
 with base as (
-    select distinct
+    select
         facility_fein,
         facility_name,
         facility_primary_address,
@@ -15,7 +15,7 @@ with base as (
 
     union
 
-    select distinct
+    select
         facility_fein,
         facility_name,
         facility_primary_address,
@@ -31,7 +31,7 @@ with base as (
 
     union
 
-    select distinct
+    select
         facility_fein,
         facility_name,
         facility_primary_address,
@@ -46,7 +46,7 @@ with base as (
     from {{ ref('stg_professional_header') }}
 )
 
-select
+select distinct
     facility_fein,
     facility_name,
     facility_primary_address,

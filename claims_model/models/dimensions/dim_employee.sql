@@ -1,5 +1,5 @@
 with base as (
-    select distinct
+    select
         patient_account_number,
         employee_mailing_city,
         employee_mailing_state_code,
@@ -12,7 +12,7 @@ with base as (
 
     union
 
-    select distinct
+    select
         patient_account_number,
         employee_mailing_city,
         employee_mailing_state_code,
@@ -25,7 +25,7 @@ with base as (
 
     union
 
-    select distinct
+    select
         patient_account_number,
         employee_mailing_city,
         employee_mailing_state_code,
@@ -37,7 +37,7 @@ with base as (
     from {{ ref('stg_professional_header') }}
 )
 
-select
+select distinct
     patient_account_number,
     employee_mailing_city,
     employee_mailing_state_code,
