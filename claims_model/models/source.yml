@@ -1,0 +1,19 @@
+version: 2
+
+sources:
+  - name: raw
+    database: tx_workers_comp
+    schema: raw
+    tables:
+      - name: institutional_header_current
+      - name: institutional_detail_current
+      - name: institutional_header_historical
+      - name: institutional_detail_historical
+      - name: professional_header_historical
+      - name: professional_detail_historical
+      - name: professional_header_current
+      - name: professional_detail_current
+      - name: pharmacy_header_historical
+      - name: pharmacy_detail_historical
+      - name: pharmacy_header_current
+      - name: pharmacy_detail_current

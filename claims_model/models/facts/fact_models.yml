@@ -1,0 +1,471 @@
+version: 2
+
+models:
+  - name: fact_pharmacy_claim
+    description: "Fact table for pharmacy claims."
+    config:
+      schema: claims_model
+      materialized: table
+      alias: pharmacy_claim
+      columns:
+        - name: bill_id
+          description: "Bill ID uniquely identifies a bill and links line items to the bill."
+        - name: unique_bill_id_number
+          description: "Assigned by and unique to the Insurer. This number should never be reused except when sending bill submission type '01' for cancellations or '05' for replacing a bill. Acknowledgements will refer to this number when a bill is accepted or rejected."
+        - name: claim_administrator_claim
+          description: "A number assigned by the insurance carrier or TPA to identify a specific claim."
+        - name: bill_type
+          description: "SV4 = Drug (Pharmacy) Service."
+        - name: billing_type_code
+          description: "Identifies the kind of billing: DM = Durable Medical, MO = Mail Order Drug, RX = Pharmacy or Drug."
+        - name: place_of_service_bill_code
+          description: "Identifies the place of service at the bill level."
+        - name: billing_format_code
+          description: "Always B for pharmacy bills."
+        - name: provider_signature_on_file
+          description: "Indicates if the signature of the provider is on file. Y=Yes, N=No."
+        - name: release_of_information_code
+          description: "Identifies whether the release of information related to a claim is authorized or not. A = Appropriate release of information on file at health care service provider or at a URA. I = Informed consent to release medical information for conditions or diagnosis regulated by Federal Statues. M = The provider has a limited or restricted ability to release data related to a claim. N = No, provider is not allowed to release data. O = On file at payor or at plan sponsor. Y = Yes, provider has signed statement permitting release of medical billing data related to the claim."
+        - name: provider_agreement_code
+          description: "Identifies the kind of provider agreement applicable to a bill: H=Network, N=No Agreement, P=Participant Agreement, Y=PPO Agreement."
+        - name: bill_submission_reason_code
+          description: "Identifies the bill submission/re-submission type: 00=Original, 01=Cancellation, 05=Replacement."
+        - name: total_charge_per_bill
+          description: "The cumulative dollar amount of all line items on the bill."
+        - name: total_amount_paid_per_bill
+          description: "The dollar amount paid or credited for a submitted bill by payor after adjustments."
+        - name: patient_account_number
+          description: "A unique number assigned by the provider to identify the patient/claimant."
+        - name: transaction_tracking_number
+          description: "A number assigned by the sender (the organization that actually sent the data)."
+        - name: managed_care_organization
+          description: "The jurisdiction assigned number that corresponds to and uniquely identifies the managed care organization involved in the claim."
+        - name: contract_type_code
+          description: "Identifies the kind of contractual agreement for provider reimbursement: 01=Diagnosis Related Group, 02=Per Diem, 03=Variable per diem, 04=Flat fee per service, 05=Capitate, 06=Percent, 09=Other."
+        - name: treatment_authorization_number
+          description: "A number assigned by the carrier to identify pre-authorized or pre-certified treatment plans. Y = reported, N = not reported."
+        - name: bill_selection_date_key
+          description: "Primary key for the bill selection date."
+        - name: bill_selection_date
+          description: "Bill Selection Date is a date field common to bill and bill line item records. It is usually the earliest date of service on a bill."
+        - name: date_insurer_received_bill
+          description: "The calendar date the insurer received the bill from the provider."
+        - name: service_bill_from_date
+          description: "The starting date in which services were performed."
+        - name: service_bill_to_date
+          description: "The ending date in which services were performed."
+        - name: date_of_bill
+          description: "The provider's bill date."
+        - name: date_insurer_paid_bill
+          description: "The calendar date the insurer or financially responsible party paid the bill or received credit from the provider."
+        - name: employee_date_of_injury
+          description: "The month and year the accident occurred. Day redacted."
+        - name: employer_fein
+          description: "The federal identification number of the employer where the employee was employed at the time of the injury."
+        - name: insurer_fein
+          description: "The federal identification number of the carrier or self-insured assuming responsibility for workers' compensation claims."
+        - name: facility_fein
+          description: "The federal identification number of the facility where the medical services were rendered."
+        - name: provider_fein
+          description: "The federal identification number of the provider (Billing, Rendering, or Referring)."
+
+  - name: fact_pharmacy_claim_line
+    description: "Fact table for pharmacy claim line items."
+    config:
+      schema: claims_model
+      materialized: table
+      alias: pharmacy_claim_line
+      columns:
+        - name: bill_id
+          description: "Bill ID uniquely identifies a bill and links line items to the bill."
+        - name: bill_detail_id
+          description: "Bill Detail ID uniquely identifies a bill line item."
+        - name: line_number
+          description: "The number of the line item on the bill."
+        - name: prescription_line_number
+          description: "A unique number assigned by the dispenser to identify the prescription at the line level."
+        - name: ndc_billed_code
+          description: "The National Drug Code (or equivalent code value) identifying the drugs or pharmaceutical products billed."
+        - name: ndc_paid_code
+          description: "Identifies the drug or pharmaceutical that was paid."
+        - name: drug_name
+          description: "Name of the dispensed drug or pharmaceutical."
+        - name: dispensed_as_written_code
+          description: >
+            "A code denoting methodology used in dispensing the drugs or pharmaceuticals. Dispense as Written Code - ANSI DE 1329
+            0 = Not dispense as written
+            1 = Physician dispense as written
+            2 = Patient dispense as written
+            3 = Pharmacy dispense as written
+            4 = No generic available
+            5 = Brand dispensed as generic
+            6 = Override
+            7 = Substitution not allowed - brand name drug mandated by law
+            8 = Substitution not allowed - generic not available in marketplace
+            9 = Other"
+        - name: basis_of_cost_determination
+          description: >
+            "Method by which drug cost was calculated.
+            0 = Not Specified
+            1 = Average Wholesale Price (AWP)
+            2 = Local Wholesaler
+            3 = Direct
+            4 = Estimated Acquisition Cost
+            5 = Acquisition Cost
+            6 = Maximum Allowable Cost (MAC)
+            7 = Usual, Customary and Reasonable (UCR)
+            8 = Unit Dose
+            9 = Brand Medically Necessary"
+        - name: drugs_supplies_quantity
+          description: "The number of units of drugs/supplies dispensed."
+        - name: drugs_supplies_number_of
+          description: "The number of units of drugs/supplies."
+        - name: drugs_supplies_dispensing
+          description: "Amount billed for dispensing drugs/supplies."
+        - name: drugs_supplies_billed_amount
+          description: "The amount billed for drugs/supplies."
+        - name: total_amount_paid_per_line
+          description: "The total dollar amount paid or credited to the line item."
+        - name: days_units_paid
+          description: "The number of services paid for the line item in days or units."
+        - name: number_of_service_adjustments
+          description: "The number of service adjustments for the line item."
+        - name: service_adjustment_group_1
+          description: >
+            "A code indicating the general category of the first adjustment made to the dollar amount paid or credited to the line item.
+            CO = Contractual Obligations
+            OA = Other Adjustments
+            PI = Payer initiated reductions
+            PR = Patient Responsibility"
+        - name: service_adjustment_reason_1
+          description: "A code indicating the detailed reason of the first adjustment made to the dollar amount paid or credited to the line item."
+        - name: service_adjustment_amount_1
+          description: "The dollar amount of the first adjustment paid or credited to the line item."
+        - name: service_adjustment_units_1
+          description: "The number of units applicable to the first adjustment to the line item."
+        - name: service_adjustment_group_2
+          description: >
+            "A code indicating the general category of the second adjustment made to the dollar amount paid or credited to the line item."
+        - name: service_adjustment_reason_2
+          description: "A code indicating the detailed reason of the second adjustment made to the dollar amount paid or credited to the line item."
+        - name: service_adjustment_amount_2
+          description: "The dollar amount of the second adjustment paid or credited to the line item."
+        - name: service_adjustment_units_2
+          description: "The number of units applicable to the second adjustment to the line item."
+        - name: service_adjustment_group_3
+          description: >
+            "A code indicating the general category of the third adjustment made to the dollar amount paid or credited to the line item."
+        - name: service_adjustment_reason_3
+          description: "A code indicating the detailed reason of the third adjustment made to the dollar amount paid or credited to the line item."
+        - name: service_adjustment_amount_3
+          description: "The dollar amount of the third adjustment paid or credited to the line item."
+        - name: service_adjustment_units_3
+          description: "The number of units applicable to the third adjustment to the line item."
+        - name: service_adjustment_group_4
+          description: >
+            "A code indicating the general category of the fourth adjustment made to the dollar amount paid or credited to the line item."
+        - name: service_adjustment_reason_4
+          description: "A code indicating the detailed reason of the fourth adjustment made to the dollar amount paid or credited to the line item."
+        - name: service_adjustment_amount_4
+          description: "The dollar amount of the fourth adjustment paid or credited to the line item."
+        - name: service_adjustment_units_4
+          description: "The number of units applicable to the fourth adjustment to the line item."
+        - name: service_adjustment_group_5
+          description: >
+            "A code indicating the general category of the fifth adjustment made to the dollar amount paid or credited to the line item."
+        - name: service_adjustment_reason_5
+          description: "A code indicating the detailed reason of the fifth adjustment made to the dollar amount paid or credited to the line item."
+        - name: service_adjustment_amount_5
+          description: "The dollar amount of the fifth adjustment paid or credited to the line item."
+        - name: service_adjustment_units_5
+          description: "The number of units applicable to the fifth adjustment to the line item."
+
+  - name: fact_professional_claim
+    description: "Fact table for professional claims."
+    config:
+      schema: claims_model
+      materialized: table
+      alias: professional_claim
+      columns:
+        - name: bill_id
+          description: "Bill ID uniquely identifies a bill and links line items to the bill."
+        - name: unique_bill_id_number
+          description: "Assigned by and unique to the Insurer. This number should never be reused except when sending bill submission type '01' for cancellations or '05' for replacing a bill."
+        - name: claim_administrator_claim
+          description: "A number assigned by the insurance carrier or TPA to identify a specific claim."
+        - name: bill_type
+          description: "SV1 = Professional Service"
+        - name: billing_type_code
+          description: "Identifies the kind of billing: DM=Durable Medical, MO=Mail Order Drug, RX=Pharmacy or Drug"
+        - name: place_of_service_bill_code
+          description: "Identifies the place of service at the bill level."
+        - name: billing_format_code
+          description: "Indicates the data is from a CMS1500. B=Professional (CMS 1500)"
+        - name: provider_signature_on_file
+          description: "Indicates if the signature of the provider is on file. Y=Yes, N=No"
+        - name: release_of_information_code
+          description: "Identifies whether the release of information related to a claim is authorized or not."
+        - name: provider_agreement_code
+          description: "Identifies the kind of provider agreement applicable to a bill: H=Network, N=No Agreement, P=Participant Agreement, Y=PPO Agreement"
+        - name: total_charge_per_bill
+          description: "The cumulative dollar amount of all line items on the bill."
+        - name: total_amount_paid_per_bill
+          description: "The dollar amount paid or credited for a submitted bill by payor after adjustments."
+        - name: patient_account_number
+          description: "A unique number assigned by the provider to identify the patient/claimant."
+        - name: transaction_tracking_number
+          description: "A number assigned by the sender (the organization that actually sent the data)."
+        - name: managed_care_organization
+          description: "The jurisdiction assigned number that identifies the managed care organization."
+        - name: contract_type_code
+          description: "Identifies the kind of contractual agreement for provider reimbursement."
+        - name: treatment_authorization_number
+          description: "A number assigned by the carrier to identify pre-authorized treatment plans."
+        - name: bill_selection_date
+          description: "Bill Selection Date is a date field common to bill and bill line item records."
+        - name: date_insurer_received_bill
+          description: "The calendar date the insurer received the bill from the provider."
+        - name: service_bill_from_date
+          description: "The starting date in which services were performed."
+        - name: service_bill_to_date
+          description: "The ending date in which services were performed."
+        - name: date_of_bill
+          description: "The provider's bill date."
+        - name: date_insurer_paid_bill
+          description: "The calendar date the insurer paid the bill."
+        - name: employee_date_of_injury
+          description: "The month and year the accident occurred. Day redacted."
+        - name: employer_fein
+          description: "The federal identification number of the employer."
+        - name: insurer_fein
+          description: "The federal identification number of the carrier or self-insured."
+        - name: facility_fein
+          description: "The federal identification number of the facility."
+        - name: provider_fein
+          description: "The federal identification number of the provider."
+
+  - name: fact_professional_claim_line
+    description: "Fact table for professional claim line items."
+    config:
+      schema: claims_model
+      materialized: table
+      alias: professional_claim_line
+      columns:
+        - name: bill_id
+          description: "Bill ID uniquely identifies a bill and links line items to the bill."
+        - name: bill_detail_id
+          description: "Bill Detail ID uniquely identifies a bill line item."
+        - name: line_number
+          description: "The number of the line item on the bill."
+        - name: hcpcs_line_procedure_billed
+          description: "Identifies the treatment that was rendered and billed."
+        - name: first_hcpcs_modifier_billed
+          description: "The first two-character code identifying special circumstances related to the procedure billed."
+        - name: second_hcpcs_modifier_billed
+          description: "The second two-character code identifying special circumstances related to the procedure billed."
+        - name: third_hcpcs_modifier_billed
+          description: "The third two-character code identifying special circumstances related to the procedure billed."
+        - name: fourth_hcpcs_modifier_billed
+          description: "The fourth two-character code identifying special circumstances related to the procedure billed."
+        - name: procedure_description
+          description: "Free form text describing the treatment rendered."
+        - name: total_charge_per_line
+          description: "The service charge amount for the line item."
+        - name: days_units_code
+          description: "Indicates the time or units billed or paid. DA=Days, MJ=Minutes, UN=Unit"
+        - name: days_units_billed
+          description: "The number of services billed for the line item in days or units."
+        - name: place_of_service_line_code
+          description: "Identifies the place where the medical service was rendered."
+        - name: provider_agreement_line_code
+          description: "Indicates the type of provider agreement applicable to the line item."
+        - name: service_line_from_date
+          description: "The starting date that services were performed for the line item."
+        - name: service_line_to_date
+          description: "The ending date that services were performed for the line item."
+        - name: contract_line_type_code
+          description: "A two-character code indicating the line item contractual arrangement for provider reimbursement."
+        - name: treatment_line_authorization
+          description: "Defaults to the Treatment Authorization Number. Y=reported, N=not reported."
+        - name: total_amount_paid_per_line
+          description: "The total dollar amount paid or credited to the line item."
+        - name: hcpcs_line_procedure_paid
+          description: "Identifies the treatment that was rendered and paid."
+        - name: first_hcpcs_modifier_paid
+          description: "The first modifier code for the paid procedure."
+        - name: second_hcpcs_modifier_paid
+          description: "The second modifier code for the paid procedure."
+        - name: third_hcpcs_modifier_paid
+          description: "The third modifier code for the paid procedure."
+        - name: fourth_hcpcs_modifier_paid
+          description: "The fourth modifier code for the paid procedure."
+        - name: days_units_paid
+          description: "The number of services paid for the line item in days or units."
+        - name: rendering_line_provider
+          description: "The unique National Provider ID of the rendering line provider."
+        - name: number_of_service_adjustments
+          description: "The number of service adjustments for the line item."
+        - name: service_adjustment_group
+          description: "A code indicating the general category of adjustment."
+        - name: service_adjustment_reason
+          description: "A code indicating the detailed reason of the adjustment."
+        - name: service_adjustment_amount
+          description: "The dollar amount of the adjustment."
+        - name: service_adjustment_units
+          description: "The number of units applicable to the adjustment."
+
+  - name: fact_institutional_claim
+    description: "Fact table for institutional (hospital) claims."
+    config:
+      schema: claims_model
+      materialized: table
+      alias: institutional_claim
+      columns:
+        - name: bill_id
+          description: "Bill ID uniquely identifies a bill and links line items to the bill."
+        - name: unique_bill_id_number
+          description: "Assigned by and unique to the Insurer. This number should never be reused except when sending bill submission type '01' for cancellations or '05' for replacing a bill."
+        - name: claim_administrator_claim
+          description: "A number assigned by the insurance carrier or TPA to identify a specific claim."
+        - name: bill_type
+          description: "SV2 = Institutional (Hospital) Service"
+        - name: billing_type_code
+          description: "Identifies the kind of billing: DM=Durable Medical, MO=Mail Order Drug, RX=Pharmacy or Drug"
+        - name: place_of_service_bill_code
+          description: "Identifies the place of service at the bill level."
+        - name: billing_format_code
+          description: "Indicates the data is from a UB92. A=Institutional (UB 92)"
+        - name: provider_signature_on_file
+          description: "Indicates if the signature of the provider is on file. Y=Yes, N=No"
+        - name: release_of_information_code
+          description: "Identifies whether the release of information related to a claim is authorized or not."
+        - name: provider_agreement_code
+          description: "Identifies the kind of provider agreement applicable to a bill: H=Network, N=No Agreement, P=Participant Agreement, Y=PPO Agreement"
+        - name: facility_code
+          description: "Identifies the kind of facility where treatment was rendered."
+        - name: bill_frequency_type_code
+          description: "Indicates the claim billing status: 0=Non Payment/Zero Payment, 1=Admit through Discharge Claim, etc."
+        - name: admission_date
+          description: "The calendar date the claimant was admitted to the facility."
+        - name: admission_hour
+          description: "The hour the claimant was admitted to the facility."
+        - name: discharge_date
+          description: "The calendar date the claimant was discharged from the facility."
+        - name: discharge_hour
+          description: "The hour the claimant was discharged from the facility."
+        - name: admission_type_code
+          description: "Identifies the kind of admission: 1=Emergency, 2=Urgent, 3=Elective, 9=Information not available"
+        - name: diagnosis_related_group_code
+          description: "Classification of a hospital stay in terms of what was wrong and what was done for the patient."
+        - name: total_charge_per_bill
+          description: "The cumulative dollar amount of all line items on the bill."
+        - name: total_amount_paid_per_bill
+          description: "The dollar amount paid or credited for a submitted bill by payor after adjustments."
+        - name: patient_account_number
+          description: "A unique number assigned by the provider to identify the patient/claimant."
+        - name: transaction_tracking_number
+          description: "A number assigned by the sender (the organization that actually sent the data)."
+        - name: managed_care_organization
+          description: "The jurisdiction assigned number that identifies the managed care organization."
+        - name: contract_type_code
+          description: "Identifies the kind of contractual agreement for provider reimbursement."
+        - name: treatment_authorization_number
+          description: "A number assigned by the carrier to identify pre-authorized treatment plans."
+        - name: bill_selection_date
+          description: "Bill Selection Date is a date field common to bill and bill line item records."
+        - name: date_insurer_received_bill
+          description: "The calendar date the insurer received the bill from the provider."
+        - name: service_bill_from_date
+          description: "The starting date in which services were performed."
+        - name: service_bill_to_date
+          description: "The ending date in which services were performed."
+        - name: date_of_bill
+          description: "The provider's bill date."
+        - name: date_insurer_paid_bill
+          description: "The calendar date the insurer paid the bill."
+        - name: employee_date_of_injury
+          description: "The month and year the accident occurred. Day redacted."
+        - name: employer_fein
+          description: "The federal identification number of the employer."
+        - name: insurer_fein
+          description: "The federal identification number of the carrier or self-insured."
+        - name: facility_fein
+          description: "The federal identification number of the facility."
+        - name: provider_fein
+          description: "The federal identification number of the provider."
+
+  - name: fact_institutional_claim_line
+    description: "Fact table for institutional claim line items."
+    config:
+      schema: claims_model
+      materialized: table
+      alias: institutional_claim_line
+      columns:
+        - name: bill_id
+          description: "Bill ID uniquely identifies a bill and links line items to the bill."
+        - name: bill_detail_id
+          description: "Bill Detail ID uniquely identifies a bill line item."
+        - name: line_number
+          description: "The number of the line item on the bill."
+        - name: hcpcs_line_procedure_billed
+          description: "Identifies the treatment that was rendered and billed."
+        - name: first_hcpcs_modifier_billed
+          description: "The first modifier code identifying special circumstances related to the procedure billed."
+        - name: second_hcpcs_modifier_billed
+          description: "The second modifier code identifying special circumstances related to the procedure billed."
+        - name: third_hcpcs_modifier_billed
+          description: "The third modifier code identifying special circumstances related to the procedure billed."
+        - name: fourth_hcpcs_modifier_billed
+          description: "The fourth modifier code identifying special circumstances related to the procedure billed."
+        - name: procedure_description
+          description: "Free form text describing the treatment rendered."
+        - name: total_charge_per_line
+          description: "The service charge amount for the line item."
+        - name: days_units_code
+          description: "Indicates the time or units billed or paid. DA=Days, MJ=Minutes, UN=Unit"
+        - name: days_units_billed
+          description: "The number of services billed for the line item in days or units."
+        - name: place_of_service_line_code
+          description: "Identifies the place where the medical service was rendered."
+        - name: provider_agreement_line_code
+          description: "Indicates the type of provider agreement applicable to the line item."
+        - name: revenue_billed_code
+          description: "The revenue code as billed by the provider."
+        - name: revenue_unit_rate
+          description: "The rate per unit for the revenue code."
+        - name: service_line_from_date
+          description: "The starting date that services were performed for the line item."
+        - name: service_line_to_date
+          description: "The ending date that services were performed for the line item."
+        - name: contract_line_type_code
+          description: "A code indicating the line item contractual arrangement for provider reimbursement."
+        - name: treatment_line_authorization
+          description: "Indicates if the line item was pre-authorized."
+        - name: total_amount_paid_per_line
+          description: "The total dollar amount paid or credited to the line item."
+        - name: hcpcs_line_procedure_paid
+          description: "Identifies the treatment that was rendered and paid."
+        - name: first_hcpcs_modifier_paid
+          description: "The first modifier code for the paid procedure."
+        - name: second_hcpcs_modifier_paid
+          description: "The second modifier code for the paid procedure."
+        - name: third_hcpcs_modifier_paid
+          description: "The third modifier code for the paid procedure."
+        - name: fourth_hcpcs_modifier_paid
+          description: "The fourth modifier code for the paid procedure."
+        - name: revenue_paid_code
+          description: "The revenue code that was paid."
+        - name: days_units_paid
+          description: "The number of services paid for the line item in days or units."
+        - name: rendering_line_provider
+          description: "The unique National Provider ID of the rendering line provider."
+        - name: number_of_service_adjustments
+          description: "The number of service adjustments for the line item."
+        - name: service_adjustment_group
+          description: "A code indicating the general category of adjustment."
+        - name: service_adjustment_reason
+          description: "A code indicating the detailed reason of the adjustment."
+        - name: service_adjustment_amount
+          description: "The dollar amount of the adjustment."
+        - name: service_adjustment_units
+          description: "The number of units applicable to the adjustment."

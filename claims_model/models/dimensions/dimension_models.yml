@@ -1,0 +1,128 @@
+version: 2
+
+models:
+  - name: dim_insurer
+    description: "Dimension table for insurers."
+    config:
+      schema: claims_model
+      materialized: table
+      alias: insurer
+      columns:
+        - name: insurer_fein
+          description: "The federal identification number of the carrier or self-insured assuming responsibility for workers' compensation claims."
+        - name: insurer_postal_code
+          description: "The zip code of the carrier or self-insured's specific business site."
+        - name: claim_administrator_fein
+          description: "The federal identification number of the entity licensed or allowed to adjust a bill."
+        - name: claim_administrator_name
+          description: "The name of the entity licensed or allowed to adjust a bill."
+        - name: claim_administrator_postal
+          description: "The mailing zip code of the claim administrator's processing facility."
+
+  - name: dim_provider
+    description: "Dimension table for providers."
+    config:
+      schema: claims_model
+      materialized: table
+      alias: provider
+      columns:
+        - name: provider_fein
+          description: "The federal identification number of the provider (Billing, Rendering, or Referring)."
+        - name: provider_type
+          description: "Type of provider: Billing, Rendering, Referring, or Other."
+        - name: provider_last_name
+          description: "The last name of the provider."
+        - name: provider_first_name
+          description: "The first name of the provider."
+        - name: provider_middle_name
+          description: "The middle name or initial of the provider."
+        - name: provider_suffix
+          description: "The suffix of the provider's name, e.g., Jr., Sr."
+        - name: provider_gate_keeper
+          description: "Indicates if the provider is a gatekeeper (GP). Y=Yes, N=No."
+        - name: provider_city
+          description: "The city where the provider is located."
+        - name: provider_state_code
+          description: "The two-character state code of the provider's location."
+        - name: provider_postal_code
+          description: "The postal code of the provider's location."
+        - name: provider_country
+          description: "A three-character code indicating the country of the provider's location."
+        - name: provider_state_license
+          description: "The provider's license type, license number, and jurisdiction code."
+        - name: provider_medicare
+          description: "The provider's Medicare number."
+        - name: provider_national
+          description: "The unique National Provider ID of the provider."
+
+  - name: dim_facility
+    description: "Dimension table for facilities."
+    config:
+      schema: claims_model
+      materialized: table
+      alias: facility
+      columns:
+        - name: facility_fein
+          description: "The federal identification number of the facility where the medical services were rendered."
+        - name: facility_name
+          description: "The name of the facility where the medical services were rendered. Mandatory for SV1 bills."
+        - name: facility_primary_address
+          description: "The first line in the facility's address."
+        - name: facility_secondary_address
+          description: "The second line in the facility's address."
+        - name: facility_city
+          description: "The city name of the facility's address."
+        - name: facility_state_code
+          description: "The two-character state code of the facility's address."
+        - name: facility_postal_code
+          description: "The zip code of the facility's address."
+        - name: facility_country_code
+          description: "A three-character code indicating the country of the facility's mailing address."
+        - name: facility_state_license_number
+          description: "A unique number assigned to identify the facility."
+        - name: facility_medicare_number
+          description: "A unique number assigned to the facility by the Medicare program."
+        - name: facility_national_provider
+          description: "The unique National Provider ID of the facility."
+
+  - name: dim_employer
+    description: "Dimension table for employers."
+    config:
+      schema: claims_model
+      materialized: table
+      alias: employer
+      columns:
+        - name: employer_fein
+          description: "The federal identification number of the employer where the employee was employed at the time of the injury."
+        - name: employer_physical_city
+          description: "The city name of the employer's physical address."
+        - name: employer_physical_state_code
+          description: "The two-character state code of the employer's physical address."
+        - name: employer_physical_postal
+          description: "The zip code of the employer's physical address."
+        - name: employer_physical_country
+          description: "A three-character code indicating the country of the employer's physical address."
+
+  - name: dim_employee
+    description: "Dimension table for employees."
+    config:
+      schema: claims_model
+      materialized: table
+      alias: employee
+      columns:
+        - name: patient_account_number
+          description: "A unique number assigned by the provider to identify the patient/claimant."
+        - name: employee_mailing_city
+          description: "The city name of the employee's mailing address."
+        - name: employee_mailing_state_code
+          description: "The two-character state code of the employee's mailing address."
+        - name: employee_mailing_postal_code
+          description: "The zip code of the employee's mailing address."
+        - name: employee_mailing_country
+          description: "A three-character code indicating the country of the employee's mailing address."
+        - name: employee_date_of_birth
+          description: "The month and year the employee was born. Day redacted."
+        - name: employee_gender_code
+          description: "Indicates the sex of the employee: M=Male, F=Female, U=Unknown."
+        - name: employee_marital_status_code
+          description: "Indicates the marital status of the employee: I=Single, K=Unknown, M=Married, S=Separated, U=Widowed."

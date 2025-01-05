@@ -1,0 +1,1063 @@
+version: 2
+
+models:
+  - name: stg_pharmacy_header
+    description: "Staging model for pharmacy header data."
+    config:
+      schema: claims_model
+      materialized: view
+      columns:
+        - name: row_id
+          description: "Primary key for the row."
+          tests:
+            - unique
+            - not_null
+        - name: created_at
+          description: "Timestamp when the record was created."
+        - name: updated_at
+          description: "Timestamp when the record was last updated."
+        - name: version
+          description: "Version number of the record."
+        - name: bill_selection_date
+          description: "Bill Selection Date is a date field common to bill and bill line item records. It is usually the earliest date of service on a bill."
+        - name: bill_id
+          description: "Bill ID uniquely identifies a bill and links line items to the bill."
+        - name: billing_provider_unique_bill
+          description: "A unique number assigned by the billing provider to a specific bill within a batch of bills."
+        - name: unique_bill_id_number
+          description: "Assigned by and unique to the Insurer. This number should never be reused except when sending bill submission type '01' for cancellations or '05' for replacing a bill. Acknowledgements will refer to this number when a bill is accepted or rejected."
+        - name: bill_type
+          description: "SV4 = Drug (Pharmacy) Service."
+        - name: reporting_period_start_date
+          description: "The start date during which the information sent was processed."
+        - name: reporting_period_end_date
+          description: "The end date during which the information sent was processed."
+        - name: insurer_fein
+          description: "The federal identification number of the carrier or self-insured assuming responsibility for workers' compensation claims."
+        - name: insurer_postal_code
+          description: "The zip code of the carrier or self-insured's specific business site."
+        - name: claim_administrator_fein
+          description: "The federal identification number of the entity licensed or allowed to adjust a bill."
+        - name: claim_administrator_name
+          description: "The name of the entity licensed or allowed to adjust a bill."
+        - name: claim_administrator_postal
+          description: "The mailing zip code of the claim administrator's processing facility."
+        - name: transaction_set_purpose_code
+          description: "Identifies the purpose of the transaction set."
+        - name: employer_fein
+          description: "The federal identification number of the employer where the employee was employed at the time of the injury."
+        - name: employer_physical_city
+          description: "The city name of the facility where the injured worker was employed at the time of the injury."
+        - name: employer_physical_state_code
+          description: "The two-character state code of the facility where the injured worker was employed at the time of the injury."
+        - name: employer_physical_postal
+          description: "The zip code of the facility where the injured worker was employed at the time of the injury."
+        - name: employer_physical_country
+          description: "A three-character code indicating the country where the injured worker was employed at the time of the injury."
+        - name: employee_mailing_city
+          description: "The city name of the injured worker's mailing address."
+        - name: employee_mailing_state_code
+          description: "The two-character state code of the injured worker's mailing address."
+        - name: employee_mailing_postal_code
+          description: "The zip code of the injured worker's mailing address."
+        - name: employee_mailing_country
+          description: "A three-character code indicating the country of the injured worker's mailing address."
+        - name: employee_date_of_birth
+          description: "The month and year the injured worker was born. Day redacted."
+        - name: employee_gender_code
+          description: "Indicates the sex of the injured worker: M=Male, F=Female, U=Unknown."
+        - name: employee_marital_status_code
+          description: "Indicates the marital status of the injured worker: I=Single, K=Unknown, M=Married, S=Separated, U=Widowed."
+        - name: claim_administrator_claim
+          description: "A number assigned by the insurance carrier or TPA to identify a specific claim."
+        - name: employee_date_of_injury
+          description: "The month and year the accident occurred. Day redacted."
+        - name: total_charge_per_bill
+          description: "The cumulative dollar amount of all line items on the bill."
+        - name: billing_type_code
+          description: "Identifies the kind of billing: DM = Durable Medical, MO = Mail Order Drug, RX = Pharmacy or Drug."
+        - name: place_of_service_bill_code
+          description: "Identifies the place of service at the bill level."
+        - name: billing_format_code
+          description: "Always B for pharmacy bills."
+        - name: provider_signature_on_file
+          description: "Indicates if the signature of the provider is on file. Y=Yes, N=No."
+        - name: release_of_information_code
+          description: "Identifies whether the release of information related to a claim is authorized or not. A = Appropriate release of information on file at health care service provider or at a URA. I = Informed consent to release medical information for conditions or diagnosis regulated by Federal Statues. M = The provider has a limited or restricted ability to release data related to a claim. N = No, provider is not allowed to release data. O = On file at payor or at plan sponsor. Y = Yes, provider has signed statement permitting release of medical billing data related to the claim."
+        - name: provider_agreement_code
+          description: "Identifies the kind of provider agreement applicable to a bill: H=Network, N=No Agreement, P=Participant Agreement, Y=PPO Agreement."
+        - name: bill_submission_reason_code
+          description: "Identifies the bill submission/re-submission type: 00=Original, 01=Cancellation, 05=Replacement."
+        - name: date_insurer_received_bill
+          description: "The calendar date the insurer received the bill from the provider."
+        - name: service_bill_from_date
+          description: "The starting date in which services were performed."
+        - name: service_bill_to_date
+          description: "The ending date in which services were performed."
+        - name: date_of_bill
+          description: "The provider's bill date."
+        - name: date_insurer_paid_bill
+          description: "The calendar date the insurer or financially responsible party paid the bill or received credit from the provider."
+        - name: contract_type_code
+          description: "Identifies the kind of contractual agreement for provider reimbursement: 01=Diagnosis Related Group, 02=Per Diem, 03=Variable per diem, 04=Flat fee per service, 05=Capitate, 06=Percent, 09=Other."
+        - name: total_amount_paid_per_bill
+          description: "The dollar amount paid or credited for a submitted bill by payor after adjustments."
+        - name: patient_account_number
+          description: "A unique number assigned by the provider to identify the patient/claimant."
+        - name: transaction_tracking_number
+          description: "A number assigned by the sender (the organization that actually sent the data)."
+        - name: facility_name
+          description: "The name of the facility where the medical services were rendered. Mandatory for SV1 bills."
+        - name: facility_fein
+          description: "The federal identification number of the facility where the medical services were rendered."
+        - name: facility_primary_address
+          description: "The first line in the facility's address."
+        - name: facility_secondary_address
+          description: "The second line in the facility's address."
+        - name: facility_city
+          description: "The city name of the facility's address."
+        - name: facility_state_code
+          description: "The two-character state code of the facility's address."
+        - name: facility_postal_code
+          description: "The zip code of the facility's address."
+        - name: facility_country_code
+          description: "A three-character code indicating the country of the facility's mailing address."
+        - name: facility_state_license_number
+          description: "A unique number assigned to identify the facility."
+        - name: facility_medicare_number
+          description: "A unique number assigned to the facility by the Medicare program."
+        - name: facility_national_provider
+          description: "The unique National Provider ID of the facility."
+        - name: managed_care_organization
+          description: "The jurisdiction assigned number that corresponds to and uniquely identifies the managed care organization involved in the claim."
+        - name: billing_provider_last_name
+          description: "The surname of the person or full name of an organization receiving payment. It is assumed to be the rendering provider for all services unless a specific rendering provider is identified at the bill or service line levels. If the billing provider is a non-person, a specific individual rendering bill provider may be required by a jurisdiction."
+        - name: billing_provider_first_name
+          description: "The given name of the billing provider."
+        - name: billing_provider_middle_name
+          description: "The middle name or initial of the billing provider."
+        - name: billing_provider_suffix
+          description: "The legally recognized last name suffix of the billing provider which is used on legal documents. Examples: Jr., Sr., II, III."
+        - name: billing_provider_fein
+          description: "The federal tax identification number of the billing provider."
+        - name: billing_provider_gate_keeper
+          description: "Indicates that the billing provider is the treating doctor. If present, must = 'GP' (Gateway Provider)."
+        - name: billing_provider_primary
+          description: "Indicates the primary specialty of the billing provider."
+        - name: billing_provider_primary_1
+          description: "The first line in the billing provider's address."
+        - name: billing_provider_secondary
+          description: "The second line of the billing provider's address."
+        - name: billing_provider_city
+          description: "The city name of the billing provider's address."
+        - name: billing_provider_state_code
+          description: "The two-character state code of the billing provider's address."
+        - name: billing_provider_postal_code
+          description: "The zip code of the billing provider's address."
+        - name: billing_provider_country
+          description: "A three-character code indicating the country of the billing provider's mailing address."
+        - name: billing_provider_state_license
+          description: "The billing provider's license type, license number and jurisdiction code."
+        - name: billing_provider_medicare
+          description: "The specific number issued to the billing provider by the Medicare program."
+        - name: treatment_authorization_number
+          description: "A number assigned by the carrier to identify pre-authorized or pre-certified treatment plans. Y = reported, N = not reported."
+        - name: billing_provider_national
+          description: "The unique National Provider ID of the billing provider."
+        - name: rendering_bill_provider_last
+          description: "The surname of the individual provider actually rendering care. If not present, the billing provider is assumed to be the rendering provider for all services on this bill. If the billing provider was not an individual, a jurisdiction may require a rendering bill provider to be specified."
+        - name: rendering_bill_provider_first
+          description: "The given name of the rendering bill provider."
+        - name: rendering_bill_provider_middle
+          description: "The middle name or initial of the rendering bill provider."
+        - name: rendering_bill_provider_suffix
+          description: "The legally recognized last name suffix of the rendering bill provider which is used on legal documents. Examples: Jr., Sr., II, III."
+        - name: rendering_bill_provider_fein
+          description: "The federal tax identification number of the rendering bill provider."
+        - name: rendering_bill_provider_gate
+          description: "Indicates that the rendering bill provider is the treating doctor. If present, must = 'GP' (Gateway Provider)."
+        - name: rendering_bill_provider
+          description: "Indicates the primary medical specialty of the rendering bill provider."
+        - name: rendering_bill_provider_1
+          description: "The first line of the rendering bill provider's address."
+        - name: rendering_bill_provider_2
+          description: "The second line of the rendering bill provider's address."
+        - name: rendering_bill_provider_city
+          description: "The city name of the rendering bill provider's address."
+        - name: rendering_bill_provider_state
+          description: "The two-character state code of the rendering bill provider's address."
+        - name: rendering_bill_provider_postal
+          description: "The zip code in the rendering bill provider's address."
+        - name: rendering_bill_provider_3
+          description: "A three-character code indicating the country of the rendering bill provider's mailing address."
+        - name: rendering_bill_provider_state_1
+          description: "The rendering bill provider's license type, license number and jurisdiction code."
+        - name: rendering_bill_provider_4
+          description: "The unique National Provider ID of the rendering bill provider."
+        - name: referring_provider_last_name
+          description: "The surname of the provider referring claimant for care. Only used when needed to document that a bill results from care provided based on a referral from another provider."
+        - name: referring_provider_first
+          description: "The given name of the referring provider."
+        - name: referring_provider_middle
+          description: "The middle name or initial of the referring provider."
+        - name: referring_provider_suffix
+          description: "The legally recognized last name suffix of the referring provider which is used on legal documents. Examples: Jr., Sr., II, III."
+        - name: referring_provider_fein
+          description: "The federal tax identification number of the referring provider."
+        - name: referring_provider_gate_keeper
+          description: "Indicates that the referring provider is the treating doctor. If present, must = 'GP' (Gateway Provider)."
+        - name: referring_provider_state
+          description: "The referring provider's license type, license number and jurisdiction code."
+        - name: referring_provider_specialty
+          description: "The specific license number issued by a state to the referring provider that denotes specialty of the referring provider."
+        - name: referring_provider_medicare
+          description: "The specific number issued to the referring provider by the Medicare Program."
+        - name: referring_provider_national
+          description: "The unique National Provider ID of the referring provider."
+
+  - name: stg_pharmacy_detail
+    description: "Staging model for pharmacy detail data."
+    config:
+      schema: claims_model
+      materialized: view
+      columns:
+        - name: row_id
+          description: "Primary key for the row."
+          tests:
+            - unique
+            - not_null
+        - name: created_at
+          description: "Timestamp when the record was created."
+        - name: updated_at
+          description: "Timestamp when the record was last updated."
+        - name: version
+          description: "Version number of the record."
+        - name: bill_selection_date
+          description: "Bill Selection Date is a date field common to bill and bill line item records. It is usually the earliest date of service on a bill."
+        - name: bill_id
+          description: "Bill ID uniquely identifies a bill and links line items to the bill."
+        - name: bill_detail_id
+          description: "Bill Detail ID uniquely identifies a bill line item."
+        - name: line_number
+          description: "The number of the line item on the bill."
+        - name: ndc_billed_code
+          description: "The National Drug Code (or equivalent code value) identifying the drugs or pharmaceutical products billed."
+        - name: prescription_line_number
+          description: "A unique number assigned by the dispenser to identify the prescription at the line level."
+        - name: dispensed_as_written_code
+          description: >
+            "A code denoting methodology used in dispensing the drugs or pharmaceuticals. Dispense as Written Code - ANSI DE 1329
+            0 = Not dispense as written
+            1 = Physician dispense as written
+            2 = Patient dispense as written
+            3 = Pharmacy dispense as written
+            4 = No generic available
+            5 = Brand dispensed as generic
+            6 = Override
+            7 = Substitution not allowed - brand name drug mandated by law
+            8 = Substitution not allowed - generic not available in marketplace
+            9 = Other"
+        - name: drug_name
+          description: "Name of the dispensed drug or pharmaceutical."
+        - name: basis_of_cost_determination
+          description: >
+            "Method by which drug cost was calculated.
+            0 = Not Specified
+            1 = Average Wholesale Price (AWP)
+            2 = Local Wholesaler
+            3 = Direct
+            4 = Estimated Acquisition Cost
+            5 = Acquisition Cost
+            6 = Maximum Allowable Cost (MAC)
+            7 = Usual, Customary and Reasonable (UCR)
+            8 = Unit Dose
+            9 = Brand Medically Necessary"
+        - name: service_line_from_date
+          description: "The starting date that services were performed for the line item."
+        - name: service_line_to_date
+          description: "The ending date that services were performed for the line item."
+        - name: prescription_line_date
+          description: "The date the prescription was filled at the bill level."
+        - name: drugs_supplies_quantity
+          description: "The number of units of drugs/supplies dispensed."
+        - name: drugs_supplies_number_of
+          description: "The number of units of drugs/supplies."
+        - name: drugs_supplies_dispensing
+          description: "Amount billed for dispensing drugs/supplies."
+        - name: drugs_supplies_billed_amount
+          description: "The amount billed for drugs/supplies."
+        - name: total_amount_paid_per_line
+          description: "The total dollar amount paid or credited to the line item."
+        - name: ndc_paid_code
+          description: "Identifies the drug or pharmaceutical that was paid."
+        - name: days_units_paid
+          description: "The number of services paid for the line item in days or units."
+        - name: rendering_line_provider
+          description: "The unique National Provider ID of the rendering line provider."
+        - name: number_of_service_adjustments
+          description: "The number of service adjustments for the line item."
+        - name: service_adjustment_group_1
+          description: >
+            "A code indicating the general category of the first adjustment made to the dollar amount paid or credited to the line item.
+            CO = Contractual Obligations
+            OA = Other Adjustments
+            PI = Payer initiated reductions
+            PR = Patient Responsibility"
+        - name: service_adjustment_reason_1
+          description: "A code indicating the detailed reason of the first adjustment made to the dollar amount paid or credited to the line item."
+        - name: service_adjustment_amount_1
+          description: "The dollar amount of the first adjustment paid or credited to the line item."
+        - name: service_adjustment_units_1
+          description: "The number of units applicable to the first adjustment to the line item."
+        - name: service_adjustment_group_2
+          description: >
+            "A code indicating the general category of the second adjustment made to the dollar amount paid or credited to the line item."
+        - name: service_adjustment_reason_2
+          description: "A code indicating the detailed reason of the second adjustment made to the dollar amount paid or credited to the line item."
+        - name: service_adjustment_amount_2
+          description: "The dollar amount of the second adjustment paid or credited to the line item."
+        - name: service_adjustment_units_2
+          description: "The number of units applicable to the second adjustment to the line item."
+        - name: service_adjustment_group_3
+          description: >
+            "A code indicating the general category of the third adjustment made to the dollar amount paid or credited to the line item."
+        - name: service_adjustment_reason_3
+          description: "A code indicating the detailed reason of the third adjustment made to the dollar amount paid or credited to the line item."
+        - name: service_adjustment_amount_3
+          description: "The dollar amount of the third adjustment paid or credited to the line item."
+        - name: service_adjustment_units_3
+          description: "The number of units applicable to the third adjustment to the line item."
+        - name: service_adjustment_group_4
+          description: >
+            "A code indicating the general category of the fourth adjustment made to the dollar amount paid or credited to the line item."
+        - name: service_adjustment_reason_4
+          description: "A code indicating the detailed reason of the fourth adjustment made to the dollar amount paid or credited to the line item."
+        - name: service_adjustment_amount_4
+          description: "The dollar amount of the fourth adjustment paid or credited to the line item."
+        - name: service_adjustment_units_4
+          description: "The number of units applicable to the fourth adjustment to the line item."
+        - name: service_adjustment_group_5
+          description: >
+            "A code indicating the general category of the fifth adjustment made to the dollar amount paid or credited to the line item."
+        - name: service_adjustment_reason_5
+          description: "A code indicating the detailed reason of the fifth adjustment made to the dollar amount paid or credited to the line item."
+        - name: service_adjustment_amount_5
+          description: "The dollar amount of the fifth adjustment paid or credited to the line item."
+        - name: service_adjustment_units_5
+          description: "The number of units applicable to the fifth adjustment to the line item."
+
+  - name: stg_professional_header
+    description: "Staging model for professional header data. Contains claim-level information including patient demographics, provider details, and billing information."
+    config:
+      schema: claims_model
+      materialized: view
+      columns:
+        - name: row_id
+          description: "Primary key for the row."
+          tests:
+            - unique
+            - not_null
+        - name: bill_selection_date
+          description: "Bill Selection Date is a date field common to bill and bill line item records. It is usually the earliest date of service on a bill."
+        - name: bill_id
+          description: "Bill ID uniquely identifies a bill and links line items to the bill."
+        - name: billing_provider_unique_bill
+          description: "A unique number assigned by the billing provider to a specific bill within a batch of bills."
+        - name: unique_bill_id_number
+          description: "Assigned by and unique to the Insurer. This number should never be reused except when sending bill submission type '01' for cancellations or '05' for replacing a bill."
+        - name: bill_type
+          description: "SV1 = Professional Service"
+        - name: reporting_period_start_date
+          description: "The start date during which the information sent was processed."
+        - name: reporting_period_end_date
+          description: "The end date during which the information sent was processed."
+        - name: insurer_fein
+          description: "The federal identification number of the carrier or self-insured assuming responsibility for workers' compensation claims."
+        - name: insurer_postal_code
+          description: "The zip code of the carrier or self-insured's specific business site."
+        - name: claim_administrator_fein
+          description: "The federal identification number of the entity licensed or allowed to adjust a bill."
+        - name: claim_administrator_name
+          description: "The name of the entity licensed or allowed to adjust a bill."
+        - name: claim_administrator_postal
+          description: "The mailing zip code of the claim administrator's processing facility."
+        - name: transaction_set_purpose_code
+          description: "Identifies the purpose of the transaction set."
+        - name: employer_fein
+          description: "The federal identification number of the employer where the employee was employed at the time of the injury."
+        - name: employer_physical_city
+          description: "The city name of the facility where the injured worker was employed at the time of the injury."
+        - name: employer_physical_state_code
+          description: "The two-character state code of the facility where the injured worker was employed at the time of the injury."
+        - name: employer_physical_postal
+          description: "The zip code of the facility where the injured worker was employed at the time of the injury."
+        - name: employer_physical_country
+          description: "A three-character code indicating the country where the injured worker was employed at the time of the injury."
+        - name: employee_mailing_city
+          description: "The city name of the injured worker's mailing address."
+        - name: employee_mailing_state_code
+          description: "The two-character state code of the injured worker's mailing address."
+        - name: employee_mailing_postal_code
+          description: "The zip code of the injured worker's mailing address."
+        - name: employee_mailing_country
+          description: "A three-character code indicating the country of the injured worker's mailing address."
+        - name: employee_date_of_birth
+          description: "The month and year the injured worker was born. Day redacted."
+        - name: employee_gender_code
+          description: "Indicates the sex of the injured worker: M=Male, F=Female, U=Unknown."
+        - name: employee_marital_status_code
+          description: "Indicates the marital status of the injured worker: I=Single, K=Unknown, M=Married, S=Separated, U=Widowed"
+        - name: claim_administrator_claim
+          description: "A number assigned by the insurance carrier or TPA to identify a specific claim."
+        - name: employee_date_of_injury
+          description: "The month and year the accident occurred. Day redacted."
+        - name: total_charge_per_bill
+          description: "The cumulative dollar amount of all line items on the bill."
+        - name: billing_type_code
+          description: "Identifies the kind of billing: DM=Durable Medical, MO=Mail Order Drug, RX=Pharmacy or Drug"
+        - name: place_of_service_bill_code
+          description: "Identifies the place of service at the bill level."
+        - name: billing_format_code
+          description: "Indicates the data is from a CMS1500. B=Professional (CMS 1500)"
+        - name: provider_signature_on_file
+          description: "Indicates if the signature of the provider is on file. Y=Yes, N=No"
+        - name: release_of_information_code
+          description: "Identifies whether the release of information related to a claim is authorized or not."
+        - name: provider_agreement_code
+          description: "Identifies the kind of provider agreement applicable to a bill: H=Network, N=No Agreement, P=Participant Agreement, Y=PPO Agreement"
+        - name: bill_submission_reason_code
+          description: "Identifies the bill submission/re-submission type: 00=Original, 01=Cancellation, 05=Replacement"
+        - name: date_insurer_received_bill
+          description: "The calendar date the insurer received the bill from the provider."
+        - name: service_bill_from_date
+          description: "The starting date in which services were performed."
+        - name: service_bill_to_date
+          description: "The ending date in which services were performed."
+        - name: date_of_bill
+          description: "The provider's bill date."
+        - name: date_insurer_paid_bill
+          description: "The calendar date the insurer or financially responsible party paid the bill."
+        - name: contract_type_code
+          description: "Identifies the kind of contractual agreement for provider reimbursement."
+        - name: total_amount_paid_per_bill
+          description: "The dollar amount paid or credited for a submitted bill by payor after adjustments."
+        - name: patient_account_number
+          description: "A unique number assigned by the provider to identify the patient/claimant."
+        - name: transaction_tracking_number
+          description: "A number assigned by the sender (the organization that actually sent the data)."
+        - name: first_icd_9cm_or_icd_10cm
+          description: "First diagnosis code identifying the work related injury or illness."
+        - name: second_icd_9cm_or_icd_10cm
+          description: "Second diagnosis code identifying the work related injury or illness."
+        - name: third_icd_9cm_or_icd_10cm
+          description: "Third diagnosis code identifying the work related injury or illness."
+        - name: fourth_icd_9cm_or_icd_10cm
+          description: "Fourth diagnosis code identifying the work related injury or illness."
+        - name: fifth_icd_9cm_or_icd_10cm
+          description: "Fifth diagnosis code identifying the work related injury or illness."
+        - name: facility_name
+          description: "The name of the facility where the medical services were rendered."
+        - name: facility_fein
+          description: "The federal identification number of the facility where the medical services were rendered."
+        - name: facility_primary_address
+          description: "The first line in the facility's address."
+        - name: facility_secondary_address
+          description: "The second line in the facility's address."
+        - name: facility_city
+          description: "The city name of the facility's address."
+        - name: facility_state_code
+          description: "The two-character state code of the facility's address."
+        - name: facility_postal_code
+          description: "The zip code of the facility's address."
+        - name: facility_country_code
+          description: "A three-character code indicating the country of the facility's mailing address."
+        - name: facility_state_license_number
+          description: "A unique number assigned to identify the facility."
+        - name: facility_medicare_number
+          description: "A unique number assigned to the facility by the Medicare program."
+        - name: facility_national_provider
+          description: "The unique National Provider ID of the facility."
+        - name: managed_care_organization
+          description: "The jurisdiction assigned number that identifies the managed care organization."
+        - name: billing_provider_last_name
+          description: "The surname of the person or organization receiving payment."
+        - name: billing_provider_first_name
+          description: "The given name of the billing provider."
+        - name: billing_provider_middle_name
+          description: "The middle name or initial of the billing provider."
+        - name: billing_provider_suffix
+          description: "The legally recognized last name suffix of the billing provider."
+        - name: billing_provider_fein
+          description: "The federal tax identification number of the billing provider."
+        - name: billing_provider_gate_keeper
+          description: "Indicates that the billing provider is the treating doctor."
+        - name: billing_provider_primary
+          description: "Indicates the primary specialty of the billing provider."
+        - name: billing_provider_primary_1
+          description: "The first line in the billing provider's address."
+        - name: billing_provider_secondary
+          description: "The second line of the billing provider's address."
+        - name: billing_provider_city
+          description: "The city name of the billing provider's address."
+        - name: billing_provider_state_code
+          description: "The two-character state code of the billing provider's address."
+        - name: billing_provider_postal_code
+          description: "The zip code of the billing provider's address."
+        - name: billing_provider_country
+          description: "A three-character code indicating the country of the billing provider's mailing address."
+        - name: billing_provider_state_license
+          description: "The billing provider's license type, license number and jurisdiction code."
+        - name: billing_provider_medicare
+          description: "The specific number issued to the billing provider by the Medicare program."
+        - name: treatment_authorization_number
+          description: "A number assigned by the carrier to identify pre-authorized treatment plans."
+        - name: billing_provider_national
+          description: "The unique National Provider ID of the billing provider."
+        - name: rendering_bill_provider_last
+          description: "The surname of the individual provider actually rendering care."
+        - name: rendering_bill_provider_first
+          description: "The given name of the rendering bill provider."
+        - name: rendering_bill_provider_middle
+          description: "The middle name or initial of the rendering bill provider."
+        - name: rendering_bill_provider_suffix
+          description: "The legally recognized last name suffix of the rendering bill provider."
+        - name: rendering_bill_provider_fein
+          description: "The federal tax identification number of the rendering bill provider."
+        - name: rendering_bill_provider_gate
+          description: "Indicates that the rendering bill provider is the treating doctor."
+        - name: rendering_bill_provider
+          description: "Indicates the primary medical specialty of the rendering bill provider."
+        - name: rendering_bill_provider_1
+          description: "The first line of the rendering bill provider's address."
+        - name: rendering_bill_provider_2
+          description: "The second line of the rendering bill provider's address."
+        - name: rendering_bill_provider_city
+          description: "The city name of the rendering bill provider's address."
+        - name: rendering_bill_provider_state
+          description: "The two-character state code of the rendering bill provider's address."
+        - name: rendering_bill_provider_postal
+          description: "The zip code in the rendering bill provider's address."
+        - name: rendering_bill_provider_3
+          description: "Country code of the rendering bill provider's mailing address."
+        - name: rendering_bill_provider_state_1
+          description: "The rendering bill provider's license type, license number and jurisdiction code."
+        - name: rendering_bill_provider_4
+          description: "The unique National Provider ID of the rendering bill provider."
+        - name: referring_provider_last_name
+          description: "The surname of the provider referring claimant for care."
+        - name: referring_provider_first
+          description: "The given name of the referring provider."
+        - name: referring_provider_middle
+          description: "The middle name or initial of the referring provider."
+        - name: referring_provider_suffix
+          description: "The legally recognized last name suffix of the referring provider."
+        - name: referring_provider_fein
+          description: "The federal tax identification number of the referring provider."
+        - name: referring_provider_gate_keeper
+          description: "Indicates that the referring provider is the treating doctor."
+        - name: referring_provider_state
+          description: "The referring provider's license type, license number and jurisdiction code."
+        - name: referring_provider_specialty
+          description: "The specific license number denoting specialty of the referring provider."
+        - name: referring_provider_medicare
+          description: "The specific number issued to the referring provider by Medicare."
+        - name: referring_provider_national
+          description: "The unique National Provider ID of the referring provider."
+
+  - name: stg_professional_detail
+    description: "Staging model for professional detail data. Contains line-item level information including procedures, charges, and adjustments."
+    config:
+      schema: claims_model
+      materialized: view
+      columns:
+        - name: row_id
+          description: "Primary key for the row."
+          tests:
+            - unique
+            - not_null
+        - name: bill_selection_date
+          description: "Bill Selection Date is a date field common to bill and bill line item records. It is usually the earliest date of service on a bill."
+        - name: bill_id
+          description: "Bill ID uniquely identifies a bill and links line items to the bill."
+        - name: bill_detail_id
+          description: "Bill Detail ID uniquely identifies a bill line item."
+        - name: line_number
+          description: "The number of the line item on the bill."
+        - name: hcpcs_line_procedure_billed
+          description: "Identifies the treatment that was rendered and billed. HCPCS codes include Level 1 CPT procedure codes."
+        - name: first_hcpcs_modifier_billed
+          description: "The first two-character code identifying special circumstances related to the procedure billed."
+        - name: second_hcpcs_modifier_billed
+          description: "The second two-character code identifying special circumstances related to the procedure billed."
+        - name: third_hcpcs_modifier_billed
+          description: "The third two-character code identifying special circumstances related to the procedure billed."
+        - name: fourth_hcpcs_modifier_billed
+          description: "The fourth two-character code identifying special circumstances related to the procedure billed."
+        - name: procedure_description
+          description: "Free form text describing the treatment rendered."
+        - name: total_charge_per_line
+          description: "The service charge amount for the line item."
+        - name: days_units_code
+          description: "Indicates the time or units billed or paid. DA=Days, MJ=Minutes, UN=Unit"
+        - name: days_units_billed
+          description: "The number of services billed for the line item in days or units."
+        - name: place_of_service_line_code
+          description: "Identifies the place where the medical service was rendered."
+        - name: first_diagnosis_pointer
+          description: "References the diagnosis code (ICD-9 CM or ICD-10 CM) for which the medical services were rendered."
+        - name: second_diagnosis_pointer
+          description: "References the second diagnosis code for which the medical services were rendered."
+        - name: third_diagnosis_pointer
+          description: "References the third diagnosis code for which the medical services were rendered."
+        - name: fourth_diagnosis_pointer
+          description: "References the fourth diagnosis code for which the medical services were rendered."
+        - name: crna_supervision_indicator
+          description: "Flags that a Certified Registered Nurse Anesthetist (CRNA) was supervised. Y=Yes, N=No"
+        - name: provider_agreement_line_code
+          description: "Indicates the type of provider agreement applicable to the line item. H=Network, N=No Agreement, P=Participation Agreement, Y=PPO Agreement"
+        - name: service_line_from_date
+          description: "The starting date that services were performed for the line item."
+        - name: service_line_to_date
+          description: "The ending date that services were performed for the line item."
+        - name: contract_line_type_code
+          description: "A two-character code indicating the line item contractual arrangement for provider reimbursement."
+        - name: treatment_line_authorization
+          description: "Defaults to the Treatment Authorization Number. Y=reported, N=not reported."
+        - name: total_amount_paid_per_line
+          description: "The total dollar amount paid or credited to the line item."
+        - name: hcpcs_line_procedure_paid
+          description: "Identifies the treatment that was rendered and paid."
+        - name: first_hcpcs_modifier_paid
+          description: "The first two-character code identifying special circumstances related to the procedure paid."
+        - name: second_hcpcs_modifier_paid
+          description: "The second two-character code identifying special circumstances related to the procedure paid."
+        - name: third_hcpcs_modifier_paid
+          description: "The third two-character code identifying special circumstances related to the procedure paid."
+        - name: fourth_hcpcs_modifier_paid
+          description: "The fourth two-character code identifying special circumstances related to the procedure paid."
+        - name: days_units_paid
+          description: "The number of services paid for the line item in days or units."
+        - name: rendering_line_provider
+          description: "The unique National Provider ID of the rendering line provider."
+        - name: number_of_service_adjustments
+          description: "The number of service adjustments for the line item."
+        - name: service_adjustment_group
+          description: "A code indicating the general category of adjustment. CO=Contractual Obligations, OA=Other Adjustments, PI=Payer Initiated, PR=Patient Responsibility"
+        - name: service_adjustment_reason
+          description: "A code indicating the detailed reason of the first adjustment."
+        - name: service_adjustment_amount
+          description: "The dollar amount of the first adjustment paid or credited to the line item."
+        - name: service_adjustment_units
+          description: "The number of units applicable to the first adjustment to the line item."
+        - name: service_adjustment_group_1
+          description: "A code indicating the general category of the second adjustment."
+        - name: service_adjustment_reason_1
+          description: "A code indicating the detailed reason of the second adjustment."
+        - name: service_adjustment_amount_1
+          description: "The dollar amount of the second adjustment."
+        - name: service_adjustment_units_1
+          description: "The number of units applicable to the second adjustment."
+        - name: service_adjustment_group_2
+          description: "A code indicating the general category of the third adjustment."
+        - name: service_adjustment_reason_2
+          description: "A code indicating the detailed reason of the third adjustment."
+        - name: service_adjustment_amount_2
+          description: "The dollar amount of the third adjustment."
+        - name: service_adjustment_units_2
+          description: "The number of units applicable to the third adjustment."
+        - name: service_adjustment_group_3
+          description: "A code indicating the general category of the fourth adjustment."
+        - name: service_adjustment_reason_3
+          description: "A code indicating the detailed reason of the fourth adjustment."
+        - name: service_adjustment_amount_3
+          description: "The dollar amount of the fourth adjustment."
+        - name: service_adjustment_units_3
+          description: "The number of units applicable to the fourth adjustment."
+        - name: service_adjustment_group_4
+          description: "A code indicating the general category of the fifth adjustment."
+        - name: service_adjustment_reason_4
+          description: "A code indicating the detailed reason of the fifth adjustment."
+        - name: service_adjustment_amount_4
+          description: "The dollar amount of the fifth adjustment."
+        - name: service_adjustment_units_4
+          description: "The number of units applicable to the fifth adjustment."
+
+  - name: stg_institutional_header
+    description: "Staging model for institutional (hospital) header data. Contains claim-level information including patient demographics, provider details, and billing information."
+    config:
+      schema: claims_model
+      materialized: view
+      columns:
+        - name: row_id
+          description: "Primary key for the row."
+          tests:
+            - unique
+            - not_null
+        - name: bill_selection_date
+          description: "Bill Selection Date is a date field common to bill and bill line item records. It is usually the earliest date of service on a bill."
+        - name: bill_id
+          description: "Bill ID uniquely identifies a bill and links line items to the bill."
+        - name: billing_provider_unique_bill
+          description: "A unique number assigned by the billing provider to a specific bill within a batch of bills."
+        - name: unique_bill_id_number
+          description: "Assigned by and unique to the Insurer. This number should never be reused except when sending bill submission type '01' for cancellations or '05' for replacing a bill."
+        - name: bill_type
+          description: "SV2 = Institutional (Hospital) Service"
+        - name: reporting_period_start_date
+          description: "The start date during which the information sent was processed."
+        - name: reporting_period_end_date
+          description: "The end date during which the information sent was processed."
+        - name: insurer_fein
+          description: "The federal identification number of the carrier or self-insured assuming responsibility for workers' compensation claims."
+        - name: insurer_postal_code
+          description: "The zip code of the carrier or self-insured's specific business site."
+        - name: claim_administrator_fein
+          description: "The federal identification number of the entity licensed or allowed to adjust a bill."
+        - name: claim_administrator_name
+          description: "The name of the entity licensed or allowed to adjust a bill."
+        - name: claim_administrator_postal
+          description: "The mailing zip code of the claim administrator's processing facility."
+        - name: transaction_set_purpose_code
+          description: "Identifies the purpose of the transaction set."
+        - name: employer_fein
+          description: "The federal identification number of the employer where the employee was employed at the time of the injury."
+        - name: employer_physical_city
+          description: "The city name of the facility where the injured worker was employed at the time of the injury."
+        - name: employer_physical_state_code
+          description: "The two-character state code of the facility where the injured worker was employed at the time of the injury."
+        - name: employer_physical_postal
+          description: "The zip code of the facility where the injured worker was employed at the time of the injury."
+        - name: employer_physical_country
+          description: "A three-character code indicating the country where the injured worker was employed at the time of the injury."
+        - name: employee_mailing_city
+          description: "The city name of the injured worker's mailing address."
+        - name: employee_mailing_state_code
+          description: "The two-character state code of the injured worker's mailing address."
+        - name: employee_mailing_postal_code
+          description: "The zip code of the injured worker's mailing address."
+        - name: employee_mailing_country
+          description: "A three-character code indicating the country of the injured worker's mailing address."
+        - name: employee_date_of_birth
+          description: "The month and year the injured worker was born. Day redacted."
+        - name: employee_gender_code
+          description: "Indicates the sex of the injured worker: M=Male, F=Female, U=Unknown"
+        - name: employee_marital_status_code
+          description: "Indicates the marital status of the injured worker: I=Single, K=Unknown, M=Married, S=Separated, U=Widowed"
+        - name: claim_administrator_claim
+          description: "A number assigned by the insurance carrier or TPA to identify a specific claim."
+        - name: employee_date_of_injury
+          description: "The month and year the accident occurred. Day redacted."
+        - name: total_charge_per_bill
+          description: "The cumulative dollar amount of all line items on the bill."
+        - name: billing_type_code
+          description: "Identifies the kind of billing: DM=Durable Medical, MO=Mail Order Drug, RX=Pharmacy or Drug"
+        - name: place_of_service_bill_code
+          description: "Identifies the place of service at the bill level."
+        - name: billing_format_code
+          description: "Indicates the data is from a UB92. A=Institutional (UB 92). Note: If the bill is not a UB92, use 'A' as the default."
+        - name: provider_signature_on_file
+          description: "Indicates if the signature of the provider is on file. Y=Yes, N=No"
+        - name: release_of_information_code
+          description: "Identifies whether the release of information related to a claim is authorized or not."
+        - name: provider_agreement_code
+          description: "Identifies the kind of provider agreement applicable to a bill: H=Network, N=No Agreement, P=Participant Agreement, Y=PPO Agreement"
+        - name: facility_code
+          description: "Identifies the kind of facility where treatment was rendered."
+        - name: bill_frequency_type_code
+          description: "Indicates the claim billing status: 0=Non Payment/Zero Payment, 1=Admit through Discharge Claim, 2=Interim-First Claim, etc."
+        - name: admission_date
+          description: "The calendar date the claimant was admitted to the facility."
+        - name: admission_hour
+          description: "The hour the claimant was admitted to the facility. Format: HH:MM:SS"
+        - name: discharge_date
+          description: "The calendar date the claimant was discharged from the facility."
+        - name: discharge_hour
+          description: "The hour the claimant was discharged from the facility. Format: HH:MM:SS"
+        - name: admission_type_code
+          description: "Identifies the kind of admission: 1=Emergency, 2=Urgent, 3=Elective, 9=Information not available"
+        - name: diagnosis_related_group_code
+          description: "Classification of a hospital stay in terms of what was wrong and what was done for the patient."
+        - name: bill_submission_reason_code
+          description: "Identifies the bill submission/re-submission type: 00=Original, 01=Cancellation, 05=Replacement"
+        - name: date_insurer_received_bill
+          description: "The calendar date the insurer received the bill from the provider."
+        - name: service_bill_from_date
+          description: "The starting date in which services were performed."
+        - name: service_bill_to_date
+          description: "The ending date in which services were performed."
+        - name: date_of_bill
+          description: "The provider's bill date."
+        - name: date_insurer_paid_bill
+          description: "The calendar date the insurer or financially responsible party paid the bill."
+        - name: contract_type_code
+          description: "Identifies the kind of contractual agreement for provider reimbursement."
+        - name: total_amount_paid_per_bill
+          description: "The dollar amount paid or credited for a submitted bill by payor after adjustments."
+        - name: patient_account_number
+          description: "A unique number assigned by the provider to identify the patient/claimant."
+        - name: transaction_tracking_number
+          description: "A number assigned by the sender (the organization that actually sent the data)."
+        - name: first_icd_9cm_or_icd_10cm
+          description: "Identifies the diagnosis of the work related injury or illness."
+        - name: second_icd_9cm_or_icd_10cm
+          description: "Identifies the diagnosis of the work related injury or illness."
+        - name: third_icd_9cm_or_icd_10cm
+          description: "Identifies the diagnosis of the work related injury or illness."
+        - name: fourth_icd_9cm_or_icd_10cm
+          description: "Identifies the diagnosis of the work related injury or illness."
+        - name: fifth_icd_9cm_or_icd_10cm
+          description: "Identifies the diagnosis of the work related injury or illness."
+        - name: principal_diagnosis_code
+          description: "Identifies the primary ICD-9 CM or ICD-10 CM code of the bill."
+        - name: admitting_diagnosis_code
+          description: "Identifies the admitting ICD-9 CM or ICD-10 CM code of the bill."
+        - name: icd_9cm_or_icd_10cm_principal
+          description: "Identifies the principal procedure rendered."
+        - name: principal_procedure_date
+          description: "The calendar date the primary procedure was performed."
+        - name: first_icd_9cm_or_icd_10cm_1
+          description: "Identifies a procedure rendered other than the principal procedure."
+        - name: second_icd_9cm_or_icd_10cm_1
+          description: "Identifies a procedure rendered other than the principal procedure."
+        - name: third_icd_9cm_or_icd_10cm_1
+          description: "Identifies a procedure rendered other than the principal procedure."
+        - name: fourth_icd_9cm_or_icd_10cm_1
+          description: "Identifies a procedure rendered other than the principal procedure."
+        - name: first_procedure_date
+          description: "The calendar date the first procedure was performed."
+        - name: second_procedure_date
+          description: "The calendar date the second procedure was performed."
+        - name: third_procedure_date
+          description: "The calendar date the third procedure was performed."
+        - name: fourth_procedure_date
+          description: "The calendar date the fourth procedure was performed."
+        - name: facility_name
+          description: "The name of the facility where the medical services were rendered."
+        - name: facility_fein
+          description: "The federal identification number of the facility where the medical services were rendered."
+        - name: facility_primary_address
+          description: "The first line in the facility's address."
+        - name: facility_secondary_address
+          description: "The second line in the facility's address."
+        - name: facility_city
+          description: "The city name of the facility's address."
+        - name: facility_state_code
+          description: "The two-character state code of the facility's address."
+        - name: facility_postal_code
+          description: "The zip code of the facility's address."
+        - name: facility_country_code
+          description: "A three-character code indicating the country of the facility's mailing address."
+        - name: facility_state_license_number
+          description: "A unique number assigned to identify the facility."
+        - name: facility_medicare_number
+          description: "A unique number assigned to the facility by the Medicare program."
+        - name: facility_national_provider
+          description: "The unique National Provider ID of the facility."
+        - name: managed_care_organization
+          description: "The jurisdiction assigned number that identifies the managed care organization."
+        - name: billing_provider_last_name
+          description: "The surname of the person or full name of an organization receiving payment."
+        - name: billing_provider_first_name
+          description: "The given name of the billing provider."
+        - name: billing_provider_middle_name
+          description: "The middle name or initial of the billing provider."
+        - name: billing_provider_suffix
+          description: "The legally recognized last name suffix of the billing provider."
+        - name: billing_provider_fein
+          description: "The federal tax identification number of the billing provider."
+        - name: billing_provider_gate_keeper
+          description: "Indicates that the billing provider is the treating doctor."
+        - name: billing_provider_primary
+          description: "Indicates the primary specialty of the billing provider."
+        - name: billing_provider_primary_1
+          description: "The first line in the billing provider's address."
+        - name: billing_provider_secondary
+          description: "The second line of the billing provider's address."
+        - name: billing_provider_city
+          description: "The city name of the billing provider's address."
+        - name: billing_provider_state_code
+          description: "The two-character state code of the billing provider's address."
+        - name: billing_provider_postal_code
+          description: "The zip code of the billing provider's address."
+        - name: billing_provider_country
+          description: "A three-character code indicating the country of the billing provider's mailing address."
+        - name: billing_provider_state_license
+          description: "The billing provider's license type, license number and jurisdiction code."
+        - name: billing_provider_medicare
+          description: "The specific number issued to the billing provider by the Medicare program."
+        - name: treatment_authorization_number
+          description: "A number assigned by the carrier to identify pre-authorized treatment plans."
+        - name: billing_provider_national
+          description: "The unique National Provider ID of the billing provider."
+        - name: rendering_bill_provider_last
+          description: "The surname of the individual provider actually rendering care."
+        - name: rendering_bill_provider_first
+          description: "The given name of the rendering bill provider."
+        - name: rendering_bill_provider_middle
+          description: "The middle name or initial of the rendering bill provider."
+        - name: rendering_bill_provider_suffix
+          description: "The legally recognized last name suffix of the rendering bill provider."
+        - name: rendering_bill_provider_fein
+          description: "The federal tax identification number of the rendering bill provider."
+        - name: rendering_bill_provider_gate
+          description: "Indicates that the rendering bill provider is the treating doctor."
+        - name: rendering_bill_provider
+          description: "Indicates the primary medical specialty of the rendering bill provider."
+        - name: rendering_bill_provider_1
+          description: "The first line of the rendering bill provider's address."
+        - name: rendering_bill_provider_2
+          description: "The second line of the rendering bill provider's address."
+        - name: rendering_bill_provider_city
+          description: "The city name of the rendering bill provider's address."
+        - name: rendering_bill_provider_state
+          description: "The two-character state code of the rendering bill provider's address."
+        - name: rendering_bill_provider_postal
+          description: "The zip code in the rendering bill provider's address."
+        - name: rendering_bill_provider_3
+          description: "A three-character code indicating the country of the rendering bill provider's mailing address."
+        - name: rendering_bill_provider_state_1
+          description: "The rendering bill provider's license type, license number and jurisdiction code."
+        - name: rendering_bill_provider_4
+          description: "The unique National Provider ID of the rendering bill provider."
+        - name: referring_provider_last_name
+          description: "The surname of the provider referring claimant for care."
+        - name: referring_provider_first
+          description: "The given name of the referring provider."
+        - name: referring_provider_middle
+          description: "The middle name or initial of the referring provider."
+        - name: referring_provider_suffix
+          description: "The legally recognized last name suffix of the referring provider."
+        - name: referring_provider_fein
+          description: "The federal tax identification number of the referring provider."
+        - name: referring_provider_gate_keeper
+          description: "Indicates that the referring provider is the treating doctor."
+        - name: referring_provider_state
+          description: "The referring provider's license type, license number and jurisdiction code."
+        - name: referring_provider_specialty
+          description: "The specific license number issued by a state to the referring provider that denotes specialty."
+        - name: referring_provider_medicare
+          description: "The specific number issued to the referring provider by Medicare."
+        - name: referring_provider_national
+          description: "The unique National Provider ID of the referring provider."
+
+  - name: stg_institutional_detail
+    description: "Staging model for institutional (hospital) detail data. Contains line-item level information including procedures, charges, and adjustments."
+    config:
+      schema: claims_model
+      materialized: view
+      columns:
+        - name: row_id
+          description: "Primary key for the row."
+          tests:
+            - unique
+            - not_null
+        - name: bill_selection_date
+          description: "Bill Selection Date is a date field common to bill and bill line item records. It is usually the earliest date of service on a bill."
+        - name: bill_id
+          description: "Bill ID uniquely identifies a bill and links line items to the bill."
+        - name: bill_detail_id
+          description: "Bill Detail ID uniquely identifies a bill line item."
+        - name: line_number
+          description: "The number of the line item on the bill."
+        - name: hcpcs_line_procedure_billed
+          description: "Identifies the treatment that was rendered and billed. HCPCS is the abbreviation for Health Care Financing Administration's Common Procedure Coding System. HCPCS codes include Level 1 CPT procedure codes."
+        - name: first_hcpcs_modifier_billed
+          description: "The first two-character code identifying special circumstances related to the procedure billed."
+        - name: second_hcpcs_modifier_billed
+          description: "The second two-character code identifying special circumstances related to the procedure billed."
+        - name: third_hcpcs_modifier_billed
+          description: "The third two-character code identifying special circumstances related to the procedure billed."
+        - name: fourth_hcpcs_modifier_billed
+          description: "The fourth two-character code identifying special circumstances related to the procedure billed."
+        - name: procedure_description
+          description: "Free form text describing the treatment rendered."
+        - name: total_charge_per_line
+          description: "The service charge amount for the line item."
+        - name: days_units_code
+          description: "Indicates the time or units billed or paid.\nDA = Days\nMJ = Minutes\nUN = Unit"
+        - name: days_units_billed
+          description: "The number of services billed for the line item in days or units."
+        - name: place_of_service_line_code
+          description: "Identifies the place where the medical service was rendered. Examples:\n21 = Inpatient Hospital\n56 = Psychiatric Residential Treatment Center\n72 = Rural Health Clinic"
+        - name: provider_agreement_line_code
+          description: "Indicates the type of provider agreement applicable to the line item.\nH = Network\nN = No Agreement\nP = Participation Agreement\nY = PPO Agreement"
+        - name: revenue_billed_code
+          description: "Indicates the specific cost center billed. Examples:\n117 = Private room and board oncology\n201 = Intensive care surgical\n515 = Clinic pediatric"
+        - name: revenue_unit_rate
+          description: "The rate per unit of associated revenue code for hospital accommodations."
+        - name: service_line_from_date
+          description: "The starting date that services were performed for the line item."
+        - name: service_line_to_date
+          description: "The ending date that services were performed for the line item."
+        - name: contract_line_type_code
+          description: "A two-character code indicating the line item contractual arrangement for provider reimbursement.\n01 = Diagnosis Related Group\n02 = Per Diem\n03 = Variable Per Diem\n04 = Flat\n05 = Capitate\n06 = Percent\n09 = Other"
+        - name: treatment_line_authorization
+          description: "Defaults to the Treatment Authorization Number (DN581 at the bill level) unless a data element is transmitted in this field.\nY = reported,\nN = not reported."
+        - name: total_amount_paid_per_line
+          description: "The total dollar amount paid or credited to the line item."
+        - name: hcpcs_line_procedure_paid
+          description: "Identifies the treatment that was rendered and paid."
+        - name: first_hcpcs_modifier_paid
+          description: "The first two-character code identifying special circumstances related to the procedure paid."
+        - name: second_hcpcs_modifier_paid
+          description: "The second two-character code identifying special circumstances related to the procedure paid."
+        - name: third_hcpcs_modifier_paid
+          description: "The third two-character code identifying special circumstances related to the procedure paid."
+        - name: fourth_hcpcs_modifier_paid
+          description: "The fourth two-character code identifying special circumstances related to the procedure paid."
+        - name: revenue_paid_code
+          description: "Indicates the specific cost center paid. Examples:\n117 = Private room and board oncology\n201 = Intensive care surgical\n515 = Clinic pediatric"
+        - name: days_units_paid
+          description: "The number of services paid for the line item in days or units."
+        - name: rendering_line_provider
+          description: "The unique National Provider ID of the rendering line provider."
+        - name: number_of_service_adjustments
+          description: "The number of service adjustments for the line item."
+        - name: service_adjustment_group
+          description: "A code indicating the general category of adjustment.\nCO = Contractual Obligations\nOA = Other Adjustments\nPI = Payer Initiated reductions\nPR = Patient Responsibility"
+        - name: service_adjustment_reason
+          description: "A code indicating the detailed reason of the first adjustment."
+        - name: service_adjustment_amount
+          description: "The dollar amount of the first adjustment paid or credited to the line item."
+        - name: service_adjustment_units
+          description: "The number of units applicable to the first adjustment to the line item."
+        - name: service_adjustment_group_1
+          description: "A code indicating the general category of the second adjustment."
+        - name: service_adjustment_reason_1
+          description: "A code indicating the detailed reason of the second adjustment."
+        - name: service_adjustment_amount_1
+          description: "The dollar amount of the second adjustment."
+        - name: service_adjustment_units_1
+          description: "The number of units applicable to the second adjustment."
+        - name: service_adjustment_group_2
+          description: "A code indicating the general category of the third adjustment."
+        - name: service_adjustment_reason_2
+          description: "A code indicating the detailed reason of the third adjustment."
+        - name: service_adjustment_amount_2
+          description: "The dollar amount of the third adjustment."
+        - name: service_adjustment_units_2
+          description: "The number of units applicable to the third adjustment."
+        - name: service_adjustment_group_3
+          description: "A code indicating the general category of the fourth adjustment."
+        - name: service_adjustment_reason_3
+          description: "A code indicating the detailed reason of the fourth adjustment."
+        - name: service_adjustment_amount_3
+          description: "The dollar amount of the fourth adjustment."
+        - name: service_adjustment_units_3
+          description: "The number of units applicable to the fourth adjustment."
+        - name: service_adjustment_group_4
+          description: "A code indicating the general category of the fifth adjustment."
+        - name: service_adjustment_reason_4
+          description: "A code indicating the detailed reason of the fifth adjustment."         
+        - name: service_adjustment_amount_4
+          description: "The dollar amount of the fifth adjustment."
+        - name: service_adjustment_units_4
+          description: "The number of units applicable to the fifth adjustment."
+        - name: service_adjustment_group_5
+          description: "A code indicating the general category of the sixth adjustment."
+        - name: service_adjustment_reason_5
+          description: "A code indicating the detailed reason of the sixth adjustment."
+        - name: service_adjustment_amount_5
+          description: "The dollar amount of the sixth adjustment."
+        - name: service_adjustment_units_5
+          description: "The number of units applicable to the sixth adjustment."
