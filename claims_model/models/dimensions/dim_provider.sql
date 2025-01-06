@@ -1,12 +1,6 @@
 with base as (
     select
         coalesce(billing_provider_fein, rendering_bill_provider_fein, referring_provider_fein) as provider_fein,
-        case
-            when billing_provider_fein is not null then 'Billing'
-            when rendering_bill_provider_fein is not null then 'Rendering'
-            when referring_provider_fein is not null then 'Referring'
-            else 'Other'
-        end as provider_type,
         coalesce(billing_provider_last_name, rendering_bill_provider_last, referring_provider_last_name) as provider_last_name,
         coalesce(billing_provider_first_name, rendering_bill_provider_first, referring_provider_first) as provider_first_name,
         coalesce(billing_provider_middle_name, rendering_bill_provider_middle, referring_provider_middle) as provider_middle_name,
@@ -26,12 +20,6 @@ with base as (
 
     select
         coalesce(billing_provider_fein, rendering_bill_provider_fein, referring_provider_fein) as provider_fein,
-        case
-            when billing_provider_fein is not null then 'Billing'
-            when rendering_bill_provider_fein is not null then 'Rendering'
-            when referring_provider_fein is not null then 'Referring'
-            else 'Other'
-        end as provider_type,
         coalesce(billing_provider_last_name, rendering_bill_provider_last, referring_provider_last_name) as provider_last_name,
         coalesce(billing_provider_first_name, rendering_bill_provider_first, referring_provider_first) as provider_first_name,
         coalesce(billing_provider_middle_name, rendering_bill_provider_middle, referring_provider_middle) as provider_middle_name,
@@ -51,12 +39,6 @@ with base as (
 
     select
         coalesce(billing_provider_fein, rendering_bill_provider_fein, referring_provider_fein) as provider_fein,
-        case
-            when billing_provider_fein is not null then 'Billing'
-            when rendering_bill_provider_fein is not null then 'Rendering'
-            when referring_provider_fein is not null then 'Referring'
-            else 'Other'
-        end as provider_type,
         coalesce(billing_provider_last_name, rendering_bill_provider_last, referring_provider_last_name) as provider_last_name,
         coalesce(billing_provider_first_name, rendering_bill_provider_first, referring_provider_first) as provider_first_name,
         coalesce(billing_provider_middle_name, rendering_bill_provider_middle, referring_provider_middle) as provider_middle_name,
@@ -75,7 +57,6 @@ with base as (
 
 select distinct
     provider_fein,
-    provider_type,
     provider_last_name,
     provider_first_name,
     provider_middle_name,
