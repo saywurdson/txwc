@@ -1,6 +1,4 @@
 select
-    d.row_id,
-    d.bill_selection_date,
     d.bill_id,
     d.bill_detail_id,
     d.line_number,

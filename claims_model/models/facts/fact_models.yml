@@ -1,11 +1,11 @@
 version: 2
 
 models:
-  - name: fact_pharmacy_claim
+  - name: fact_pharmacy_claim_line
     description: "Fact table for pharmacy claim line items, combining detail and header information."
     config:
       schema: claims_model
-      materialized: incremental
+      materialized: table
       alias: pharmacy_claim 
       columns:
         - name: bill_id
@@ -244,11 +244,11 @@ models:
           description: "The end date during which the information sent was processed."
 
 
-  - name: fact_professional_claim
+  - name: fact_professional_claim_line
     description: "Fact table for professional claim line items, combining detail and header information."
     config:
       schema: claims_model
-      materialized: incremental
+      materialized: table
       alias: professional_claim 
       columns:
         - name: row_id
@@ -530,11 +530,11 @@ models:
           description: "The end date during which the information sent was processed."
 
 
-  - name: fact_institutional_claim
+  - name: fact_institutional_claim_line
     description: "Fact table for institutional (hospital) claim line items, combining detail and header information."
     config:
       schema: claims_model
-      materialized: incremental
+      materialized: table
       alias: institutional_claim
       columns:
         - name: bill_id
