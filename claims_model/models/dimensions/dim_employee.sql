@@ -9,6 +9,7 @@ with base as (
         employee_gender_code,
         employee_marital_status_code
     from {{ ref('stg_pharmacy_header') }}
+    where patient_account_number is not null
 
     union
 
@@ -22,6 +23,7 @@ with base as (
         employee_gender_code,
         employee_marital_status_code
     from {{ ref('stg_institutional_header') }}
+    where patient_account_number is not null
 
     union
 
@@ -35,6 +37,7 @@ with base as (
         employee_gender_code,
         employee_marital_status_code
     from {{ ref('stg_professional_header') }}
+    where patient_account_number is not null
 )
 
 select distinct
