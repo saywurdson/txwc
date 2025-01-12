@@ -54,4 +54,3 @@ select
     cast(h.reporting_period_end_date as timestamp) as reporting_period_end_date
 from {{ ref('stg_pharmacy_detail') }} d
 left join {{ ref('stg_pharmacy_header') }} h ON d.bill_id = h.bill_id
-where patient_account_number is not null

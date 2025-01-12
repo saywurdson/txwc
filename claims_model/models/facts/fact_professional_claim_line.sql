@@ -70,4 +70,3 @@ select
 from {{ ref('stg_professional_detail') }} d
 left join {{ ref('stg_professional_header') }} h
     on d.bill_id = h.bill_id
-where patient_account_number is not null

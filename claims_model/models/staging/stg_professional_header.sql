@@ -13,13 +13,57 @@ professional_header_current as (
         bill_type,
         reporting_period_start_date,
         reporting_period_end_date,
-        insurer_fein,
+        case
+            when insurer_fein is null 
+                or trim(insurer_fein) = '' 
+            then lpad(
+                cast(
+                    (
+                    hash(
+                        concat_ws(
+                        '||',
+                        coalesce(insurer_postal_code, ''),
+                        coalesce(claim_administrator_fein, ''),
+                        coalesce(claim_administrator_name, ''),
+                        coalesce(claim_administrator_postal, '')
+                        ),
+                        'xxhash64'
+                    ) % 1000000000
+                    ) as varchar
+                ),
+                9,
+                '0'
+                )
+            else insurer_fein
+        end as insurer_fein,
         insurer_postal_code,
         claim_administrator_fein,
         claim_administrator_name,
         claim_administrator_postal,
         transaction_set_purpose_code,
-        employer_fein,
+        case
+            when employer_fein is null 
+                or trim(employer_fein) = '' 
+            then lpad(
+                cast(
+                    (
+                    hash(
+                        concat_ws(
+                        '||',
+                        coalesce(employer_physical_city, ''),
+                        coalesce(employer_physical_state_code, ''),
+                        coalesce(employer_physical_postal, ''),
+                        coalesce(employer_physical_country, '')
+                        ),
+                        'xxhash64'
+                    ) % 1000000000
+                    ) as varchar
+                ), 
+                9, 
+                '0'
+                )
+            else employer_fein
+        end as employer_fein,
         employer_physical_city,
         employer_physical_state_code,
         employer_physical_postal,
@@ -48,7 +92,31 @@ professional_header_current as (
         date_insurer_paid_bill,
         contract_type_code,
         total_amount_paid_per_bill,
-        patient_account_number,
+        case 
+            when patient_account_number is null 
+                or trim(patient_account_number) = '' 
+            then lpad(
+                cast(
+                    (
+                    hash(
+                        concat_ws(
+                        '||',
+                        coalesce(employee_mailing_city, ''),
+                        coalesce(employee_mailing_state_code, ''),
+                        coalesce(employee_mailing_postal_code, ''),
+                        coalesce(employee_mailing_country, ''),
+                        coalesce(cast(employee_date_of_birth as varchar), ''),
+                        coalesce(employee_gender_code, '')
+                        ),
+                        'xxhash64'
+                    ) % 1000000000
+                    ) as varchar
+                ),
+                9,
+                '0'
+                )
+            else patient_account_number
+        end as patient_account_number,
         transaction_tracking_number,
         first_icd_9cm_or_icd_10cm,
         second_icd_9cm_or_icd_10cm,
@@ -56,7 +124,35 @@ professional_header_current as (
         fourth_icd_9cm_or_icd_10cm,
         fifth_icd_9cm_or_icd_10cm,
         facility_name,
-        facility_fein,
+        case
+            when facility_fein is null 
+                or trim(facility_fein) = '' 
+            then lpad(
+                cast(
+                    (
+                    hash(
+                        concat_ws(
+                        '||',
+                        coalesce(facility_name, ''),
+                        coalesce(facility_primary_address, ''),
+                        coalesce(facility_secondary_address, ''),
+                        coalesce(facility_city, ''),
+                        coalesce(facility_state_code, ''),
+                        coalesce(facility_postal_code, ''),
+                        coalesce(facility_country_code, ''),
+                        coalesce(facility_state_license_number, ''),
+                        coalesce(facility_medicare_number, ''),
+                        coalesce(facility_national_provider, '')
+                        ),
+                        'xxhash64'
+                    ) % 1000000000
+                    ) as varchar
+                ),
+                9,
+                '0'
+                )
+            else facility_fein
+        end as facility_fein,
         facility_primary_address,
         facility_secondary_address,
         facility_city,
@@ -71,7 +167,41 @@ professional_header_current as (
         billing_provider_first_name,
         billing_provider_middle_name,
         billing_provider_suffix,
-        billing_provider_fein,
+        case
+            when billing_provider_fein is null 
+                or trim(billing_provider_fein) = '' 
+            then lpad(
+                cast(
+                    (
+                    hash(
+                        concat_ws(
+                        '||',
+                        coalesce(billing_provider_last_name, ''),
+                        coalesce(billing_provider_first_name, ''),
+                        coalesce(billing_provider_middle_name, ''),
+                        coalesce(billing_provider_suffix, ''),
+                        coalesce(billing_provider_gate_keeper, ''),
+                        coalesce(billing_provider_primary, ''),
+                        coalesce(billing_provider_primary_1, ''),
+                        coalesce(billing_provider_secondary, ''),
+                        coalesce(billing_provider_city, ''),
+                        coalesce(billing_provider_state_code, ''),
+                        coalesce(billing_provider_postal_code, ''),
+                        coalesce(billing_provider_country, ''),
+                        coalesce(billing_provider_state_license, ''),
+                        coalesce(billing_provider_medicare, ''),
+                        coalesce(treatment_authorization_number, ''),
+                        coalesce(billing_provider_national, '')
+                        ),
+                        'xxhash64'
+                    ) % 1000000000
+                    ) as varchar
+                ), 
+                9, 
+                '0'
+                )
+            else billing_provider_fein
+        end as billing_provider_fein,
         billing_provider_gate_keeper,
         billing_provider_primary,
         billing_provider_primary_1,
@@ -88,7 +218,39 @@ professional_header_current as (
         rendering_bill_provider_first,
         rendering_bill_provider_middle,
         rendering_bill_provider_suffix,
-        rendering_bill_provider_fein,
+        case
+            when rendering_bill_provider_fein is null 
+                or trim(rendering_bill_provider_fein) = '' 
+            then lpad(
+                cast(
+                    (
+                    hash(
+                        concat_ws(
+                        '||',
+                        coalesce(rendering_bill_provider_last, ''),
+                        coalesce(rendering_bill_provider_first, ''),
+                        coalesce(rendering_bill_provider_middle, ''),
+                        coalesce(rendering_bill_provider_suffix, ''),
+                        coalesce(rendering_bill_provider_gate, ''),
+                        coalesce(rendering_bill_provider, ''),
+                        coalesce(rendering_bill_provider_1, ''),
+                        coalesce(rendering_bill_provider_2, ''),
+                        coalesce(rendering_bill_provider_city, ''),
+                        coalesce(rendering_bill_provider_state, ''),
+                        coalesce(rendering_bill_provider_postal, ''),
+                        coalesce(rendering_bill_provider_3, ''),
+                        coalesce(rendering_bill_provider_state_1, ''),
+                        coalesce(rendering_bill_provider_4, '')
+                        ),
+                        'xxhash64'
+                    ) % 1000000000
+                    ) as varchar
+                ),
+                9,
+                '0'
+                )
+            else rendering_bill_provider_fein
+        end as rendering_bill_provider_fein,
         rendering_bill_provider_gate,
         rendering_bill_provider,
         rendering_bill_provider_1,
@@ -103,7 +265,34 @@ professional_header_current as (
         referring_provider_first,
         referring_provider_middle,
         referring_provider_suffix,
-        referring_provider_fein,
+        case
+            when referring_provider_fein is null 
+                or trim(referring_provider_fein) = '' 
+            then lpad(
+                cast(
+                    (
+                    hash(
+                        concat_ws(
+                        '||',
+                        coalesce(referring_provider_last_name, ''),
+                        coalesce(referring_provider_first, ''),
+                        coalesce(referring_provider_middle, ''),
+                        coalesce(referring_provider_suffix, ''),
+                        coalesce(referring_provider_gate_keeper, ''),
+                        coalesce(referring_provider_state, ''),
+                        coalesce(referring_provider_specialty, ''),
+                        coalesce(referring_provider_medicare, ''),
+                        coalesce(referring_provider_national, '')
+                        ),
+                        'xxhash64'
+                    ) % 1000000000
+                    ) as varchar
+                ),
+                9,
+                '0'
+                )
+            else referring_provider_fein
+        end as referring_provider_fein,
         referring_provider_gate_keeper,
         referring_provider_state,
         referring_provider_specialty,
@@ -125,13 +314,57 @@ professional_header_historical as (
         bill_type,
         reporting_period_start_date,
         reporting_period_end_date,
-        insurer_fein,
+        case
+            when insurer_fein is null 
+                or trim(insurer_fein) = '' 
+            then lpad(
+                cast(
+                    (
+                    hash(
+                        concat_ws(
+                        '||',
+                        coalesce(insurer_postal_code, ''),
+                        coalesce(claim_administrator_fein, ''),
+                        coalesce(claim_administrator_name, ''),
+                        coalesce(claim_administrator_postal, '')
+                        ),
+                        'xxhash64'
+                    ) % 1000000000
+                    ) as varchar
+                ),
+                9,
+                '0'
+                )
+            else insurer_fein
+        end as insurer_fein,
         insurer_postal_code,
         claim_administrator_fein,
         claim_administrator_name,
         claim_administrator_postal,
         transaction_set_purpose_code,
-        employer_fein,
+        case
+            when employer_fein is null 
+                or trim(employer_fein) = '' 
+            then lpad(
+                cast(
+                    (
+                    hash(
+                        concat_ws(
+                        '||',
+                        coalesce(employer_physical_city, ''),
+                        coalesce(employer_physical_state_code, ''),
+                        coalesce(employer_physical_postal, ''),
+                        coalesce(employer_physical_country, '')
+                        ),
+                        'xxhash64'
+                    ) % 1000000000
+                    ) as varchar
+                ), 
+                9, 
+                '0'
+                )
+            else employer_fein
+        end as employer_fein,
         employer_physical_city,
         employer_physical_state_code,
         employer_physical_postal,
@@ -160,7 +393,31 @@ professional_header_historical as (
         date_insurer_paid_bill,
         contract_type_code,
         total_amount_paid_per_bill,
-        patient_account_number,
+        case 
+            when patient_account_number is null 
+                or trim(patient_account_number) = '' 
+            then lpad(
+                cast(
+                    (
+                    hash(
+                        concat_ws(
+                        '||',
+                        coalesce(employee_mailing_city, ''),
+                        coalesce(employee_mailing_state_code, ''),
+                        coalesce(employee_mailing_postal_code, ''),
+                        coalesce(employee_mailing_country, ''),
+                        coalesce(cast(employee_date_of_birth as varchar), ''),
+                        coalesce(employee_gender_code, '')
+                        ),
+                        'xxhash64'
+                    ) % 1000000000
+                    ) as varchar
+                ),
+                9,
+                '0'
+                )
+            else patient_account_number
+        end as patient_account_number,
         transaction_tracking_number,
         first_icd_9cm_or_icd_10cm,
         second_icd_9cm_or_icd_10cm,
@@ -168,7 +425,35 @@ professional_header_historical as (
         fourth_icd_9cm_or_icd_10cm,
         fifth_icd_9cm_or_icd_10cm,
         facility_name,
-        facility_fein,
+        case
+            when facility_fein is null 
+                or trim(facility_fein) = '' 
+            then lpad(
+                cast(
+                    (
+                    hash(
+                        concat_ws(
+                        '||',
+                        coalesce(facility_name, ''),
+                        coalesce(facility_primary_address, ''),
+                        coalesce(facility_secondary_address, ''),
+                        coalesce(facility_city, ''),
+                        coalesce(facility_state_code, ''),
+                        coalesce(facility_postal_code, ''),
+                        coalesce(facility_country_code, ''),
+                        coalesce(facility_state_license_number, ''),
+                        coalesce(facility_medicare_number, ''),
+                        coalesce(facility_national_provider, '')
+                        ),
+                        'xxhash64'
+                    ) % 1000000000
+                    ) as varchar
+                ),
+                9,
+                '0'
+                )
+            else facility_fein
+        end as facility_fein,
         facility_primary_address,
         facility_secondary_address,
         facility_city,
@@ -183,7 +468,41 @@ professional_header_historical as (
         billing_provider_first_name,
         billing_provider_middle_name,
         billing_provider_suffix,
-        billing_provider_fein,
+        case
+            when billing_provider_fein is null 
+                or trim(billing_provider_fein) = '' 
+            then lpad(
+                cast(
+                    (
+                    hash(
+                        concat_ws(
+                        '||',
+                        coalesce(billing_provider_last_name, ''),
+                        coalesce(billing_provider_first_name, ''),
+                        coalesce(billing_provider_middle_name, ''),
+                        coalesce(billing_provider_suffix, ''),
+                        coalesce(billing_provider_gate_keeper, ''),
+                        coalesce(billing_provider_primary, ''),
+                        coalesce(billing_provider_primary_1, ''),
+                        coalesce(billing_provider_secondary, ''),
+                        coalesce(billing_provider_city, ''),
+                        coalesce(billing_provider_state_code, ''),
+                        coalesce(billing_provider_postal_code, ''),
+                        coalesce(billing_provider_country, ''),
+                        coalesce(billing_provider_state_license, ''),
+                        coalesce(billing_provider_medicare, ''),
+                        coalesce(treatment_authorization_number, ''),
+                        coalesce(billing_provider_national, '')
+                        ),
+                        'xxhash64'
+                    ) % 1000000000
+                    ) as varchar
+                ), 
+                9, 
+                '0'
+                )
+            else billing_provider_fein
+        end as billing_provider_fein,
         billing_provider_gate_keeper,
         billing_provider_primary,
         billing_provider_primary_1,
@@ -200,7 +519,39 @@ professional_header_historical as (
         rendering_bill_provider_first,
         rendering_bill_provider_middle,
         rendering_bill_provider_suffix,
-        rendering_bill_provider_fein,
+        case
+            when rendering_bill_provider_fein is null 
+                or trim(rendering_bill_provider_fein) = '' 
+            then lpad(
+                cast(
+                    (
+                    hash(
+                        concat_ws(
+                        '||',
+                        coalesce(rendering_bill_provider_last, ''),
+                        coalesce(rendering_bill_provider_first, ''),
+                        coalesce(rendering_bill_provider_middle, ''),
+                        coalesce(rendering_bill_provider_suffix, ''),
+                        coalesce(rendering_bill_provider_gate, ''),
+                        coalesce(rendering_bill_provider, ''),
+                        coalesce(rendering_bill_provider_1, ''),
+                        coalesce(rendering_bill_provider_2, ''),
+                        coalesce(rendering_bill_provider_city, ''),
+                        coalesce(rendering_bill_provider_state, ''),
+                        coalesce(rendering_bill_provider_postal, ''),
+                        coalesce(rendering_bill_provider_3, ''),
+                        coalesce(rendering_bill_provider_state_1, ''),
+                        coalesce(rendering_bill_provider_4, '')
+                        ),
+                        'xxhash64'
+                    ) % 1000000000
+                    ) as varchar
+                ),
+                9,
+                '0'
+                )
+            else rendering_bill_provider_fein
+        end as rendering_bill_provider_fein,
         rendering_bill_provider_gate,
         rendering_bill_provider,
         rendering_bill_provider_1,
@@ -215,7 +566,34 @@ professional_header_historical as (
         referring_provider_first,
         referring_provider_middle,
         referring_provider_suffix,
-        referring_provider_fein,
+        case
+            when referring_provider_fein is null 
+                or trim(referring_provider_fein) = '' 
+            then lpad(
+                cast(
+                    (
+                    hash(
+                        concat_ws(
+                        '||',
+                        coalesce(referring_provider_last_name, ''),
+                        coalesce(referring_provider_first, ''),
+                        coalesce(referring_provider_middle, ''),
+                        coalesce(referring_provider_suffix, ''),
+                        coalesce(referring_provider_gate_keeper, ''),
+                        coalesce(referring_provider_state, ''),
+                        coalesce(referring_provider_specialty, ''),
+                        coalesce(referring_provider_medicare, ''),
+                        coalesce(referring_provider_national, '')
+                        ),
+                        'xxhash64'
+                    ) % 1000000000
+                    ) as varchar
+                ),
+                9,
+                '0'
+                )
+            else referring_provider_fein
+        end as referring_provider_fein,
         referring_provider_gate_keeper,
         referring_provider_state,
         referring_provider_specialty,
