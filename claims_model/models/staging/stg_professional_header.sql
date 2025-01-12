@@ -5,7 +5,6 @@ with
 {% if exists_current %}
 professional_header_current as (
     select
-        row_id,
         bill_selection_date,
         bill_id,
         billing_provider_unique_bill,
@@ -306,7 +305,6 @@ professional_header_current as (
 {% if exists_current %}, {% endif %}
 professional_header_historical as (
     select
-        row_id,
         bill_selection_date,
         bill_id,
         billing_provider_unique_bill,

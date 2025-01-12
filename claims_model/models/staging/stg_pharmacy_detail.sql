@@ -5,7 +5,6 @@ with
 {% if exists_current %}
 pharmacy_detail_current as (
     select
-        row_id,
         created_at,
         updated_at,
         version,
@@ -58,7 +57,6 @@ pharmacy_detail_current as (
 {% if exists_current %}, {% endif %}
 pharmacy_detail_historical as (
     select
-        row_id,
         created_at,
         updated_at,
         version,

@@ -31,5 +31,9 @@ RUN conda install -y -c conda-forge xgboost python-dotenv=0.21.1 xlwings findspa
     conda update pandas -y && \
     conda clean --all -f -y
 
+# Create DuckDB extension directory with correct permissions
+RUN mkdir -p /home/jovyan/.duckdb/extensions && \
+    chown -R $NB_UID:$NB_UID /home/jovyan/.duckdb
+
 # Switch back to notebook user
 USER $NB_UID

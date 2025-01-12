@@ -5,7 +5,6 @@ with
 {% if exists_current %}
 professional_detail_current as (
     select
-        row_id,
         bill_selection_date,
         bill_id,
         bill_detail_id,
@@ -67,7 +66,6 @@ professional_detail_current as (
 {% if exists_current %}, {% endif %}
 professional_detail_historical as (
     select
-        row_id,
         bill_selection_date,
         bill_id,
         bill_detail_id,

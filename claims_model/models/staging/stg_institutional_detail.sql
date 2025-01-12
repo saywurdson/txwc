@@ -5,7 +5,6 @@ with
 {% if exists_current %}
 institutional_detail_current as (
     select
-        row_id,
         bill_selection_date,
         bill_id,
         bill_detail_id,
@@ -65,7 +64,6 @@ institutional_detail_current as (
 {% if exists_current %}, {% endif %}
 institutional_detail_historical as (
     select
-        row_id,
         bill_selection_date,
         bill_id,
         bill_detail_id,
