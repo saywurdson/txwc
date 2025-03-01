@@ -1,0 +1,37 @@
+import duckdb
+import glob
+import os
+
+def load_seeds_to_terminology():
+    conn = duckdb.connect('/workspaces/txwc/tx_workers_comp.db')
+    conn.execute("CREATE SCHEMA IF NOT EXISTS terminology;")
+    
+    seeds_dir = '/workspaces/txwc/omop/seeds'
+    csv_pattern = os.path.join(seeds_dir, '*.csv')
+    
+    # Process each CSV file
+    for csv_path in glob.glob(csv_pattern):
+        try:
+            table_name = os.path.splitext(os.path.basename(csv_path))[0].lower()
+            
+            conn.execute(f"""
+                CREATE TABLE IF NOT EXISTS terminology.{table_name} AS
+                SELECT * FROM read_csv_auto('{csv_path}', ALL_VARCHAR=TRUE) 
+                WHERE 1=0;
+            """)
+            
+            conn.execute(f"""
+                INSERT INTO terminology.{table_name} 
+                SELECT * FROM read_csv_auto('{csv_path}', ALL_VARCHAR=TRUE);
+            """)
+            
+            print(f"Loaded {os.path.basename(csv_path)} → terminology.{table_name}")
+            
+        except Exception as e:
+            print(f"Error loading {csv_path}: {str(e)}")
+    
+    conn.close()
+
+if __name__ == "__main__":
+    load_seeds_to_terminology()
+    print("Seed loading completed.")
