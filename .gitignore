@@ -6,3 +6,4 @@
 *.ndjson
 *.json
 *.log
+*.env
