@@ -1,0 +1,47 @@
+version: 2
+
+models:
+  - name: stg_person
+    config:
+      schema: omop
+      materialized: view
+      columns:
+        - name: person_id
+          data_type: integer
+          tests:
+            - unique
+            - not_null
+        - name: gender_concept_id
+          data_type: integer
+        - name: year_of_birth
+          data_type: integer
+        - name: month_of_birth
+          data_type: integer
+        - name: day_of_birth
+          data_type: integer
+        - name: birth_datetime
+          data_type: timestamp
+        - name: race_concept_id
+          data_type: integer
+        - name: ethnicity_concept_id
+          data_type: integer
+        - name: location_id
+          data_type: integer
+        - name: provider_id
+          data_type: integer
+        - name: care_site_id
+          data_type: integer
+        - name: person_source_value
+          data_type: varchar
+        - name: gender_source_value
+          data_type: varchar
+        - name: gender_source_concept_id
+          data_type: integer
+        - name: race_source_value
+          data_type: varchar
+        - name: race_source_concept_id
+          data_type: integer
+        - name: ethnicity_source_value
+          data_type: varchar
+        - name: ethnicity_source_concept_id
+          data_type: integer

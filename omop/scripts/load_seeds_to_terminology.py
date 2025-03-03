@@ -16,13 +16,13 @@ def load_seeds_to_terminology():
             
             conn.execute(f"""
                 CREATE TABLE IF NOT EXISTS terminology.{table_name} AS
-                SELECT * FROM read_csv_auto('{csv_path}', ALL_VARCHAR=TRUE) 
+                SELECT * FROM read_csv_auto('{csv_path}', ALL_VARCHAR=TRUE, quote='') 
                 WHERE 1=0;
             """)
             
             conn.execute(f"""
                 INSERT INTO terminology.{table_name} 
-                SELECT * FROM read_csv_auto('{csv_path}', ALL_VARCHAR=TRUE);
+                SELECT * FROM read_csv_auto('{csv_path}', ALL_VARCHAR=TRUE, quote='');
             """)
             
             print(f"Loaded {os.path.basename(csv_path)} → terminology.{table_name}")
