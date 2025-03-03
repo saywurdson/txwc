@@ -8,21 +8,32 @@
 with
 {% if exists_i_current %}
 institutional_header_current as (
-    select
-        cast(
-            hash(
-                concat_ws(
-                    '||',
-                    coalesce(employee_mailing_city, ''),
-                    coalesce(employee_mailing_state_code, ''),
-                    coalesce(employee_mailing_postal_code, ''),
-                    coalesce(employee_mailing_country, ''),
-                    coalesce(cast(employee_date_of_birth as varchar), ''),
-                    coalesce(employee_gender_code, '')
+    select distinct
+        case 
+            when patient_account_number is null 
+                or trim(patient_account_number) = '' 
+            then lpad(
+                cast(
+                    (
+                    hash(
+                        concat_ws(
+                        '||',
+                        coalesce(employee_mailing_city, ''),
+                        coalesce(employee_mailing_state_code, ''),
+                        coalesce(employee_mailing_postal_code, ''),
+                        coalesce(employee_mailing_country, ''),
+                        coalesce(cast(employee_date_of_birth as varchar), ''),
+                        coalesce(employee_gender_code, '')
+                        ),
+                        'xxhash64'
+                    ) % 1000000000
+                    ) as varchar
                 ),
-                'xxhash64'
-            ) % 1000000000 as integer
-        ) as person_id,
+                9,
+                '0'
+                )
+            else patient_account_number
+        end as person_id,
         cast(null as integer) as gender_concept_id,
         extract(year from cast(employee_date_of_birth as date)) as year_of_birth,
         extract(month from cast(employee_date_of_birth as date)) as month_of_birth,
@@ -47,21 +58,32 @@ institutional_header_current as (
 {% if exists_i_historical %}
 {% if exists_i_current %}, {% endif %}
 institutional_header_historical as (
-    select
-        cast(
-            hash(
-                concat_ws(
-                    '||',
-                    coalesce(employee_mailing_city, ''),
-                    coalesce(employee_mailing_state_code, ''),
-                    coalesce(employee_mailing_postal_code, ''),
-                    coalesce(employee_mailing_country, ''),
-                    coalesce(cast(employee_date_of_birth as varchar), ''),
-                    coalesce(employee_gender_code, '')
+    select distinct
+        case 
+            when patient_account_number is null 
+                or trim(patient_account_number) = '' 
+            then lpad(
+                cast(
+                    (
+                    hash(
+                        concat_ws(
+                        '||',
+                        coalesce(employee_mailing_city, ''),
+                        coalesce(employee_mailing_state_code, ''),
+                        coalesce(employee_mailing_postal_code, ''),
+                        coalesce(employee_mailing_country, ''),
+                        coalesce(cast(employee_date_of_birth as varchar), ''),
+                        coalesce(employee_gender_code, '')
+                        ),
+                        'xxhash64'
+                    ) % 1000000000
+                    ) as varchar
                 ),
-                'xxhash64'
-            ) % 1000000000 as integer
-        ) as person_id,
+                9,
+                '0'
+                )
+            else patient_account_number
+        end as person_id,
         cast(null as integer) as gender_concept_id,
         extract(year from cast(employee_date_of_birth as date)) as year_of_birth,
         extract(month from cast(employee_date_of_birth as date)) as month_of_birth,
@@ -86,21 +108,32 @@ institutional_header_historical as (
 {% if exists_pr_historical %}
 {% if exists_i_historical %}, {% endif %}
 professional_header_historical as (
-    select
-        cast(
-            hash(
-                concat_ws(
-                    '||',
-                    coalesce(employee_mailing_city, ''),
-                    coalesce(employee_mailing_state_code, ''),
-                    coalesce(employee_mailing_postal_code, ''),
-                    coalesce(employee_mailing_country, ''),
-                    coalesce(cast(employee_date_of_birth as varchar), ''),
-                    coalesce(employee_gender_code, '')
+    select distinct
+        case 
+            when patient_account_number is null 
+                or trim(patient_account_number) = '' 
+            then lpad(
+                cast(
+                    (
+                    hash(
+                        concat_ws(
+                        '||',
+                        coalesce(employee_mailing_city, ''),
+                        coalesce(employee_mailing_state_code, ''),
+                        coalesce(employee_mailing_postal_code, ''),
+                        coalesce(employee_mailing_country, ''),
+                        coalesce(cast(employee_date_of_birth as varchar), ''),
+                        coalesce(employee_gender_code, '')
+                        ),
+                        'xxhash64'
+                    ) % 1000000000
+                    ) as varchar
                 ),
-                'xxhash64'
-            ) % 1000000000 as integer
-        ) as person_id,
+                9,
+                '0'
+                )
+            else patient_account_number
+        end as person_id,
         cast(null as integer) as gender_concept_id,
         extract(year from cast(employee_date_of_birth as date)) as year_of_birth,
         extract(month from cast(employee_date_of_birth as date)) as month_of_birth,
@@ -125,21 +158,32 @@ professional_header_historical as (
 {% if exists_pr_current %}
 {% if exists_pr_historical %}, {% endif %}
 professional_header_current as (
-    select
-        cast(
-            hash(
-                concat_ws(
-                    '||',
-                    coalesce(employee_mailing_city, ''),
-                    coalesce(employee_mailing_state_code, ''),
-                    coalesce(employee_mailing_postal_code, ''),
-                    coalesce(employee_mailing_country, ''),
-                    coalesce(cast(employee_date_of_birth as varchar), ''),
-                    coalesce(employee_gender_code, '')
+    select distinct
+        case 
+            when patient_account_number is null 
+                or trim(patient_account_number) = '' 
+            then lpad(
+                cast(
+                    (
+                    hash(
+                        concat_ws(
+                        '||',
+                        coalesce(employee_mailing_city, ''),
+                        coalesce(employee_mailing_state_code, ''),
+                        coalesce(employee_mailing_postal_code, ''),
+                        coalesce(employee_mailing_country, ''),
+                        coalesce(cast(employee_date_of_birth as varchar), ''),
+                        coalesce(employee_gender_code, '')
+                        ),
+                        'xxhash64'
+                    ) % 1000000000
+                    ) as varchar
                 ),
-                'xxhash64'
-            ) % 1000000000 as integer
-        ) as person_id,
+                9,
+                '0'
+                )
+            else patient_account_number
+        end as person_id,
         cast(null as integer) as gender_concept_id,
         extract(year from cast(employee_date_of_birth as date)) as year_of_birth,
         extract(month from cast(employee_date_of_birth as date)) as month_of_birth,
@@ -164,21 +208,32 @@ professional_header_current as (
 {% if exists_ph_current %}
 {% if exists_pr_current %}, {% endif %}
 pharmacy_header_current as (
-    select
-        cast(
-            hash(
-                concat_ws(
-                    '||',
-                    coalesce(employee_mailing_city, ''),
-                    coalesce(employee_mailing_state_code, ''),
-                    coalesce(employee_mailing_postal_code, ''),
-                    coalesce(employee_mailing_country, ''),
-                    coalesce(cast(employee_date_of_birth as varchar), ''),
-                    coalesce(employee_gender_code, '')
+    select distinct
+        case 
+            when patient_account_number is null 
+                or trim(patient_account_number) = '' 
+            then lpad(
+                cast(
+                    (
+                    hash(
+                        concat_ws(
+                        '||',
+                        coalesce(employee_mailing_city, ''),
+                        coalesce(employee_mailing_state_code, ''),
+                        coalesce(employee_mailing_postal_code, ''),
+                        coalesce(employee_mailing_country, ''),
+                        coalesce(cast(employee_date_of_birth as varchar), ''),
+                        coalesce(employee_gender_code, '')
+                        ),
+                        'xxhash64'
+                    ) % 1000000000
+                    ) as varchar
                 ),
-                'xxhash64'
-            ) % 1000000000 as integer
-        ) as person_id,
+                9,
+                '0'
+                )
+            else patient_account_number
+        end as person_id,
         cast(null as integer) as gender_concept_id,
         extract(year from cast(employee_date_of_birth as date)) as year_of_birth,
         extract(month from cast(employee_date_of_birth as date)) as month_of_birth,
@@ -203,21 +258,32 @@ pharmacy_header_current as (
 {% if exists_ph_historical %}
 {% if exists_ph_current %}, {% endif %}
 pharmacy_header_historical as (
-    select
-        cast(
-            hash(
-                concat_ws(
-                    '||',
-                    coalesce(employee_mailing_city, ''),
-                    coalesce(employee_mailing_state_code, ''),
-                    coalesce(employee_mailing_postal_code, ''),
-                    coalesce(employee_mailing_country, ''),
-                    coalesce(cast(employee_date_of_birth as varchar), ''),
-                    coalesce(employee_gender_code, '')
+    select distinct
+        case 
+            when patient_account_number is null 
+                or trim(patient_account_number) = '' 
+            then lpad(
+                cast(
+                    (
+                    hash(
+                        concat_ws(
+                        '||',
+                        coalesce(employee_mailing_city, ''),
+                        coalesce(employee_mailing_state_code, ''),
+                        coalesce(employee_mailing_postal_code, ''),
+                        coalesce(employee_mailing_country, ''),
+                        coalesce(cast(employee_date_of_birth as varchar), ''),
+                        coalesce(employee_gender_code, '')
+                        ),
+                        'xxhash64'
+                    ) % 1000000000
+                    ) as varchar
                 ),
-                'xxhash64'
-            ) % 1000000000 as integer
-        ) as person_id,
+                9,
+                '0'
+                )
+            else patient_account_number
+        end as person_id,
         cast(null as integer) as gender_concept_id,
         extract(year from cast(employee_date_of_birth as date)) as year_of_birth,
         extract(month from cast(employee_date_of_birth as date)) as month_of_birth,

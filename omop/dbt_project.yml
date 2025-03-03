@@ -14,7 +14,7 @@ profile: 'omop'
 model-paths: ["models"]
 analysis-paths: ["analyses"]
 test-paths: ["tests"]
-seed-paths: ["seeds"]
+seed-paths: []
 macro-paths: ["macros"]
 snapshot-paths: ["snapshots"]
 
