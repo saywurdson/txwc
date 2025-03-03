@@ -1,4 +1,4 @@
-{% macro lookup_concept_id(
+{% macro get_concept_ids (
     source_value,
     domain_id,
     standard_concept=None,
@@ -6,7 +6,7 @@
     vocabulary_id=None,
     required_value=None
 ) %}
-    {# Build the scalar subquery #}
+
     {% set subquery %}
     (
         select
@@ -31,7 +31,6 @@
     )
     {% endset %}
 
-    {# Cast the subquery result to integer, and use COALESCE if a fallback value is provided #}
     {% if required_value is not none %}
         coalesce(cast({{ subquery }} as integer), {{ required_value }})
     {% else %}

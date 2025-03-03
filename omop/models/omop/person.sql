@@ -1,6 +1,6 @@
 select
     person_id,
-    {{ lookup_concept_id(
+    {{ get_concept_ids(
       "p.gender_source_value",
       domain_id='Gender',
       standard_concept='S',
@@ -19,7 +19,7 @@ select
     care_site_id,
     person_source_value,
     gender_source_value,
-    {{ lookup_concept_id(
+    {{ get_concept_ids(
       "p.gender_source_value",
       domain_id='Gender',
       vocabulary_id='Gender'
