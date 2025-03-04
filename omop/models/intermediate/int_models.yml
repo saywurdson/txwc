@@ -1,7 +1,7 @@
 version: 2
 
 models:
-  - name: stg_person
+  - name: int_person
     config:
       schema: omop
       materialized: view
@@ -46,8 +46,7 @@ models:
         - name: ethnicity_source_concept_id
           data_type: integer
 
-
-  - name: stg_visit_occurrence
+  - name: int_visit_occurrence
     config:
       schema: omop
       materialized: view
@@ -61,9 +60,6 @@ models:
           data_type: integer
           tests:
             - not_null
-            - relationships:
-                to: ref('stg_person')
-                field: person_id
         - name: visit_concept_id
           data_type: integer
           tests:

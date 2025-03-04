@@ -1,7 +1,7 @@
 select
     person_id,
     {{ get_concept_ids(
-      "p.gender_source_value",
+      "gender_source_value",
       domain_id='Gender',
       standard_concept='S',
       invalid_reason='is null',
@@ -20,7 +20,7 @@ select
     person_source_value,
     gender_source_value,
     {{ get_concept_ids(
-      "p.gender_source_value",
+      "gender_source_value",
       domain_id='Gender',
       vocabulary_id='Gender'
     ) }} as gender_source_concept_id,
@@ -28,4 +28,4 @@ select
     race_source_concept_id,
     ethnicity_source_value,
     ethnicity_source_concept_id
-from {{ ref('stg_person') }} p
+from {{ ref('stg_person') }}
