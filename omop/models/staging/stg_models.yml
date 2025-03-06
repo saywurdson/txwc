@@ -4,7 +4,6 @@ models:
   - name: stg_person
     config:
       schema: omop
-      materialized: view
       columns:
         - name: person_id
           data_type: integer
@@ -50,7 +49,6 @@ models:
   - name: stg_visit_occurrence
     config:
       schema: omop
-      materialized: view
       columns:
         - name: visit_occurrence_id
           data_type: integer
@@ -102,3 +100,99 @@ models:
           data_type: varchar(50)
         - name: preceding_visit_occurrence_id
           data_type: integer
+
+  - name: stg_condition_occurrence
+    config:
+      schema: omop
+      columns:
+        - name: condition_occurrence_id
+          data_type: integer
+          tests:
+            - unique
+            - not_null
+        - name: person_id
+          data_type: integer
+          tests:
+            - not_null
+        - name: condition_concept_id
+          data_type: integer
+          tests:
+            - not_null
+        - name: condition_start_date
+          data_type: date
+          tests:
+            - not_null
+        - name: condition_start_datetime
+          data_type: datetime
+        - name: condition_end_date
+          data_type: date
+        - name: condition_end_datetime
+          data_type: datetime
+        - name: condition_type_concept_id
+          data_type: integer
+          tests:
+            - not_null
+        - name: condition_status_concept_id
+          data_type: integer
+        - name: stop_reason
+          data_type: varchar(20)
+        - name: provider_id
+          data_type: integer
+        - name: visit_occurrence_id
+          data_type: integer
+        - name: visit_detail_id
+          data_type: integer
+        - name: condition_source_value
+          data_type: varchar(50)
+        - name: condition_source_concept_id
+          data_type: integer
+        - name: condition_status_source_value
+          data_type: varchar(50)
+
+  - name: stg_procedure_occurrence
+    config:
+      schema: omop
+      columns:
+        - name: procedure_occurrence_id
+          data_type: integer
+          tests:
+            - unique
+            - not_null
+        - name: person_id
+          data_type: integer
+          tests:
+            - not_null
+        - name: procedure_concept_id
+          data_type: integer
+          tests:
+            - not_null
+        - name: procedure_date
+          data_type: date
+          tests:
+            - not_null
+        - name: procedure_datetime
+          data_type: datetime
+        - name: procedure_end_date
+          data_type: date
+        - name: procedure_end_datetime
+          data_type: datetime
+        - name: procedure_type_concept_id
+          data_type: integer
+          tests:
+            - not_null
+        - name: modifier_concept_id
+          data_type: integer
+        - name: quantity
+          data_type: integer
+        - name: provider_id
+          data_type: integer
+        - name: visit_occurrence_id
+          data_type: integer
+        - name: visit_detail_id
+          data_type: integer
+        - name: procedure_source_value
+          data_type: varchar(50)
+        - name: procedure_source_concept_id
+          data_type: integer
+        - name: modifier_source_value
+          data_type: varchar(50)

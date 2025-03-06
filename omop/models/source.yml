@@ -22,3 +22,4 @@ sources:
     schema: terminology
     tables:
       - name: concept
+      - name: concept_relationship

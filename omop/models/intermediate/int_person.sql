@@ -1,13 +1,6 @@
 select
     person_id,
-    {{ get_concept_ids(
-      "gender_source_value",
-      domain_id='Gender',
-      standard_concept='S',
-      invalid_reason='is null',
-      vocabulary_id='Gender',
-      required_value=0
-    ) }} as gender_concept_id,
+    gender_concept_id,
     year_of_birth,
     month_of_birth,
     day_of_birth,
@@ -19,10 +12,10 @@ select
     care_site_id,
     person_source_value,
     gender_source_value,
-    {{ get_concept_ids(
+    {{ get_source_concept_ids(
       "gender_source_value",
       domain_id='Gender',
-      vocabulary_id='Gender'
+      vocabulary_id=['Gender']
     ) }} as gender_source_concept_id,
     race_source_value,
     race_source_concept_id,

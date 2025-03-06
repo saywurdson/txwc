@@ -1,0 +1,459 @@
+{% set exists_i_current = check_table_exists('raw', 'institutional_header_current') %}
+{% set exists_i_historical = check_table_exists('raw', 'institutional_header_historical') %}
+{% set exists_pr_current = check_table_exists('raw', 'professional_header_current') %}
+{% set exists_pr_historical = check_table_exists('raw', 'professional_header_historical') %}
+{% set exists_ph_current = check_table_exists('raw', 'pharmacy_header_current') %}
+{% set exists_ph_historical = check_table_exists('raw', 'pharmacy_header_historical') %}
+
+with
+{% if exists_i_current %}
+-- Get columns needed
+institutional_header_current as (
+    select 
+        bill_id,
+        unique_bill_id_number,
+        patient_account_number,
+        service_bill_from_date,
+        service_bill_to_date,
+        employee_mailing_city,
+        employee_mailing_state_code,
+        employee_mailing_postal_code,
+        employee_mailing_country,
+        employee_date_of_birth,
+        employee_gender_code,
+        first_icd_9cm_or_icd_10cm,
+        second_icd_9cm_or_icd_10cm,
+        third_icd_9cm_or_icd_10cm,
+        fourth_icd_9cm_or_icd_10cm,
+        fifth_icd_9cm_or_icd_10cm,
+        principal_diagnosis_code,
+        admitting_diagnosis_code
+    from {{ source('raw','institutional_header_current') }} as ihc
+),
+unpivot_ihc_diagnoses as (
+    -- Unpivot the diagnoses and prioritize in order to assign the correct condition_status_concept_id.
+    select 
+        ihc.bill_id,
+        t.icd as condition_source_value,
+        t.source_column,
+        t.priority,
+        row_number() over (
+            partition by ihc.bill_id, t.icd 
+            order by t.priority
+        ) as rn
+    from institutional_header_current as ihc
+    cross join lateral (
+        values
+            (first_icd_9cm_or_icd_10cm, 'first_icd_9cm_or_icd_10cm', 3),
+            (second_icd_9cm_or_icd_10cm, 'second_icd_9cm_or_icd_10cm', 3),
+            (third_icd_9cm_or_icd_10cm, 'third_icd_9cm_or_icd_10cm', 3),
+            (fourth_icd_9cm_or_icd_10cm, 'fourth_icd_9cm_or_icd_10cm', 3),
+            (fifth_icd_9cm_or_icd_10cm, 'fifth_icd_9cm_or_icd_10cm', 3),
+            (principal_diagnosis_code, 'principal_diagnosis_code', 1),
+            (admitting_diagnosis_code, 'admitting_diagnosis_code', 2)
+    ) as t(icd, source_column, priority)
+    join {{ source('terminology','concept') }} as c
+        on c.concept_code = t.icd
+    where c.domain_id = 'Condition'
+        and c.vocabulary_id in ('ICD10CM','ICD9CM')
+),
+unique_ihc_diagnoses as (
+    -- Keep only the highest-priority row per patient and diagnosis code.
+    select bill_id, condition_source_value, source_column, priority
+    from unpivot_ihc_diagnoses
+    where rn = 1
+),
+-- Final table creation
+final_ihc as (
+    select 
+        cast(
+            hash(
+                concat_ws(
+                '||',
+                ihc.bill_id,
+                ihc.unique_bill_id_number,
+                uihcd.condition_source_value
+                )
+            , 'xxhash64'
+            ) % 1000000000
+        as varchar) as condition_occurrence_id,
+        case 
+            when ihc.patient_account_number is null or trim(ihc.patient_account_number) = '' then lpad(
+                cast(
+                    (
+                        hash(
+                            concat_ws(
+                                '||',
+                                coalesce(ihc.employee_mailing_city, ''),
+                                coalesce(ihc.employee_mailing_state_code, ''),
+                                coalesce(ihc.employee_mailing_postal_code, ''),
+                                coalesce(ihc.employee_mailing_country, ''),
+                                coalesce(cast(ihc.employee_date_of_birth as varchar), ''),
+                                coalesce(ihc.employee_gender_code, '')
+                            ),
+                            'xxhash64'
+                        ) % 1000000000
+                    ) as varchar
+                ),
+                9,
+                '0'
+            )
+            else ihc.patient_account_number
+        end as person_id,
+        cast(null as integer) as condition_concept_id,
+        cast(ihc.service_bill_from_date as date) as condition_start_date,
+        cast(ihc.service_bill_from_date as timestamp) as condition_start_datetime,
+        cast(ihc.service_bill_to_date as date) as condition_end_date,
+        cast(ihc.service_bill_to_date as timestamp) as condition_end_datetime,
+        32855 as condition_type_concept_id,
+        case 
+            when uihcd.source_column = 'principal_diagnosis_code' then 32902
+            when uihcd.source_column = 'admitting_diagnosis_code' then 32890
+            else 32893
+        end as condition_status_concept_id,
+        cast(null as varchar) as stop_reason,
+        cast(null as integer) as provider_id,
+        cast(ihc.bill_id as varchar) as visit_occurrence_id,
+        cast(null as integer) as visit_detail_id,
+        uihcd.condition_source_value,
+        cast(null as integer) as condition_source_concept_id,
+        cast(null as varchar) as condition_status_source_value
+    from institutional_header_current ihc
+    join unique_ihc_diagnoses uihcd
+      on cast(ihc.bill_id as varchar) = cast(uihcd.bill_id as varchar)
+)
+{% endif %}
+
+{% if exists_i_historical %}
+{% if exists_i_current %}, {% endif %}
+-- Get columns needed
+institutional_header_historical as (
+    select 
+        bill_id,
+        unique_bill_id_number,
+        patient_account_number,
+        service_bill_from_date,
+        service_bill_to_date,
+        employee_mailing_city,
+        employee_mailing_state_code,
+        employee_mailing_postal_code,
+        employee_mailing_country,
+        employee_date_of_birth,
+        employee_gender_code,
+        first_icd_9cm_or_icd_10cm,
+        second_icd_9cm_or_icd_10cm,
+        third_icd_9cm_or_icd_10cm,
+        fourth_icd_9cm_or_icd_10cm,
+        fifth_icd_9cm_or_icd_10cm,
+        principal_diagnosis_code,
+        admitting_diagnosis_code
+    from {{ source('raw','institutional_header_historical') }} as ihh
+),
+unpivot_ihh_diagnoses as (
+    -- Unpivot the diagnoses and prioritize in order to assign the correct condition_status_concept_id.
+    select 
+        ihh.bill_id,
+        t.icd as condition_source_value,
+        t.source_column,
+        t.priority,
+        row_number() over (
+            partition by ihh.bill_id, t.icd 
+            order by t.priority
+        ) as rn
+    from institutional_header_historical as ihh
+    cross join lateral (
+        values
+            (first_icd_9cm_or_icd_10cm, 'first_icd_9cm_or_icd_10cm', 3),
+            (second_icd_9cm_or_icd_10cm, 'second_icd_9cm_or_icd_10cm', 3),
+            (third_icd_9cm_or_icd_10cm, 'third_icd_9cm_or_icd_10cm', 3),
+            (fourth_icd_9cm_or_icd_10cm, 'fourth_icd_9cm_or_icd_10cm', 3),
+            (fifth_icd_9cm_or_icd_10cm, 'fifth_icd_9cm_or_icd_10cm', 3),
+            (principal_diagnosis_code, 'principal_diagnosis_code', 1),
+            (admitting_diagnosis_code, 'admitting_diagnosis_code', 2)
+    ) as t(icd, source_column, priority)
+    join {{ source('terminology','concept') }} as c
+        on c.concept_code = t.icd
+    where c.domain_id = 'Condition'
+        and c.vocabulary_id in ('ICD10CM','ICD9CM')
+),
+unique_ihh_diagnoses as (
+    -- Keep only the highest-priority row per patient and diagnosis code.
+    select bill_id, condition_source_value, source_column, priority
+    from unpivot_ihh_diagnoses
+    where rn = 1
+),
+-- Final table creation
+final_ihh as (
+    select 
+        cast(
+            hash(
+                concat_ws(
+                '||',
+                ihh.bill_id,
+                ihh.unique_bill_id_number,
+                uihhd.condition_source_value
+                )
+            , 'xxhash64'
+            ) % 1000000000
+        as varchar) as condition_occurrence_id,
+        case 
+            when ihh.patient_account_number is null or trim(ihh.patient_account_number) = '' then lpad(
+                cast(
+                    (
+                        hash(
+                            concat_ws(
+                                '||',
+                                coalesce(ihh.employee_mailing_city, ''),
+                                coalesce(ihh.employee_mailing_state_code, ''),
+                                coalesce(ihh.employee_mailing_postal_code, ''),
+                                coalesce(ihh.employee_mailing_country, ''),
+                                coalesce(cast(ihh.employee_date_of_birth as varchar), ''),
+                                coalesce(ihh.employee_gender_code, '')
+                            ),
+                            'xxhash64'
+                        ) % 1000000000
+                    ) as varchar
+                ),
+                9,
+                '0'
+            )
+            else ihh.patient_account_number
+        end as person_id,
+        cast(null as integer) as condition_concept_id,
+        cast(ihh.service_bill_from_date as date) as condition_start_date,
+        cast(ihh.service_bill_from_date as timestamp) as condition_start_datetime,
+        cast(ihh.service_bill_to_date as date) as condition_end_date,
+        cast(ihh.service_bill_to_date as timestamp) as condition_end_datetime,
+        32855 as condition_type_concept_id,
+        case 
+            when uihhd.source_column = 'principal_diagnosis_code' then 32902
+            when uihhd.source_column = 'admitting_diagnosis_code' then 32890
+            else 32893
+        end as condition_status_concept_id,
+        cast(null as varchar) as stop_reason,
+        cast(null as integer) as provider_id,
+        cast(ihh.bill_id as varchar) as visit_occurrence_id,
+        cast(null as integer) as visit_detail_id,
+        uihhd.condition_source_value,
+        cast(null as integer) as condition_source_concept_id,
+        cast(null as varchar) as condition_status_source_value
+    from institutional_header_historical ihh
+    join unique_ihh_diagnoses uihhd
+      on cast(ihh.bill_id as varchar) = cast(uihhd.bill_id as varchar)
+)
+{% endif %}
+
+{% if exists_pr_historical %}
+{% if exists_i_historical %}, {% endif %}
+-- Get columns needed
+professional_header_historical as (
+    select 
+        bill_id,
+        unique_bill_id_number,
+        patient_account_number,
+        service_bill_from_date,
+        service_bill_to_date,
+        employee_mailing_city,
+        employee_mailing_state_code,
+        employee_mailing_postal_code,
+        employee_mailing_country,
+        employee_date_of_birth,
+        employee_gender_code,
+        first_icd_9cm_or_icd_10cm,
+        second_icd_9cm_or_icd_10cm,
+        third_icd_9cm_or_icd_10cm,
+        fourth_icd_9cm_or_icd_10cm,
+        fifth_icd_9cm_or_icd_10cm
+    from {{ source('raw','professional_header_historical') }} as phh
+),
+unpivot_phh_diagnoses as (
+    select 
+        phh.bill_id,
+        t.icd as condition_source_value,
+        t.source_column
+    from professional_header_historical as phh
+    cross join lateral (
+        values
+            (first_icd_9cm_or_icd_10cm, 'first_icd_9cm_or_icd_10cm'),
+            (second_icd_9cm_or_icd_10cm, 'second_icd_9cm_or_icd_10cm'),
+            (third_icd_9cm_or_icd_10cm, 'third_icd_9cm_or_icd_10cm'),
+            (fourth_icd_9cm_or_icd_10cm, 'fourth_icd_9cm_or_icd_10cm'),
+            (fifth_icd_9cm_or_icd_10cm, 'fifth_icd_9cm_or_icd_10cm')
+    ) as t(icd, source_column)
+    join {{ source('terminology','concept') }} as c
+        on c.concept_code = t.icd
+    where c.domain_id = 'Condition'
+        and c.vocabulary_id in ('ICD10CM','ICD9CM')
+),
+final_phh as (
+    select 
+        cast(
+        hash(
+            concat_ws(
+            '||',
+            phh.bill_id,
+            phh.unique_bill_id_number,
+            uphhd.condition_source_value
+            )
+        , 'xxhash64'
+        ) % 1000000000
+        as varchar) as condition_occurrence_id,
+        case 
+            when phh.patient_account_number is null or trim(phh.patient_account_number) = '' then lpad(
+            cast(
+                (
+                    hash(
+                        concat_ws(
+                            '||',
+                            coalesce(phh.employee_mailing_city, ''),
+                            coalesce(phh.employee_mailing_state_code, ''),
+                            coalesce(phh.employee_mailing_postal_code, ''),
+                            coalesce(phh.employee_mailing_country, ''),
+                            coalesce(cast(phh.employee_date_of_birth as varchar), ''),
+                            coalesce(phh.employee_gender_code, '')
+                        ),
+                        'xxhash64'
+                    ) % 1000000000
+                ) as varchar
+            ),
+            9,
+            '0'
+            )
+            else phh.patient_account_number
+        end as person_id,
+        cast(null as integer) as condition_concept_id,
+        cast(phh.service_bill_from_date as date) as condition_start_date,
+        cast(phh.service_bill_from_date as timestamp) as condition_start_datetime,
+        cast(phh.service_bill_to_date as date) as condition_end_date,
+        cast(phh.service_bill_to_date as timestamp) as condition_end_datetime,
+        32873 as condition_type_concept_id,
+        32893 as condition_status_concept_id,
+        cast(null as varchar) as stop_reason,
+        cast(null as integer) as provider_id,
+        cast(phh.bill_id as varchar) as visit_occurrence_id,
+        cast(null as integer) as visit_detail_id,
+        uphhd.condition_source_value,
+        cast(null as integer) as condition_source_concept_id,
+        cast(null as varchar) as condition_status_source_value
+    from professional_header_historical phh
+    join unpivot_phh_diagnoses uphhd
+        on cast(phh.bill_id as varchar) = cast(uphhd.bill_id as varchar)
+)
+{% endif %}
+
+{% if exists_pr_current %}
+{% if exists_pr_historical %}, {% endif %}
+-- Get columns needed
+professional_header_current as (
+    select 
+        bill_id,
+        unique_bill_id_number,
+        patient_account_number,
+        service_bill_from_date,
+        service_bill_to_date,
+        employee_mailing_city,
+        employee_mailing_state_code,
+        employee_mailing_postal_code,
+        employee_mailing_country,
+        employee_date_of_birth,
+        employee_gender_code,
+        first_icd_9cm_or_icd_10cm,
+        second_icd_9cm_or_icd_10cm,
+        third_icd_9cm_or_icd_10cm,
+        fourth_icd_9cm_or_icd_10cm,
+        fifth_icd_9cm_or_icd_10cm
+    from {{ source('raw','professional_header_current') }} as phc
+),
+unpivot_phc_diagnoses as (
+    select 
+        phc.bill_id,
+        t.icd as condition_source_value,
+        t.source_column
+    from professional_header_current as phc
+    cross join lateral (
+        values
+            (first_icd_9cm_or_icd_10cm, 'first_icd_9cm_or_icd_10cm'),
+            (second_icd_9cm_or_icd_10cm, 'second_icd_9cm_or_icd_10cm'),
+            (third_icd_9cm_or_icd_10cm, 'third_icd_9cm_or_icd_10cm'),
+            (fourth_icd_9cm_or_icd_10cm, 'fourth_icd_9cm_or_icd_10cm'),
+            (fifth_icd_9cm_or_icd_10cm, 'fifth_icd_9cm_or_icd_10cm')
+    ) as t(icd, source_column)
+    join {{ source('terminology','concept') }} as c
+        on c.concept_code = t.icd
+    where c.domain_id = 'Condition'
+        and c.vocabulary_id in ('ICD10CM','ICD9CM')
+),
+final_phc as (
+    select 
+        cast(
+        hash(
+            concat_ws(
+            '||',
+            phc.bill_id,
+            phc.unique_bill_id_number,
+            uphcd.condition_source_value
+            )
+        , 'xxhash64'
+        ) % 1000000000
+        as varchar) as condition_occurrence_id,
+        case 
+            when phc.patient_account_number is null or trim(phc.patient_account_number) = '' then lpad(
+            cast(
+                (
+                    hash(
+                        concat_ws(
+                            '||',
+                            coalesce(phc.employee_mailing_city, ''),
+                            coalesce(phc.employee_mailing_state_code, ''),
+                            coalesce(phc.employee_mailing_postal_code, ''),
+                            coalesce(phc.employee_mailing_country, ''),
+                            coalesce(cast(phc.employee_date_of_birth as varchar), ''),
+                            coalesce(phc.employee_gender_code, '')
+                        ),
+                        'xxhash64'
+                    ) % 1000000000
+                ) as varchar
+            ),
+            9,
+            '0'
+            )
+            else phc.patient_account_number
+        end as person_id,
+        cast(null as integer) as condition_concept_id,
+        cast(phc.service_bill_from_date as date) as condition_start_date,
+        cast(phc.service_bill_from_date as timestamp) as condition_start_datetime,
+        cast(phc.service_bill_to_date as date) as condition_end_date,
+        cast(phc.service_bill_to_date as timestamp) as condition_end_datetime,
+        32873 as condition_type_concept_id,
+        32893 as condition_status_concept_id,
+        cast(null as varchar) as stop_reason,
+        cast(null as integer) as provider_id,
+        cast(phc.bill_id as varchar) as visit_occurrence_id,
+        cast(null as integer) as visit_detail_id,
+        uphcd.condition_source_value,
+        cast(null as integer) as condition_source_concept_id,
+        cast(null as varchar) as condition_status_source_value
+    from professional_header_current phc
+    join unpivot_phc_diagnoses uphcd
+        on cast(phc.bill_id as varchar) = cast(uphcd.bill_id as varchar)
+)
+{% endif %}
+
+{% set cte_list = [] %}
+{% if exists_i_current %}
+  {% set _ = cte_list.append("select * from final_ihc") %}
+{% endif %}
+{% if exists_i_historical %}
+  {% set _ = cte_list.append("select * from final_ihh") %}
+{% endif %}
+{% if exists_pr_current %}
+  {% set _ = cte_list.append("select * from final_phc") %}
+{% endif %}
+{% if exists_pr_historical %}
+  {% set _ = cte_list.append("select * from final_phh") %}
+{% endif %}
+
+select *
+from (
+    {{ cte_list | join(" union ") }}
+) as final_result
