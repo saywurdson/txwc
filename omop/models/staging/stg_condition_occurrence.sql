@@ -70,9 +70,8 @@ final_ihc as (
             hash(
                 concat_ws(
                 '||',
-                ihc.bill_id,
-                ihc.unique_bill_id_number,
-                uihcd.condition_source_value
+                ihc.row_id,
+                ihc.bill_id
                 )
             , 'xxhash64'
             ) % 1000000000
@@ -189,9 +188,8 @@ final_ihh as (
             hash(
                 concat_ws(
                 '||',
-                ihh.bill_id,
-                ihh.unique_bill_id_number,
-                uihhd.condition_source_value
+                ihh.row_id,
+                ihh.bill_id
                 )
             , 'xxhash64'
             ) % 1000000000
@@ -291,9 +289,8 @@ final_phh as (
         hash(
             concat_ws(
             '||',
-            phh.bill_id,
-            phh.unique_bill_id_number,
-            uphhd.condition_source_value
+            phh.row_id,
+            phh.bill_id
             )
         , 'xxhash64'
         ) % 1000000000
@@ -389,9 +386,8 @@ final_phc as (
         hash(
             concat_ws(
             '||',
-            phc.bill_id,
-            phc.unique_bill_id_number,
-            uphcd.condition_source_value
+            phc.row_id,
+            phc.bill_id
             )
         , 'xxhash64'
         ) % 1000000000

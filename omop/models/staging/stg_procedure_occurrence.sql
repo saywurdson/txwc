@@ -58,8 +58,7 @@ final_ihc as (
                 concat_ws(
                     '||',
                     ihc.bill_id,
-                    ihc.unique_bill_id_number,
-                    uihcd.procedure_source_value
+                    ihc.row_id
                 )
             , 'xxhash64'
             ) % 1000000000
@@ -173,8 +172,7 @@ final_ihh as (
                 concat_ws(
                     '||',
                     ihh.bill_id,
-                    ihh.unique_bill_id_number,
-                    uihhd.procedure_source_value
+                    ihh.row_id
                 )
             , 'xxhash64'
             ) % 1000000000
@@ -256,8 +254,7 @@ final_id as (
                 concat_ws(
                     '||',
                     id.bill_id,
-                    id.bill_detail_id,
-                    id.hcpcs_line_procedure_billed
+                    id.row_id
                 )
             , 'xxhash64'
             ) % 1000000000
@@ -325,8 +322,7 @@ final_idh as (
                 concat_ws(
                     '||',
                     idh.bill_id,
-                    idh.bill_detail_id,
-                    idh.hcpcs_line_procedure_billed
+                    idh.row_id
                 )
             , 'xxhash64'
             ) % 1000000000
@@ -394,8 +390,7 @@ final_pdc as (
                 concat_ws(
                     '||',
                     pdc.bill_id,
-                    pdc.bill_detail_id,
-                    pdc.hcpcs_line_procedure_billed
+                    pdc.row_id
                 )
             , 'xxhash64'
             ) % 1000000000
@@ -463,8 +458,7 @@ final_pdh as (
                 concat_ws(
                     '||',
                     pdh.bill_id,
-                    pdh.bill_detail_id,
-                    pdh.hcpcs_line_procedure_billed
+                    pdh.row_id
                 )
             , 'xxhash64'
             ) % 1000000000
