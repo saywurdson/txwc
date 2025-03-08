@@ -192,3 +192,57 @@ models:
           data_type: integer
         - name: modifier_source_value
           data_type: varchar(50)
+
+  - name: int_device_exposure
+    config:
+      schema: omop
+      columns:
+        - name: device_exposure_id
+          data_type: integer
+          tests:
+            - unique
+            - not_null
+        - name: person_id
+          data_type: integer
+          tests:
+            - not_null
+        - name: device_concept_id
+          data_type: integer
+          tests:
+            - not_null
+        - name: device_exposure_start_date
+          data_type: date
+          tests:
+            - not_null
+        - name: device_exposure_start_datetime
+          data_type: datetime
+        - name: device_exposure_end_date
+          data_type: date
+        - name: device_exposure_end_datetime
+          data_type: datetime
+        - name: device_type_concept_id
+          data_type: integer
+          tests:
+            - not_null
+        - name: unique_device_id
+          data_type: varchar(255)
+        - name: production_id
+          data_type: varchar(255)
+        - name: quantity
+          data_type: integer
+        - name: provider_id
+          data_type: integer
+        - name: visit_occurrence_id
+          data_type: integer
+        - name: visit_detail_id
+          data_type: integer
+        - name: device_source_value
+          data_type: varchar(50)
+        - name: device_source_concept_id
+          data_type: integer
+        - name: unit_concept_id
+          data_type: integer
+        - name: unit_source_value
+          data_type: varchar(50)
+        - name: unit_source_concept_id
+          data_type: integer

@@ -23,7 +23,7 @@ select
         "drug_source_value",
         domain_id='Drug',
         vocabulary_id=['NDC', 'HCPCS']
-    ) }} drug_source_concept_id,
+    ) }} as drug_source_concept_id,
     route_source_value,
     dose_unit_source_value
 from {{ ref('stg_drug_exposure') }}
