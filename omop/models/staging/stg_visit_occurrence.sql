@@ -41,21 +41,24 @@ institutional_header_current as (
         cast(service_bill_to_date as date) as visit_end_date,
         cast(service_bill_to_date as timestamp) as visit_end_datetime,
         32855 as visit_type_concept_id,
-        cast(null as integer) as provider_id,
         cast(
             hash(
                 concat_ws(
                 '||',
-                row_id,
-                bill_id,
-                facility_name,
-                facility_primary_address,
-                facility_city,
-                facility_state_code,
-                facility_postal_code,
-                facility_country_code,
-                coalesce(facility_national_provider, ''),
-                unique_bill_id_number
+                rendering_bill_provider_last,
+                coalesce(rendering_bill_provider_first, ''),
+                coalesce(rendering_bill_provider_middle, ''),
+                rendering_bill_provider_state_1,
+                rendering_bill_provider_4
+                )
+            , 'xxhash64'
+            ) % 1000000000
+        as varchar) as provider_id,
+        cast(
+            hash(
+                concat_ws(
+                '||',
+                billing_provider_last_name
                 )
             , 'xxhash64'
             ) % 1000000000
@@ -106,21 +109,24 @@ institutional_header_historical as (
         cast(service_bill_to_date as date) as visit_end_date,
         cast(service_bill_to_date as timestamp) as visit_end_datetime,
         32855 as visit_type_concept_id,
-        cast(null as integer) as provider_id,
         cast(
             hash(
                 concat_ws(
                 '||',
-                row_id,
-                bill_id,
-                facility_name,
-                facility_primary_address,
-                facility_city,
-                facility_state_code,
-                facility_postal_code,
-                facility_country_code,
-                coalesce(facility_national_provider, ''),
-                unique_bill_id_number
+                rendering_bill_provider_last,
+                coalesce(rendering_bill_provider_first, ''),
+                coalesce(rendering_bill_provider_middle, ''),
+                rendering_bill_provider_state_1,
+                rendering_bill_provider_4
+                )
+            , 'xxhash64'
+            ) % 1000000000
+        as varchar) as provider_id,
+        cast(
+            hash(
+                concat_ws(
+                '||',
+                billing_provider_last_name
                 )
             , 'xxhash64'
             ) % 1000000000
@@ -171,21 +177,25 @@ professional_header_historical as (
         cast(service_bill_to_date as date) as visit_end_date,
         cast(service_bill_to_date as timestamp) as visit_end_datetime,
         32873 as visit_type_concept_id,
-        cast(null as integer) as provider_id,
         cast(
             hash(
                 concat_ws(
                 '||',
-                row_id,
-                bill_id,
-                facility_name,
-                facility_primary_address,
-                facility_city,
-                facility_state_code,
-                facility_postal_code,
-                facility_country_code,
-                coalesce(facility_national_provider, ''),
-                unique_bill_id_number
+                rendering_bill_provider_last,
+                coalesce(rendering_bill_provider_first, ''),
+                coalesce(rendering_bill_provider_middle, ''),
+                rendering_bill_provider_state_1,
+                rendering_bill_provider_4
+                )
+            , 'xxhash64'
+            ) % 1000000000
+        as varchar) as provider_id,
+        cast(
+            hash(
+                concat_ws(
+                '||',
+                billing_provider_last_name,
+                facility_primary_address
                 )
             , 'xxhash64'
             ) % 1000000000
@@ -236,21 +246,25 @@ professional_header_current as (
         cast(service_bill_to_date as date) as visit_end_date,
         cast(service_bill_to_date as timestamp) as visit_end_datetime,
         32873 as visit_type_concept_id,
-        cast(null as integer) as provider_id,
         cast(
             hash(
                 concat_ws(
                 '||',
-                row_id,
-                bill_id,
-                facility_name,
-                facility_primary_address,
-                facility_city,
-                facility_state_code,
-                facility_postal_code,
-                facility_country_code,
-                coalesce(facility_national_provider, ''),
-                unique_bill_id_number
+                rendering_bill_provider_last,
+                coalesce(rendering_bill_provider_first, ''),
+                coalesce(rendering_bill_provider_middle, ''),
+                rendering_bill_provider_state_1,
+                rendering_bill_provider_4
+                )
+            , 'xxhash64'
+            ) % 1000000000
+        as varchar) as provider_id,
+        cast(
+            hash(
+                concat_ws(
+                '||',
+                billing_provider_last_name,
+                facility_primary_address
                 )
             , 'xxhash64'
             ) % 1000000000
@@ -301,21 +315,25 @@ pharmacy_header_current as (
         cast(service_bill_to_date as date) as visit_end_date,
         cast(service_bill_to_date as timestamp) as visit_end_datetime,
         32869 as visit_type_concept_id,
-        cast(null as integer) as provider_id,
         cast(
             hash(
                 concat_ws(
                 '||',
-                row_id,
-                bill_id,
-                facility_name,
-                facility_primary_address,
-                facility_city,
-                facility_state_code,
-                facility_postal_code,
-                facility_country_code,
-                coalesce(facility_national_provider, ''),
-                unique_bill_id_number
+                rendering_bill_provider_last,
+                coalesce(rendering_bill_provider_first, ''),
+                coalesce(rendering_bill_provider_middle, ''),
+                rendering_bill_provider_state_1,
+                rendering_bill_provider_4
+                )
+            , 'xxhash64'
+            ) % 1000000000
+        as varchar) as provider_id,
+        cast(
+            hash(
+                concat_ws(
+                '||',
+                billing_provider_last_name,
+                billing_provider_fein
                 )
             , 'xxhash64'
             ) % 1000000000
@@ -366,21 +384,25 @@ pharmacy_header_historical as (
         cast(service_bill_to_date as date) as visit_end_date,
         cast(service_bill_to_date as timestamp) as visit_end_datetime,
         32869 as visit_type_concept_id,
-        cast(null as integer) as provider_id,
         cast(
             hash(
                 concat_ws(
                 '||',
-                row_id,
-                bill_id,
-                facility_name,
-                facility_primary_address,
-                facility_city,
-                facility_state_code,
-                facility_postal_code,
-                facility_country_code,
-                coalesce(facility_national_provider, ''),
-                unique_bill_id_number
+                rendering_bill_provider_last,
+                coalesce(rendering_bill_provider_first, ''),
+                coalesce(rendering_bill_provider_middle, ''),
+                rendering_bill_provider_state_1,
+                rendering_bill_provider_4
+                )
+            , 'xxhash64'
+            ) % 1000000000
+        as varchar) as provider_id,
+        cast(
+            hash(
+                concat_ws(
+                '||',
+                billing_provider_last_name,
+                billing_provider_fein
                 )
             , 'xxhash64'
             ) % 1000000000

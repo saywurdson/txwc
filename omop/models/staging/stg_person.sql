@@ -58,14 +58,7 @@ institutional_header_current as (
             hash(
                 concat_ws(
                 '||',
-                facility_name,
-                facility_primary_address,
-                facility_city,
-                facility_state_code,
-                facility_postal_code,
-                facility_country_code,
-                coalesce(facility_national_provider, ''),
-                unique_bill_id_number
+                billing_provider_last_name
                 )
             , 'xxhash64'
             ) % 1000000000
@@ -134,14 +127,7 @@ institutional_header_historical as (
             hash(
                 concat_ws(
                 '||',
-                facility_name,
-                facility_primary_address,
-                facility_city,
-                facility_state_code,
-                facility_postal_code,
-                facility_country_code,
-                coalesce(facility_national_provider, ''),
-                unique_bill_id_number
+                billing_provider_last_name
                 )
             , 'xxhash64'
             ) % 1000000000
@@ -211,13 +197,7 @@ professional_header_historical as (
                 concat_ws(
                 '||',
                 billing_provider_last_name,
-                facility_primary_address,
-                facility_city,
-                facility_state_code,
-                facility_postal_code,
-                facility_country_code,
-                coalesce(facility_national_provider, ''),
-                unique_bill_id_number
+                facility_primary_address
                 )
             , 'xxhash64'
             ) % 1000000000
@@ -287,13 +267,7 @@ professional_header_current as (
                 concat_ws(
                 '||',
                 billing_provider_last_name,
-                facility_primary_address,
-                facility_city,
-                facility_state_code,
-                facility_postal_code,
-                facility_country_code,
-                coalesce(facility_national_provider, ''),
-                unique_bill_id_number
+                facility_primary_address
                 )
             , 'xxhash64'
             ) % 1000000000
@@ -362,14 +336,8 @@ pharmacy_header_current as (
             hash(
                 concat_ws(
                 '||',
-                facility_name,
-                facility_primary_address,
-                facility_city,
-                facility_state_code,
-                facility_postal_code,
-                facility_country_code,
-                coalesce(facility_national_provider, ''),
-                unique_bill_id_number
+                billing_provider_last_name,
+                billing_provider_fein
                 )
             , 'xxhash64'
             ) % 1000000000
@@ -438,14 +406,8 @@ pharmacy_header_historical as (
             hash(
                 concat_ws(
                 '||',
-                facility_name,
-                facility_primary_address,
-                facility_city,
-                facility_state_code,
-                facility_postal_code,
-                facility_country_code,
-                coalesce(facility_national_provider, ''),
-                unique_bill_id_number
+                billing_provider_last_name,
+                billing_provider_fein
                 )
             , 'xxhash64'
             ) % 1000000000

@@ -16,7 +16,7 @@ select
     observation_source_value,
     {{ get_source_concept_ids(
         "observation_source_value",
-        domain_id='Measurement',
+        domain_id='Observation',
         vocabulary_id=['ICD9CM', 'ICD10CM', 'CPT4', 'HCPCS']
     ) }} as observation_source_concept_id,
     unit_source_value,

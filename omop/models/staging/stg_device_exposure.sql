@@ -49,7 +49,19 @@ institutional_detail_current as (
         cast(null as varchar) as unique_device_id,
         cast(null as varchar) as production_id,
         1 as quantity,
-        cast(null as integer) as provider_id,
+        cast(
+            hash(
+                concat_ws(
+                '||',
+                ihc.rendering_bill_provider_last,
+                coalesce(ihc.rendering_bill_provider_first, ''),
+                coalesce(ihc.rendering_bill_provider_middle, ''),
+                ihc.rendering_bill_provider_state_1,
+                ihc.rendering_bill_provider_4
+                )
+            , 'xxhash64'
+            ) % 1000000000
+        as varchar) as provider_id,
         cast(idc.bill_id as varchar) as visit_occurrence_id,
         cast(null as integer) as visit_detail_id,
         idc.hcpcs_line_procedure_billed as device_source_value,
@@ -113,7 +125,19 @@ institutional_detail_historical as (
         cast(null as varchar) as unique_device_id,
         cast(null as varchar) as production_id,
         1 as quantity,
-        cast(null as integer) as provider_id,
+        cast(
+            hash(
+                concat_ws(
+                '||',
+                ihh.rendering_bill_provider_last,
+                coalesce(ihh.rendering_bill_provider_first, ''),
+                coalesce(ihh.rendering_bill_provider_middle, ''),
+                ihh.rendering_bill_provider_state_1,
+                ihh.rendering_bill_provider_4
+                )
+            , 'xxhash64'
+            ) % 1000000000
+        as varchar) as provider_id,
         cast(idh.bill_id as varchar) as visit_occurrence_id,
         cast(null as integer) as visit_detail_id,
         idh.hcpcs_line_procedure_billed as device_source_value,
@@ -177,7 +201,19 @@ professional_detail_current as (
         cast(null as varchar) as unique_device_id,
         cast(null as varchar) as production_id,
         1 as quantity,
-        cast(null as integer) as provider_id,
+        cast(
+            hash(
+                concat_ws(
+                '||',
+                prhc.rendering_bill_provider_last,
+                coalesce(prhc.rendering_bill_provider_first, ''),
+                coalesce(prhc.rendering_bill_provider_middle, ''),
+                prhc.rendering_bill_provider_state_1,
+                prhc.rendering_bill_provider_4
+                )
+            , 'xxhash64'
+            ) % 1000000000
+        as varchar) as provider_id,
         cast(prdc.bill_id as varchar) as visit_occurrence_id,
         cast(null as integer) as visit_detail_id,
         prdc.hcpcs_line_procedure_billed as device_source_value,
@@ -241,7 +277,19 @@ professional_detail_historical as (
         cast(null as varchar) as unique_device_id,
         cast(null as varchar) as production_id,
         1 as quantity,
-        cast(null as integer) as provider_id,
+        cast(
+            hash(
+                concat_ws(
+                '||',
+                prhh.rendering_bill_provider_last,
+                coalesce(prhh.rendering_bill_provider_first, ''),
+                coalesce(prhh.rendering_bill_provider_middle, ''),
+                prhh.rendering_bill_provider_state_1,
+                prhh.rendering_bill_provider_4
+                )
+            , 'xxhash64'
+            ) % 1000000000
+        as varchar) as provider_id,
         cast(prdh.bill_id as varchar) as visit_occurrence_id,
         cast(null as integer) as visit_detail_id,
         prdh.hcpcs_line_procedure_billed as device_source_value,

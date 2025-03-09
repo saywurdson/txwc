@@ -418,3 +418,37 @@ models:
           data_type: varchar(50)
         - name: place_of_service_source_value
           data_type: varchar(50)
+
+  - name: int_provider
+    config:
+      schema: omop
+      columns:
+        - name: provider_id
+          data_type: integer
+          tests:
+            - unique
+            - not_null
+        - name: provider_name
+          data_type: varchar(255)
+        - name: npi
+          data_type: varchar(20)
+        - name: dea
+          data_type: varchar(20)
+        - name: specialty_concept_id
+          data_type: integer
+        - name: care_site_id
+          data_type: integer
+        - name: year_of_birth
+          data_type: integer
+        - name: gender_concept_id
+          data_type: integer
+        - name: provider_source_value
+          data_type: varchar(50)
+        - name: specialty_source_value
+          data_type: varchar(50)
+        - name: specialty_source_concept_id
+          data_type: integer
+        - name: gender_source_value
+          data_type: varchar(50)
+        - name: gender_source_concept_id
+          data_type: integer

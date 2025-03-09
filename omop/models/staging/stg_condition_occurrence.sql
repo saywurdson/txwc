@@ -111,7 +111,19 @@ final_ihc as (
             else 32893
         end as condition_status_concept_id,
         cast(null as varchar) as stop_reason,
-        cast(null as integer) as provider_id,
+        cast(
+            hash(
+                concat_ws(
+                '||',
+                ihc.rendering_bill_provider_last,
+                coalesce(ihc.rendering_bill_provider_first, ''),
+                coalesce(ihc.rendering_bill_provider_middle, ''),
+                ihc.rendering_bill_provider_state_1,
+                ihc.rendering_bill_provider_4
+                )
+            , 'xxhash64'
+            ) % 1000000000
+        as varchar) as provider_id,
         cast(ihc.bill_id as varchar) as visit_occurrence_id,
         cast(null as integer) as visit_detail_id,
         uihcd.condition_source_value,
@@ -229,7 +241,19 @@ final_ihh as (
             else 32893
         end as condition_status_concept_id,
         cast(null as varchar) as stop_reason,
-        cast(null as integer) as provider_id,
+        cast(
+            hash(
+                concat_ws(
+                '||',
+                ihh.rendering_bill_provider_last,
+                coalesce(ihh.rendering_bill_provider_first, ''),
+                coalesce(ihh.rendering_bill_provider_middle, ''),
+                ihh.rendering_bill_provider_state_1,
+                ihh.rendering_bill_provider_4
+                )
+            , 'xxhash64'
+            ) % 1000000000
+        as varchar) as provider_id,
         cast(ihh.bill_id as varchar) as visit_occurrence_id,
         cast(null as integer) as visit_detail_id,
         uihhd.condition_source_value,
@@ -326,7 +350,19 @@ final_phh as (
         32873 as condition_type_concept_id,
         32893 as condition_status_concept_id,
         cast(null as varchar) as stop_reason,
-        cast(null as integer) as provider_id,
+        cast(
+            hash(
+                concat_ws(
+                '||',
+                phh.rendering_bill_provider_last,
+                coalesce(phh.rendering_bill_provider_first, ''),
+                coalesce(phh.rendering_bill_provider_middle, ''),
+                phh.rendering_bill_provider_state_1,
+                phh.rendering_bill_provider_4
+                )
+            , 'xxhash64'
+            ) % 1000000000
+        as varchar) as provider_id,
         cast(phh.bill_id as varchar) as visit_occurrence_id,
         cast(null as integer) as visit_detail_id,
         uphhd.condition_source_value,
@@ -423,7 +459,19 @@ final_phc as (
         32873 as condition_type_concept_id,
         32893 as condition_status_concept_id,
         cast(null as varchar) as stop_reason,
-        cast(null as integer) as provider_id,
+        cast(
+            hash(
+                concat_ws(
+                '||',
+                phc.rendering_bill_provider_last,
+                coalesce(phc.rendering_bill_provider_first, ''),
+                coalesce(phc.rendering_bill_provider_middle, ''),
+                phc.rendering_bill_provider_state_1,
+                phc.rendering_bill_provider_4
+                )
+            , 'xxhash64'
+            ) % 1000000000
+        as varchar) as provider_id,
         cast(phc.bill_id as varchar) as visit_occurrence_id,
         cast(null as integer) as visit_detail_id,
         uphcd.condition_source_value,

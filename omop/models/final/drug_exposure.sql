@@ -1,0 +1,31 @@
+select 
+    drug_exposure_id,
+    person_id,
+    {{ get_concept_ids(
+         "drug_source_concept_id",
+         domain_id='Drug',
+         vocabulary_id=['NDC', 'HCPCS'],
+         vocabulary_target='RxNorm',
+         required_value=0
+    ) }} as drug_concept_id,
+    drug_exposure_start_date,
+    drug_exposure_start_datetime,
+    drug_exposure_end_date,
+    drug_exposure_end_datetime,
+    verbatim_end_date,
+    drug_type_concept_id,
+    stop_reason,
+    refills,
+    quantity,
+    days_supply,
+    sig,
+    route_concept_id,
+    lot_number,
+    provider_id,
+    visit_occurrence_id,
+    visit_detail_id,
+    drug_source_value,
+    drug_source_concept_id,
+    route_source_value,
+    dose_unit_source_value
+from {{ ref('int_drug_exposure') }}

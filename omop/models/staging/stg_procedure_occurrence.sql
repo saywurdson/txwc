@@ -108,7 +108,19 @@ final_ihc as (
         32855 as procedure_type_concept_id,
         cast(null as integer) modifier_concept_id,
         1 as quantity,
-        cast(null as integer) as provider_id,
+        cast(
+            hash(
+                concat_ws(
+                '||',
+                ihc.rendering_bill_provider_last,
+                coalesce(ihc.rendering_bill_provider_first, ''),
+                coalesce(ihc.rendering_bill_provider_middle, ''),
+                ihc.rendering_bill_provider_state_1,
+                ihc.rendering_bill_provider_4
+                )
+            , 'xxhash64'
+            ) % 1000000000
+        as varchar) as provider_id,
         cast(ihc.bill_id as varchar) as visit_occurrence_id,
         cast(null as integer) as visit_detail_id,
         uihcd.procedure_source_value,
@@ -222,7 +234,19 @@ final_ihh as (
         32855 as procedure_type_concept_id,
         cast(null as integer) modifier_concept_id,
         1 as quantity,
-        cast(null as integer) as provider_id,
+        cast(
+            hash(
+                concat_ws(
+                '||',
+                ihh.rendering_bill_provider_last,
+                coalesce(ihh.rendering_bill_provider_first, ''),
+                coalesce(ihh.rendering_bill_provider_middle, ''),
+                ihh.rendering_bill_provider_state_1,
+                ihh.rendering_bill_provider_4
+                )
+            , 'xxhash64'
+            ) % 1000000000
+        as varchar) as provider_id,
         cast(ihh.bill_id as varchar) as visit_occurrence_id,
         cast(null as integer) as visit_detail_id,
         uihhd.procedure_source_value,
@@ -290,7 +314,19 @@ final_id as (
         32854 as procedure_type_concept_id,
         cast(null as integer) as modifier_concept_id,
         cast(id.days_units_billed as integer) as quantity,
-        cast(null as integer) as provider_id,
+        cast(
+            hash(
+                concat_ws(
+                '||',
+                ihc.rendering_bill_provider_last,
+                coalesce(ihc.rendering_bill_provider_first, ''),
+                coalesce(ihc.rendering_bill_provider_middle, ''),
+                ihc.rendering_bill_provider_state_1,
+                ihc.rendering_bill_provider_4
+                )
+            , 'xxhash64'
+            ) % 1000000000
+        as varchar) as provider_id,
         cast(id.bill_id as varchar) as visit_occurrence_id,
         cast(null as integer) as visit_detail_id,
         id.hcpcs_line_procedure_billed as procedure_source_value,
@@ -299,6 +335,10 @@ final_id as (
     from {{ source('raw','institutional_detail_current') }} id
     join {{ source('raw','institutional_header_current') }} ihc
         on id.bill_id = ihc.bill_id
+    join {{ source('terminology','concept') }} as c
+        on c.concept_code = id.hcpcs_line_procedure_billed
+    where c.domain_id = 'Procedure'
+        and c.vocabulary_id in ('CPT4','HCPCS')
 )
 {% endif %}
 
@@ -358,7 +398,19 @@ final_idh as (
         32854 as procedure_type_concept_id,
         cast(null as integer) as modifier_concept_id,
         cast(idh.days_units_billed as integer) as quantity,
-        cast(null as integer) as provider_id,
+        cast(
+            hash(
+                concat_ws(
+                '||',
+                ihh.rendering_bill_provider_last,
+                coalesce(ihh.rendering_bill_provider_first, ''),
+                coalesce(ihh.rendering_bill_provider_middle, ''),
+                ihh.rendering_bill_provider_state_1,
+                ihh.rendering_bill_provider_4
+                )
+            , 'xxhash64'
+            ) % 1000000000
+        as varchar) as provider_id,
         cast(idh.bill_id as varchar) as visit_occurrence_id,
         cast(null as integer) as visit_detail_id,
         idh.hcpcs_line_procedure_billed as procedure_source_value,
@@ -367,6 +419,10 @@ final_idh as (
     from {{ source('raw','institutional_detail_historical') }} idh
     join {{ source('raw','institutional_header_historical') }} ihh
         on idh.bill_id = ihh.bill_id
+    join {{ source('terminology','concept') }} as c
+        on c.concept_code = idh.hcpcs_line_procedure_billed
+    where c.domain_id = 'Procedure'
+        and c.vocabulary_id in ('CPT4','HCPCS')
 )
 {% endif %}
 
@@ -426,7 +482,19 @@ final_pdc as (
         32872 as procedure_type_concept_id,
         cast(null as integer) as modifier_concept_id,
         cast(pdc.days_units_billed as integer) as quantity,
-        cast(null as integer) as provider_id,
+        cast(
+            hash(
+                concat_ws(
+                '||',
+                prhc.rendering_bill_provider_last,
+                coalesce(prhc.rendering_bill_provider_first, ''),
+                coalesce(prhc.rendering_bill_provider_middle, ''),
+                prhc.rendering_bill_provider_state_1,
+                prhc.rendering_bill_provider_4
+                )
+            , 'xxhash64'
+            ) % 1000000000
+        as varchar) as provider_id,
         cast(pdc.bill_id as varchar) as visit_occurrence_id,
         cast(null as integer) as visit_detail_id,
         pdc.hcpcs_line_procedure_billed as procedure_source_value,
@@ -435,6 +503,10 @@ final_pdc as (
     from {{ source('raw','professional_detail_current') }} pdc
     join {{ source('raw','professional_header_current') }} prhc
         on pdc.bill_id = prhc.bill_id
+    join {{ source('terminology','concept') }} as c
+        on c.concept_code = pdc.hcpcs_line_procedure_billed
+    where c.domain_id = 'Procedure'
+        and c.vocabulary_id in ('CPT4','HCPCS')
 )
 {% endif %}
 
@@ -494,7 +566,19 @@ final_pdh as (
         32872 as procedure_type_concept_id,
         cast(null as integer) as modifier_concept_id,
         cast(pdh.days_units_billed as integer) as quantity,
-        cast(null as integer) as provider_id,
+        cast(
+            hash(
+                concat_ws(
+                '||',
+                phhc.rendering_bill_provider_last,
+                coalesce(phhc.rendering_bill_provider_first, ''),
+                coalesce(phhc.rendering_bill_provider_middle, ''),
+                phhc.rendering_bill_provider_state_1,
+                phhc.rendering_bill_provider_4
+                )
+            , 'xxhash64'
+            ) % 1000000000
+        as varchar) as provider_id,
         cast(pdh.bill_id as varchar) as visit_occurrence_id,
         cast(null as integer) as visit_detail_id,
         pdh.hcpcs_line_procedure_billed as procedure_source_value,
@@ -503,6 +587,10 @@ final_pdh as (
     from {{ source('raw','professional_detail_historical') }} pdh
     join {{ source('raw','professional_header_historical') }} phhc
         on pdh.bill_id = phhc.bill_id
+    join {{ source('terminology','concept') }} as c
+        on c.concept_code = pdh.hcpcs_line_procedure_billed
+    where c.domain_id = 'Procedure'
+        and c.vocabulary_id in ('CPT4','HCPCS')
 )
 {% endif %}
 

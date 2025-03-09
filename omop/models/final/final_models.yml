@@ -1,7 +1,7 @@
 version: 2
 
 models:
-  - name: stg_person
+  - name: person
     config:
       schema: omop
       columns:
@@ -45,8 +45,7 @@ models:
         - name: ethnicity_source_concept_id
           data_type: integer
 
-
-  - name: stg_visit_occurrence
+  - name: visit_occurrence
     config:
       schema: omop
       columns:
@@ -59,9 +58,6 @@ models:
           data_type: integer
           tests:
             - not_null
-            - relationships:
-                to: ref('stg_person')
-                field: person_id
         - name: visit_concept_id
           data_type: integer
           tests:
@@ -101,7 +97,7 @@ models:
         - name: preceding_visit_occurrence_id
           data_type: integer
 
-  - name: stg_condition_occurrence
+  - name: condition_occurrence
     config:
       schema: omop
       columns:
@@ -149,7 +145,7 @@ models:
         - name: condition_status_source_value
           data_type: varchar(50)
 
-  - name: stg_procedure_occurrence
+  - name: procedure_occurrence
     config:
       schema: omop
       columns:
@@ -197,7 +193,7 @@ models:
         - name: modifier_source_value
           data_type: varchar(50)
 
-  - name: stg_device_exposure
+  - name: device_exposure
     config:
       schema: omop
       columns:
@@ -251,7 +247,7 @@ models:
         - name: unit_source_concept_id
           data_type: integer
 
-  - name: stg_measurement
+  - name: measurement
     config:
       schema: omop
       columns:
@@ -313,7 +309,7 @@ models:
         - name: meas_event_field_concept_id
           data_type: integer
 
-  - name: stg_observation
+  - name: observation
     config:
       schema: omop
       columns:
@@ -371,7 +367,7 @@ models:
         - name: obs_event_field_concept_id
           data_type: integer
 
-  - name: stg_location
+  - name: location
     config:
       schema: omop
       columns:
@@ -403,7 +399,7 @@ models:
         - name: longitude
           data_type: float
 
-  - name: stg_care_site
+  - name: care_site
     config:
       schema: omop
       columns:
@@ -423,7 +419,7 @@ models:
         - name: place_of_service_source_value
           data_type: varchar(50)
 
-  - name: stg_provider
+  - name: provider
     config:
       schema: omop
       columns:

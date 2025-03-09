@@ -13,13 +13,7 @@ institutional_header_current as (
             hash(
                 concat_ws(
                 '||',
-                billing_provider_last_name,
-                facility_primary_address,
-                facility_city,
-                facility_state_code,
-                facility_postal_code,
-                facility_country_code,
-                coalesce(facility_national_provider, '')
+                billing_provider_last_name
                 )
             , 'xxhash64'
             ) % 1000000000
@@ -40,7 +34,7 @@ institutional_header_current as (
             , 'xxhash64'
             ) % 1000000000
         as varchar) as location_id,
-        billing_provider_last_name as care_site_source_value,
+        cast(null as varchar) as care_site_source_value,
         cast(null as varchar) as place_of_service_source_value
     from {{ source('raw', 'institutional_header_current') }}
 )
@@ -54,13 +48,7 @@ institutional_header_historical as (
             hash(
                 concat_ws(
                 '||',
-                billing_provider_last_name,
-                facility_primary_address,
-                facility_city,
-                facility_state_code,
-                facility_postal_code,
-                facility_country_code,
-                coalesce(facility_national_provider, '')
+                billing_provider_last_name
                 )
             , 'xxhash64'
             ) % 1000000000
@@ -81,7 +69,7 @@ institutional_header_historical as (
             , 'xxhash64'
             ) % 1000000000
         as varchar) as location_id,
-        billing_provider_last_name as care_site_source_value,
+        cast(null as varchar) as care_site_source_value,
         cast(null as varchar) as place_of_service_source_value
     from {{ source('raw', 'institutional_header_historical') }}
 )
@@ -96,12 +84,7 @@ professional_header_historical as (
                 concat_ws(
                 '||',
                 billing_provider_last_name,
-                facility_primary_address,
-                facility_city,
-                facility_state_code,
-                facility_postal_code,
-                facility_country_code,
-                coalesce(facility_national_provider, '')
+                facility_primary_address
                 )
             , 'xxhash64'
             ) % 1000000000
@@ -122,7 +105,7 @@ professional_header_historical as (
             , 'xxhash64'
             ) % 1000000000
         as varchar) as location_id,
-        facility_national_provider as care_site_source_value,
+        cast(null as varchar) as care_site_source_value,
         cast(null as varchar) as place_of_service_source_value
     from {{ source('raw', 'professional_header_historical') }}
 )
@@ -137,12 +120,7 @@ professional_header_current as (
                 concat_ws(
                 '||',
                 billing_provider_last_name,
-                facility_primary_address,
-                facility_city,
-                facility_state_code,
-                facility_postal_code,
-                facility_country_code,
-                coalesce(facility_national_provider, '')
+                facility_primary_address
                 )
             , 'xxhash64'
             ) % 1000000000
@@ -163,7 +141,7 @@ professional_header_current as (
             , 'xxhash64'
             ) % 1000000000
         as varchar) as location_id,
-        billing_provider_last_name as care_site_source_value,
+        cast(null as varchar) as care_site_source_value,
         cast(null as varchar) as place_of_service_source_value
     from {{ source('raw', 'professional_header_current') }}
 )
@@ -178,33 +156,28 @@ pharmacy_header_current as (
                 concat_ws(
                 '||',
                 billing_provider_last_name,
-                facility_primary_address,
-                facility_city,
-                facility_state_code,
-                facility_postal_code,
-                facility_country_code,
-                coalesce(facility_national_provider, '')
+                billing_provider_fein
                 )
             , 'xxhash64'
             ) % 1000000000
         as varchar) as care_site_id,
-        facility_name as care_site_name,
+        coalesce(facility_name, billing_provider_last_name) as care_site_name,
         38004338 as place_of_service_concept_id,
         cast(
             hash(
                 concat_ws(
                 '||',
                 billing_provider_last_name,
-                facility_primary_address,
-                facility_city,
-                facility_state_code,
-                facility_postal_code,
-                facility_country_code
+                billing_provider_fein,
+                billing_provider_primary_1,
+                billing_provider_city,
+                billing_provider_state_code,
+                billing_provider_postal_code
                 )
             , 'xxhash64'
             ) % 1000000000
         as varchar) as location_id,
-        facility_name as care_site_source_value,
+        cast(null as varchar) as care_site_source_value,
         cast(null as varchar) as place_of_service_source_value
     from {{ source('raw', 'pharmacy_header_current') }}
 )
@@ -219,33 +192,28 @@ pharmacy_header_historical as (
                 concat_ws(
                 '||',
                 billing_provider_last_name,
-                facility_primary_address,
-                facility_city,
-                facility_state_code,
-                facility_postal_code,
-                facility_country_code,
-                coalesce(facility_national_provider, '')
+                billing_provider_fein
                 )
             , 'xxhash64'
             ) % 1000000000
         as varchar) as care_site_id,
-        facility_name as care_site_name,
+        coalesce(facility_name, billing_provider_last_name) as care_site_name,
         38004338 as place_of_service_concept_id,
         cast(
             hash(
                 concat_ws(
                 '||',
                 billing_provider_last_name,
-                facility_primary_address,
-                facility_city,
-                facility_state_code,
-                facility_postal_code,
-                facility_country_code
+                billing_provider_fein,
+                billing_provider_primary_1,
+                billing_provider_city,
+                billing_provider_state_code,
+                billing_provider_postal_code
                 )
             , 'xxhash64'
             ) % 1000000000
         as varchar) as location_id,
-        facility_name as care_site_source_value,
+        cast(null as varchar) as care_site_source_value,
         cast(null as varchar) as place_of_service_source_value
     from {{ source('raw', 'pharmacy_header_historical') }}
 )
