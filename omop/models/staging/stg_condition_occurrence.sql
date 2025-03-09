@@ -117,7 +117,7 @@ final_ihc as (
         uihcd.condition_source_value,
         cast(null as integer) as condition_source_concept_id,
         cast(null as varchar) as condition_status_source_value
-    from institutional_header_current ihc
+    from {{ source('raw','institutional_header_current') }} ihc
     join unique_ihc_diagnoses uihcd
       on cast(ihc.bill_id as varchar) = cast(uihcd.bill_id as varchar)
 )
@@ -235,7 +235,7 @@ final_ihh as (
         uihhd.condition_source_value,
         cast(null as integer) as condition_source_concept_id,
         cast(null as varchar) as condition_status_source_value
-    from institutional_header_historical ihh
+    from {{ source('raw','institutional_header_historical') }} ihh
     join unique_ihh_diagnoses uihhd
       on cast(ihh.bill_id as varchar) = cast(uihhd.bill_id as varchar)
 )
@@ -332,7 +332,7 @@ final_phh as (
         uphhd.condition_source_value,
         cast(null as integer) as condition_source_concept_id,
         cast(null as varchar) as condition_status_source_value
-    from professional_header_historical phh
+    from {{ source('raw','professional_header_historical') }} phh
     join unpivot_phh_diagnoses uphhd
         on cast(phh.bill_id as varchar) = cast(uphhd.bill_id as varchar)
 )
@@ -429,7 +429,7 @@ final_phc as (
         uphcd.condition_source_value,
         cast(null as integer) as condition_source_concept_id,
         cast(null as varchar) as condition_status_source_value
-    from professional_header_current phc
+    from {{ source('raw','professional_header_current') }} phc
     join unpivot_phc_diagnoses uphcd
         on cast(phc.bill_id as varchar) = cast(uphcd.bill_id as varchar)
 )

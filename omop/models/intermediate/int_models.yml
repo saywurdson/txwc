@@ -246,3 +246,175 @@ models:
           data_type: varchar(50)
         - name: unit_source_concept_id
           data_type: integer
+
+  - name: int_measurement
+    config:
+      schema: omop
+      columns:
+        - name: measurement_id
+          data_type: integer
+          tests:
+            - unique
+            - not_null
+        - name: person_id
+          data_type: integer
+          tests:
+            - not_null
+        - name: measurement_concept_id
+          data_type: integer
+          tests:
+            - not_null
+        - name: measurement_date
+          data_type: date
+          tests:
+            - not_null
+        - name: measurement_datetime
+          data_type: datetime
+        - name: measurement_time
+          data_type: varchar(10)
+        - name: measurement_type_concept_id
+          data_type: integer
+          tests:
+            - not_null
+        - name: operator_concept_id
+          data_type: integer
+        - name: value_as_number
+          data_type: float
+        - name: value_as_concept_id
+          data_type: integer
+        - name: unit_concept_id
+          data_type: integer
+        - name: range_low
+          data_type: float
+        - name: range_high
+          data_type: float
+        - name: provider_id
+          data_type: integer
+        - name: visit_occurrence_id
+          data_type: integer
+        - name: visit_detail_id
+          data_type: integer
+        - name: measurement_source_value
+          data_type: varchar(50)
+        - name: measurement_source_concept_id
+          data_type: integer
+        - name: unit_source_value
+          data_type: varchar(50)
+        - name: unit_source_concept_id
+          data_type: integer
+        - name: value_source_value
+          data_type: varchar(50)
+        - name: measurement_event_id
+          data_type: integer
+        - name: meas_event_field_concept_id
+          data_type: integer
+
+  - name: int_observation
+    config:
+      schema: omop
+      columns:
+        - name: observation_id
+          data_type: integer
+          tests:
+            - unique
+            - not_null
+        - name: person_id
+          data_type: integer
+          tests:
+            - not_null
+        - name: observation_concept_id
+          data_type: integer
+          tests:
+            - not_null
+        - name: observation_date
+          data_type: date
+          tests:
+            - not_null
+        - name: observation_datetime
+          data_type: datetime
+        - name: observation_type_concept_id
+          data_type: integer
+          tests:
+            - not_null
+        - name: value_as_number
+          data_type: float
+        - name: value_as_string
+          data_type: varchar(60)
+        - name: value_as_concept_id
+          data_type: integer
+        - name: qualifier_concept_id
+          data_type: integer
+        - name: unit_concept_id
+          data_type: integer
+        - name: provider_id
+          data_type: integer
+        - name: visit_occurrence_id
+          data_type: integer
+        - name: visit_detail_id
+          data_type: integer
+        - name: observation_source_value
+          data_type: varchar(50)
+        - name: observation_source_concept_id
+          data_type: integer
+        - name: unit_source_value
+          data_type: varchar(50)
+        - name: qualifier_source_value
+          data_type: varchar(50)
+        - name: value_source_value
+          data_type: varchar(50)
+        - name: observation_event_id
+          data_type: integer
+        - name: obs_event_field_concept_id
+          data_type: integer
+
+  - name: int_location
+    config:
+      schema: omop
+      columns:
+        - name: location_id
+          data_type: integer
+          tests:
+            - unique
+            - not_null
+        - name: address_1
+          data_type: varchar(50)
+        - name: address_2
+          data_type: varchar(50)
+        - name: city
+          data_type: varchar(50)
+        - name: state
+          data_type: varchar(2)
+        - name: zip
+          data_type: varchar(9)
+        - name: county
+          data_type: varchar(20)
+        - name: location_source_value
+          data_type: varchar(50)
+        - name: country_concept_id
+          data_type: integer
+        - name: country_source_value
+          data_type: varchar(80)
+        - name: latitude
+          data_type: float
+        - name: longitude
+          data_type: float
+
+  - name: int_care_site
+    config:
+      schema: omop
+      columns:
+        - name: care_site_id
+          data_type: integer
+          tests:
+            - unique
+            - not_null
+        - name: care_site_name
+          data_type: varchar(255)
+        - name: place_of_service_concept_id
+          data_type: integer
+        - name: location_id
+          data_type: integer
+        - name: care_site_source_value
+          data_type: varchar(50)
+        - name: place_of_service_source_value
+          data_type: varchar(50)

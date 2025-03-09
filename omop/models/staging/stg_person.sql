@@ -41,9 +41,35 @@ institutional_header_current as (
         cast(employee_date_of_birth as timestamp) as birth_datetime,
         cast(null as integer) as race_concept_id,
         cast(null as integer) as ethnicity_concept_id,
-        cast(null as integer) as location_id,
+        cast(
+            hash(
+                concat_ws(
+                '||',
+                employee_mailing_city,
+                employee_mailing_country,
+                employee_mailing_postal_code,
+                employee_mailing_state_code
+                )
+            , 'xxhash64'
+            ) % 1000000000
+        as varchar) as location_id,
         cast(null as integer) as provider_id,
-        cast(null as integer) as care_site_id,
+        cast(
+            hash(
+                concat_ws(
+                '||',
+                facility_name,
+                facility_primary_address,
+                facility_city,
+                facility_state_code,
+                facility_postal_code,
+                facility_country_code,
+                coalesce(facility_national_provider, ''),
+                unique_bill_id_number
+                )
+            , 'xxhash64'
+            ) % 1000000000
+        as varchar) as care_site_id,
         cast(patient_account_number as varchar) as person_source_value,
         cast(employee_gender_code as varchar) as gender_source_value,
         cast(null as integer) as gender_source_concept_id,
@@ -91,9 +117,35 @@ institutional_header_historical as (
         cast(employee_date_of_birth as timestamp) as birth_datetime,
         cast(null as integer) as race_concept_id,
         cast(null as integer) as ethnicity_concept_id,
-        cast(null as integer) as location_id,
+        cast(
+            hash(
+                concat_ws(
+                '||',
+                employee_mailing_city,
+                employee_mailing_country,
+                employee_mailing_postal_code,
+                employee_mailing_state_code
+                )
+            , 'xxhash64'
+            ) % 1000000000
+        as varchar) as location_id,
         cast(null as integer) as provider_id,
-        cast(null as integer) as care_site_id,
+        cast(
+            hash(
+                concat_ws(
+                '||',
+                facility_name,
+                facility_primary_address,
+                facility_city,
+                facility_state_code,
+                facility_postal_code,
+                facility_country_code,
+                coalesce(facility_national_provider, ''),
+                unique_bill_id_number
+                )
+            , 'xxhash64'
+            ) % 1000000000
+        as varchar) as care_site_id,
         cast(patient_account_number as varchar) as person_source_value,
         cast(employee_gender_code as varchar) as gender_source_value,
         cast(null as integer) as gender_source_concept_id,
@@ -141,9 +193,35 @@ professional_header_historical as (
         cast(employee_date_of_birth as timestamp) as birth_datetime,
         cast(null as integer) as race_concept_id,
         cast(null as integer) as ethnicity_concept_id,
-        cast(null as integer) as location_id,
+        cast(
+            hash(
+                concat_ws(
+                '||',
+                employee_mailing_city,
+                employee_mailing_country,
+                employee_mailing_postal_code,
+                employee_mailing_state_code
+                )
+            , 'xxhash64'
+            ) % 1000000000
+        as varchar) as location_id,
         cast(null as integer) as provider_id,
-        cast(null as integer) as care_site_id,
+        cast(
+            hash(
+                concat_ws(
+                '||',
+                billing_provider_last_name,
+                facility_primary_address,
+                facility_city,
+                facility_state_code,
+                facility_postal_code,
+                facility_country_code,
+                coalesce(facility_national_provider, ''),
+                unique_bill_id_number
+                )
+            , 'xxhash64'
+            ) % 1000000000
+        as varchar) as care_site_id,
         cast(patient_account_number as varchar) as person_source_value,
         cast(employee_gender_code as varchar) as gender_source_value,
         cast(null as integer) as gender_source_concept_id,
@@ -191,9 +269,35 @@ professional_header_current as (
         cast(employee_date_of_birth as timestamp) as birth_datetime,
         cast(null as integer) as race_concept_id,
         cast(null as integer) as ethnicity_concept_id,
-        cast(null as integer) as location_id,
+        cast(
+            hash(
+                concat_ws(
+                '||',
+                employee_mailing_city,
+                employee_mailing_country,
+                employee_mailing_postal_code,
+                employee_mailing_state_code
+                )
+            , 'xxhash64'
+            ) % 1000000000
+        as varchar) as location_id,
         cast(null as integer) as provider_id,
-        cast(null as integer) as care_site_id,
+        cast(
+            hash(
+                concat_ws(
+                '||',
+                billing_provider_last_name,
+                facility_primary_address,
+                facility_city,
+                facility_state_code,
+                facility_postal_code,
+                facility_country_code,
+                coalesce(facility_national_provider, ''),
+                unique_bill_id_number
+                )
+            , 'xxhash64'
+            ) % 1000000000
+        as varchar) as care_site_id,
         cast(patient_account_number as varchar) as person_source_value,
         cast(employee_gender_code as varchar) as gender_source_value,
         cast(null as integer) as gender_source_concept_id,
@@ -241,9 +345,35 @@ pharmacy_header_current as (
         cast(employee_date_of_birth as timestamp) as birth_datetime,
         cast(null as integer) as race_concept_id,
         cast(null as integer) as ethnicity_concept_id,
-        cast(null as integer) as location_id,
+        cast(
+            hash(
+                concat_ws(
+                '||',
+                employee_mailing_city,
+                employee_mailing_country,
+                employee_mailing_postal_code,
+                employee_mailing_state_code
+                )
+            , 'xxhash64'
+            ) % 1000000000
+        as varchar) as location_id,
         cast(null as integer) as provider_id,
-        cast(null as integer) as care_site_id,
+        cast(
+            hash(
+                concat_ws(
+                '||',
+                facility_name,
+                facility_primary_address,
+                facility_city,
+                facility_state_code,
+                facility_postal_code,
+                facility_country_code,
+                coalesce(facility_national_provider, ''),
+                unique_bill_id_number
+                )
+            , 'xxhash64'
+            ) % 1000000000
+        as varchar) as care_site_id,
         cast(patient_account_number as varchar) as person_source_value,
         cast(employee_gender_code as varchar) as gender_source_value,
         cast(null as integer) as gender_source_concept_id,
@@ -291,9 +421,35 @@ pharmacy_header_historical as (
         cast(employee_date_of_birth as timestamp) as birth_datetime,
         cast(null as integer) as race_concept_id,
         cast(null as integer) as ethnicity_concept_id,
-        cast(null as integer) as location_id,
+        cast(
+            hash(
+                concat_ws(
+                '||',
+                employee_mailing_city,
+                employee_mailing_country,
+                employee_mailing_postal_code,
+                employee_mailing_state_code
+                )
+            , 'xxhash64'
+            ) % 1000000000
+        as varchar) as location_id,
         cast(null as integer) as provider_id,
-        cast(null as integer) as care_site_id,
+        cast(
+            hash(
+                concat_ws(
+                '||',
+                facility_name,
+                facility_primary_address,
+                facility_city,
+                facility_state_code,
+                facility_postal_code,
+                facility_country_code,
+                coalesce(facility_national_provider, ''),
+                unique_bill_id_number
+                )
+            , 'xxhash64'
+            ) % 1000000000
+        as varchar) as care_site_id,
         cast(patient_account_number as varchar) as person_source_value,
         cast(employee_gender_code as varchar) as gender_source_value,
         cast(null as integer) as gender_source_concept_id,

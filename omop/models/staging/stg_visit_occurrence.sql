@@ -42,7 +42,24 @@ institutional_header_current as (
         cast(service_bill_to_date as timestamp) as visit_end_datetime,
         32855 as visit_type_concept_id,
         cast(null as integer) as provider_id,
-        cast(null as integer) as care_site_id,
+        cast(
+            hash(
+                concat_ws(
+                '||',
+                row_id,
+                bill_id,
+                facility_name,
+                facility_primary_address,
+                facility_city,
+                facility_state_code,
+                facility_postal_code,
+                facility_country_code,
+                coalesce(facility_national_provider, ''),
+                unique_bill_id_number
+                )
+            , 'xxhash64'
+            ) % 1000000000
+        as varchar) as care_site_id,
         cast(facility_code as varchar) as visit_source_value,
         cast(null as integer) as visit_source_concept_id,
         cast(null as integer) as admitted_from_source_value,
@@ -90,7 +107,24 @@ institutional_header_historical as (
         cast(service_bill_to_date as timestamp) as visit_end_datetime,
         32855 as visit_type_concept_id,
         cast(null as integer) as provider_id,
-        cast(null as integer) as care_site_id,
+        cast(
+            hash(
+                concat_ws(
+                '||',
+                row_id,
+                bill_id,
+                facility_name,
+                facility_primary_address,
+                facility_city,
+                facility_state_code,
+                facility_postal_code,
+                facility_country_code,
+                coalesce(facility_national_provider, ''),
+                unique_bill_id_number
+                )
+            , 'xxhash64'
+            ) % 1000000000
+        as varchar) as care_site_id,
         cast(facility_code as varchar) as visit_source_value,
         cast(null as integer) as visit_source_concept_id,
         cast(null as integer) as admitted_from_source_value,
@@ -138,7 +172,24 @@ professional_header_historical as (
         cast(service_bill_to_date as timestamp) as visit_end_datetime,
         32873 as visit_type_concept_id,
         cast(null as integer) as provider_id,
-        cast(null as integer) as care_site_id,
+        cast(
+            hash(
+                concat_ws(
+                '||',
+                row_id,
+                bill_id,
+                facility_name,
+                facility_primary_address,
+                facility_city,
+                facility_state_code,
+                facility_postal_code,
+                facility_country_code,
+                coalesce(facility_national_provider, ''),
+                unique_bill_id_number
+                )
+            , 'xxhash64'
+            ) % 1000000000
+        as varchar) as care_site_id,
         cast(place_of_service_bill_code as varchar) as visit_source_value,
         cast(null as integer) as visit_source_concept_id,
         cast(null as integer) as admitted_from_source_value,
@@ -186,7 +237,24 @@ professional_header_current as (
         cast(service_bill_to_date as timestamp) as visit_end_datetime,
         32873 as visit_type_concept_id,
         cast(null as integer) as provider_id,
-        cast(null as integer) as care_site_id,
+        cast(
+            hash(
+                concat_ws(
+                '||',
+                row_id,
+                bill_id,
+                facility_name,
+                facility_primary_address,
+                facility_city,
+                facility_state_code,
+                facility_postal_code,
+                facility_country_code,
+                coalesce(facility_national_provider, ''),
+                unique_bill_id_number
+                )
+            , 'xxhash64'
+            ) % 1000000000
+        as varchar) as care_site_id,
         cast(place_of_service_bill_code as varchar) as visit_source_value,
         cast(null as integer) as visit_source_concept_id,
         cast(null as integer) as admitted_from_source_value,
@@ -234,7 +302,24 @@ pharmacy_header_current as (
         cast(service_bill_to_date as timestamp) as visit_end_datetime,
         32869 as visit_type_concept_id,
         cast(null as integer) as provider_id,
-        cast(null as integer) as care_site_id,
+        cast(
+            hash(
+                concat_ws(
+                '||',
+                row_id,
+                bill_id,
+                facility_name,
+                facility_primary_address,
+                facility_city,
+                facility_state_code,
+                facility_postal_code,
+                facility_country_code,
+                coalesce(facility_national_provider, ''),
+                unique_bill_id_number
+                )
+            , 'xxhash64'
+            ) % 1000000000
+        as varchar) as care_site_id,
         cast(place_of_service_bill_code as varchar) as visit_source_value,
         cast(null as integer) as visit_source_concept_id,
         cast(null as integer) as admitted_from_source_value,
@@ -282,7 +367,24 @@ pharmacy_header_historical as (
         cast(service_bill_to_date as timestamp) as visit_end_datetime,
         32869 as visit_type_concept_id,
         cast(null as integer) as provider_id,
-        cast(null as integer) as care_site_id,
+        cast(
+            hash(
+                concat_ws(
+                '||',
+                row_id,
+                bill_id,
+                facility_name,
+                facility_primary_address,
+                facility_city,
+                facility_state_code,
+                facility_postal_code,
+                facility_country_code,
+                coalesce(facility_national_provider, ''),
+                unique_bill_id_number
+                )
+            , 'xxhash64'
+            ) % 1000000000
+        as varchar) as care_site_id,
         cast(place_of_service_bill_code as varchar) as visit_source_value,
         cast(null as integer) as visit_source_concept_id,
         cast(null as integer) as admitted_from_source_value,

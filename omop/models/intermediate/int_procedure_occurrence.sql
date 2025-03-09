@@ -20,7 +20,7 @@ select
     {{ get_source_concept_ids(
         "procedure_source_value",
         domain_id='Procedure',
-        vocabulary_id=['ICD9Proc', 'ICD10PCS']
+        vocabulary_id=['ICD9Proc', 'ICD10PCS', 'CPT4', 'HCPCS']
     ) }} as procedure_source_concept_id,
     modifier_source_value
 from {{ ref('stg_procedure_occurrence') }}
