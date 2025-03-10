@@ -1,5 +1,5 @@
 select
-    visit_occurrence_id,
+    row_number() over (order by visit_occurrence_id) as visit_occurrence_id,
     person_id,
     {{ get_concept_ids(
          "visit_source_concept_id",

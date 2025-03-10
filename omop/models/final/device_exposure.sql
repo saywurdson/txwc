@@ -1,5 +1,5 @@
 select 
-    device_exposure_id,
+    row_number() over (order by device_exposure_id) as device_exposure_id,
     person_id,
     {{ get_concept_ids(
          "device_source_concept_id",

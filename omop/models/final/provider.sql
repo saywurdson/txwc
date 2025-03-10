@@ -7,7 +7,7 @@ select
          "specialty_source_concept_id",
          domain_id=['Visit', 'Provider'],
          vocabulary_id=['NUCC'],
-         vocabulary_target='NUCC',
+         vocabulary_target=['NUCC', 'Medicare Specialty'],
          required_value=0
     ) }} as specialty_concept_id,
     care_site_id,

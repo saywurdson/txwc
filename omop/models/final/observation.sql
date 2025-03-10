@@ -1,5 +1,5 @@
 select 
-    observation_id,
+    row_number() over (order by observation_id) as observation_id,
     person_id,
     {{ get_concept_ids(
          "observation_source_concept_id",

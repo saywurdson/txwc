@@ -1,5 +1,5 @@
 select 
-    drug_exposure_id,
+    row_number() over (order by drug_exposure_id) as drug_exposure_id,
     person_id,
     {{ get_concept_ids(
          "drug_source_concept_id",

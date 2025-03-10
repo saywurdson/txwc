@@ -23,3 +23,4 @@ sources:
     tables:
       - name: concept
       - name: concept_relationship
+      - name: concept_ancestor

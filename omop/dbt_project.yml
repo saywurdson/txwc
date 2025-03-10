@@ -38,5 +38,3 @@ models:
       +materialized: view
     final:
       +materialized: table
-    omop:
-      +materialized: table

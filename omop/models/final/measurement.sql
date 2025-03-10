@@ -1,5 +1,5 @@
 select 
-    measurement_id,
+    row_number() over (order by measurement_id) as measurement_id,
     person_id,
     {{ get_concept_ids(
          "measurement_source_concept_id",

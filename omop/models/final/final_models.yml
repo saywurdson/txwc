@@ -452,3 +452,61 @@ models:
           data_type: varchar(50)
         - name: gender_source_concept_id
           data_type: integer
+
+  - name: drug_era
+    config:
+      schema: omop
+      columns:
+        - name: drug_era_id
+          data_type: integer
+          tests:
+            - unique
+            - not_null
+        - name: person_id
+          data_type: integer
+          tests:
+            - not_null
+        - name: drug_concept_id
+          data_type: integer
+          tests:
+            - not_null
+        - name: drug_era_start_date
+          data_type: date
+          tests:
+            - not_null
+        - name: drug_era_end_date
+          data_type: date
+          tests:
+            - not_null
+        - name: drug_exposure_count
+          data_type: integer
+        - name: gap_days
+          data_type: integer
+
+  - name: condition_era
+    config:
+      schema: omop
+      columns:
+        - name: condition_era_id
+          data_type: integer
+          tests:
+            - unique
+            - not_null
+        - name: person_id
+          data_type: integer
+          tests:
+            - not_null
+        - name: condition_concept_id
+          data_type: integer
+          tests:
+            - not_null
+        - name: condition_era_start_date
+          data_type: date
+          tests:
+            - not_null
+        - name: condition_era_end_date
+          data_type: date
+          tests:
+            - not_null
+        - name: condition_occurrence_count
+          data_type: integer

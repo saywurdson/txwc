@@ -1,5 +1,5 @@
 select
-    procedure_occurrence_id,
+    row_number() over (order by procedure_occurrence_id) as procedure_occurrence_id,
     person_id,
     {{ get_concept_ids(
         "procedure_source_concept_id",
