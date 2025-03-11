@@ -197,17 +197,20 @@ ctepredrugtarget as (
          ft.drug_sub_exposure_start_date,
          ft.drug_exposure_count,
          ft.days_exposed
+),
+final as (
+    select
+        row_number() over (order by person_id) as drug_era_id,
+        person_id,
+        drug_concept_id,
+        min(drug_sub_exposure_start_date) as drug_era_start_date,
+        drug_era_end_date,
+        sum(drug_exposure_count) as drug_exposure_count,
+        datediff('day', min(drug_sub_exposure_start_date), drug_era_end_date) - sum(days_exposed) as gap_days
+    from ctedrugeraends
+    group by 
+        person_id, 
+        drug_concept_id, 
+        drug_era_end_date
 )
-select
-	row_number() over (order by person_id) as drug_era_id,
-    person_id,
-    drug_concept_id,
-    min(drug_sub_exposure_start_date) as drug_era_start_date,
-    drug_era_end_date,
-    sum(drug_exposure_count) as drug_exposure_count,
-    datediff('day', min(drug_sub_exposure_start_date), drug_era_end_date) - sum(days_exposed) as gap_days
-from ctedrugeraends
-group by 
-    person_id, 
-    drug_concept_id, 
-    drug_era_end_date
+select * from final

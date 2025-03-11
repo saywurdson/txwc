@@ -9,7 +9,6 @@ with cteconditiontarget (condition_occurrence_id, person_id, condition_concept_i
     from {{ ref('condition_occurrence') }} co
     where condition_concept_id != 0
 ),
-
 -- cteenddates (the magic)
 cteenddates (person_id, condition_concept_id, end_date) as (
     select
@@ -48,7 +47,6 @@ cteenddates (person_id, condition_concept_id, end_date) as (
     ) e
     where (2 * e.start_ordinal) - e.overall_ord = 0
 ),
-
 cteconditionends (person_id, condition_concept_id, condition_start_date, era_end_date) as (
     select
         c.person_id,
@@ -64,13 +62,16 @@ cteconditionends (person_id, condition_concept_id, condition_start_date, era_end
         c.person_id,
         c.condition_concept_id,
         c.condition_start_date
+),
+final as (
+    select
+        row_number() over (order by person_id) as condition_era_id,
+        person_id,
+        condition_concept_id,
+        min(condition_start_date) as condition_era_start_date,
+        era_end_date as condition_era_end_date,
+        count(*) as condition_occurrence_count
+    from cteconditionends
+    group by person_id, condition_concept_id, era_end_date
 )
-select
-	row_number() over (order by person_id) as condition_era_id,
-    person_id,
-    condition_concept_id,
-    min(condition_start_date) as condition_era_start_date,
-    era_end_date as condition_era_end_date,
-    count(*) as condition_occurrence_count
-from cteconditionends
-group by person_id, condition_concept_id, era_end_date
+select * from final
