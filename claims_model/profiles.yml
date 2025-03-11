@@ -1,8 +1,0 @@
-claims_model:
-  target: dev
-  outputs:
-    dev:
-      type: duckdb
-      threads: 4
-      path: "/workspaces/txwc/tx_workers_comp.db"
-      schema: raw
