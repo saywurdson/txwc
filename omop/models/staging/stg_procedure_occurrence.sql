@@ -46,7 +46,7 @@ unpivot_ihc_diagnoses as (
             (fourth_icd_9cm_or_icd_10cm_1, 'fourth_icd_9cm_or_icd_10cm'),
             (icd_9cm_or_icd_10cm_principal, 'icd_9cm_or_icd_10cm_principal')
     ) as t(icd, source_column)
-    join {{ source('terminology','concept') }} as c
+    join {{ source('omop','concept') }} as c
         on c.concept_code = t.icd
     where c.domain_id = 'Procedure'
         and c.vocabulary_id in ('ICD10PCS','ICD9Proc')
@@ -172,7 +172,7 @@ unpivot_ihh_diagnoses as (
             (fourth_icd_9cm_or_icd_10cm_1, 'fourth_icd_9cm_or_icd_10cm'),
             (icd_9cm_or_icd_10cm_principal, 'icd_9cm_or_icd_10cm_principal')
     ) as t(icd, source_column)
-    join {{ source('terminology','concept') }} as c
+    join {{ source('omop','concept') }} as c
         on c.concept_code = t.icd
     where c.domain_id = 'Procedure'
         and c.vocabulary_id in ('ICD10PCS','ICD9Proc')
@@ -335,7 +335,7 @@ final_id as (
     from {{ source('raw','institutional_detail_current') }} id
     join {{ source('raw','institutional_header_current') }} ihc
         on id.bill_id = ihc.bill_id
-    join {{ source('terminology','concept') }} as c
+    join {{ source('omop','concept') }} as c
         on c.concept_code = id.hcpcs_line_procedure_billed
     where c.domain_id = 'Procedure'
         and c.vocabulary_id in ('CPT4','HCPCS')
@@ -419,7 +419,7 @@ final_idh as (
     from {{ source('raw','institutional_detail_historical') }} idh
     join {{ source('raw','institutional_header_historical') }} ihh
         on idh.bill_id = ihh.bill_id
-    join {{ source('terminology','concept') }} as c
+    join {{ source('omop','concept') }} as c
         on c.concept_code = idh.hcpcs_line_procedure_billed
     where c.domain_id = 'Procedure'
         and c.vocabulary_id in ('CPT4','HCPCS')
@@ -503,7 +503,7 @@ final_pdc as (
     from {{ source('raw','professional_detail_current') }} pdc
     join {{ source('raw','professional_header_current') }} prhc
         on pdc.bill_id = prhc.bill_id
-    join {{ source('terminology','concept') }} as c
+    join {{ source('omop','concept') }} as c
         on c.concept_code = pdc.hcpcs_line_procedure_billed
     where c.domain_id = 'Procedure'
         and c.vocabulary_id in ('CPT4','HCPCS')
@@ -587,7 +587,7 @@ final_pdh as (
     from {{ source('raw','professional_detail_historical') }} pdh
     join {{ source('raw','professional_header_historical') }} phhc
         on pdh.bill_id = phhc.bill_id
-    join {{ source('terminology','concept') }} as c
+    join {{ source('omop','concept') }} as c
         on c.concept_code = pdh.hcpcs_line_procedure_billed
     where c.domain_id = 'Procedure'
         and c.vocabulary_id in ('CPT4','HCPCS')

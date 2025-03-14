@@ -14,7 +14,7 @@
     select case
       when exists(
         select 1
-        from {{ source('terminology','concept') }} as c
+        from {{ source('omop','concept') }} as c
         where c.concept_id = {{ source_concept_id | safe }} 
           and 
           {% if domain_id is string %}
@@ -45,7 +45,7 @@
       then cast(
           (
             select c.concept_id
-            from {{ source('terminology','concept') }} as c
+            from {{ source('omop','concept') }} as c
             where c.concept_id = {{ source_concept_id | safe }} 
               and 
               {% if domain_id is string %}
@@ -78,10 +78,10 @@
       else cast(
           (
             select c2.concept_id
-            from {{ source('terminology','concept_relationship') }} as cr
-            join {{ source('terminology','concept') }} as c1
+            from {{ source('omop','concept_relationship') }} as cr
+            join {{ source('omop','concept') }} as c1
               on cr.concept_id_1 = c1.concept_id
-            join {{ source('terminology','concept') }} as c2
+            join {{ source('omop','concept') }} as c2
               on cr.concept_id_2 = c2.concept_id
             where cr.relationship_id ilike '{{ relationship_id }}'
               and c1.concept_id = {{ source_concept_id | safe }} 

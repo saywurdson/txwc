@@ -52,7 +52,7 @@ unpivot_ihc_diagnoses as (
             (principal_diagnosis_code, 'principal_diagnosis_code', 1),
             (admitting_diagnosis_code, 'admitting_diagnosis_code', 2)
     ) as t(icd, source_column, priority)
-    join {{ source('terminology','concept') }} as c
+    join {{ source('omop','concept') }} as c
         on c.concept_code = t.icd
     where c.domain_id = 'Condition'
         and c.vocabulary_id in ('ICD10CM','ICD9CM')
@@ -182,7 +182,7 @@ unpivot_ihh_diagnoses as (
             (principal_diagnosis_code, 'principal_diagnosis_code', 1),
             (admitting_diagnosis_code, 'admitting_diagnosis_code', 2)
     ) as t(icd, source_column, priority)
-    join {{ source('terminology','concept') }} as c
+    join {{ source('omop','concept') }} as c
         on c.concept_code = t.icd
     where c.domain_id = 'Condition'
         and c.vocabulary_id in ('ICD10CM','ICD9CM')
@@ -302,7 +302,7 @@ unpivot_phh_diagnoses as (
             (fourth_icd_9cm_or_icd_10cm, 'fourth_icd_9cm_or_icd_10cm'),
             (fifth_icd_9cm_or_icd_10cm, 'fifth_icd_9cm_or_icd_10cm')
     ) as t(icd, source_column)
-    join {{ source('terminology','concept') }} as c
+    join {{ source('omop','concept') }} as c
         on c.concept_code = t.icd
     where c.domain_id = 'Condition'
         and c.vocabulary_id in ('ICD10CM','ICD9CM')
@@ -411,7 +411,7 @@ unpivot_phc_diagnoses as (
             (fourth_icd_9cm_or_icd_10cm, 'fourth_icd_9cm_or_icd_10cm'),
             (fifth_icd_9cm_or_icd_10cm, 'fifth_icd_9cm_or_icd_10cm')
     ) as t(icd, source_column)
-    join {{ source('terminology','concept') }} as c
+    join {{ source('omop','concept') }} as c
         on c.concept_code = t.icd
     where c.domain_id = 'Condition'
         and c.vocabulary_id in ('ICD10CM','ICD9CM')

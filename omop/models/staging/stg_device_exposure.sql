@@ -72,7 +72,7 @@ institutional_detail_current as (
     from {{ source('raw','institutional_detail_current') }} idc
     join {{ source('raw','institutional_header_current') }} ihc
         on cast(idc.bill_id as varchar) = cast(ihc.bill_id as varchar)
-    join {{ source('terminology','concept') }} as c
+    join {{ source('omop','concept') }} as c
         on c.concept_code = idc.hcpcs_line_procedure_billed
     where c.domain_id = 'Device'
         and c.vocabulary_id = 'HCPCS'
@@ -148,7 +148,7 @@ institutional_detail_historical as (
     from {{ source('raw','institutional_detail_historical') }} idh
     join {{ source('raw','institutional_header_historical') }} ihh
         on cast(idh.bill_id as varchar) = cast(ihh.bill_id as varchar)
-    join {{ source('terminology','concept') }} as c
+    join {{ source('omop','concept') }} as c
         on c.concept_code = idh.hcpcs_line_procedure_billed
     where c.domain_id = 'Device'
         and c.vocabulary_id = 'HCPCS'
@@ -224,7 +224,7 @@ professional_detail_current as (
     from {{ source('raw','professional_detail_current') }} prdc
     join {{ source('raw','professional_header_current') }} prhc
         on cast(prdc.bill_id as varchar) = cast(prhc.bill_id as varchar)
-    join {{ source('terminology','concept') }} as c
+    join {{ source('omop','concept') }} as c
         on c.concept_code = prdc.hcpcs_line_procedure_billed
     where c.domain_id = 'Device'
         and c.vocabulary_id = 'HCPCS'
@@ -300,7 +300,7 @@ professional_detail_historical as (
     from {{ source('raw','professional_detail_current') }} prdh
     join {{ source('raw','professional_header_current') }} prhh
         on cast(prdh.bill_id as varchar) = cast(prhh.bill_id as varchar)
-    join {{ source('terminology','concept') }} as c
+    join {{ source('omop','concept') }} as c
         on c.concept_code = prdh.hcpcs_line_procedure_billed
     where c.domain_id = 'Device'
         and c.vocabulary_id = 'HCPCS'

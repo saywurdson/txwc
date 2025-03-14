@@ -1,7 +1,7 @@
 {% macro check_domain_id(source_table, source_columns, target_domain, vocabulary_ids) %}
 exists (
     select 1
-    from {{ source('terminology', 'concept') }} as c
+    from {{ source('omop', 'concept') }} as c
     where (
         {% for column in source_columns %}
             c.concept_code = {{ source_table }}.{{ column }}

@@ -19,9 +19,9 @@ ctepredrugtarget as (
             d.drug_exposure_start_date + interval '1 day'
         ) as drug_exposure_end_date
     from {{ ref('drug_exposure') }} d
-    join {{ source('terminology','concept_ancestor') }} ca 
+    join {{ source('omop','concept_ancestor') }} ca 
       on ca.descendant_concept_id = d.drug_concept_id
-    join {{ source('terminology','concept') }} c 
+    join {{ source('omop','concept') }} c 
       on ca.ancestor_concept_id = c.concept_id
     where c.vocabulary_id = 'RxNorm'
       and c.concept_class_id = 'Ingredient'

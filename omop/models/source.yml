@@ -17,9 +17,9 @@ sources:
       - name: pharmacy_detail_historical
       - name: pharmacy_header_current
       - name: pharmacy_detail_current
-  - name: terminology
+  - name: omop
     database: tx_workers_comp
-    schema: terminology
+    schema: omop
     tables:
       - name: concept
       - name: concept_relationship

@@ -10,7 +10,7 @@
     (
         select
             c.concept_id
-        from {{ source('terminology', 'concept') }} as c
+        from {{ source('omop', 'concept') }} as c
         where c.concept_code = {{ source_value | safe }} 
           {% if domain_id is string %}
             and c.domain_id = '{{ domain_id }}'
