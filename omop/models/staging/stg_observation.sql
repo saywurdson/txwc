@@ -119,7 +119,6 @@ final_ihc as (
                 '||',
                 ihc.rendering_bill_provider_last,
                 coalesce(ihc.rendering_bill_provider_first, ''),
-                coalesce(ihc.rendering_bill_provider_middle, ''),
                 ihc.rendering_bill_provider_state_1,
                 ihc.rendering_bill_provider_4
                 )
@@ -250,7 +249,6 @@ final_ihh as (
                 '||',
                 ihh.rendering_bill_provider_last,
                 coalesce(ihh.rendering_bill_provider_first, ''),
-                coalesce(ihh.rendering_bill_provider_middle, ''),
                 ihh.rendering_bill_provider_state_1,
                 ihh.rendering_bill_provider_4
                 )
@@ -365,7 +363,6 @@ final_phh as (
                 '||',
                 phh.rendering_bill_provider_last,
                 coalesce(phh.rendering_bill_provider_first, ''),
-                coalesce(phh.rendering_bill_provider_middle, ''),
                 phh.rendering_bill_provider_state_1,
                 phh.rendering_bill_provider_4
                 )
@@ -480,7 +477,6 @@ final_phc as (
                 '||',
                 phc.rendering_bill_provider_last,
                 coalesce(phc.rendering_bill_provider_first, ''),
-                coalesce(phc.rendering_bill_provider_middle, ''),
                 phc.rendering_bill_provider_state_1,
                 phc.rendering_bill_provider_4
                 )
@@ -554,7 +550,6 @@ institutional_detail_current as (
                 '||',
                 ihc.rendering_bill_provider_last,
                 coalesce(ihc.rendering_bill_provider_first, ''),
-                coalesce(ihc.rendering_bill_provider_middle, ''),
                 ihc.rendering_bill_provider_state_1,
                 ihc.rendering_bill_provider_4
                 )
@@ -632,7 +627,6 @@ institutional_detail_historical as (
                 '||',
                 ihh.rendering_bill_provider_last,
                 coalesce(ihh.rendering_bill_provider_first, ''),
-                coalesce(ihh.rendering_bill_provider_middle, ''),
                 ihh.rendering_bill_provider_state_1,
                 ihh.rendering_bill_provider_4
                 )
@@ -710,7 +704,6 @@ professional_detail_current as (
                 '||',
                 prhc.rendering_bill_provider_last,
                 coalesce(prhc.rendering_bill_provider_first, ''),
-                coalesce(prhc.rendering_bill_provider_middle, ''),
                 prhc.rendering_bill_provider_state_1,
                 prhc.rendering_bill_provider_4
                 )
@@ -788,7 +781,6 @@ professional_detail_historical as (
                 '||',
                 prhh.rendering_bill_provider_last,
                 coalesce(prhh.rendering_bill_provider_first, ''),
-                coalesce(prhh.rendering_bill_provider_middle, ''),
                 prhh.rendering_bill_provider_state_1,
                 prhh.rendering_bill_provider_4
                 )

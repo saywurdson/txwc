@@ -48,7 +48,7 @@ pharmacy_detail_current as (
         coalesce(cast(pdc.service_line_from_date as timestamp), cast(pdc.prescription_line_date as timestamp)) as drug_exposure_start_datetime,
         cast(pdc.service_line_from_date as date) + cast(pdc.drugs_supplies_number_of as integer) as drug_exposure_end_date,
         cast(pdc.service_line_from_date as timestamp) + (cast(pdc.drugs_supplies_number_of as integer) * INTERVAL '1' DAY) as drug_exposure_end_datetime,
-        cast(pdc.service_line_to_date as date) as verbatim_end_date,
+        cast(null as date) as verbatim_end_date,
         32869 as drug_type_concept_id,
         cast(null as varchar) as stop_reason,
         0 as refills,
@@ -63,7 +63,6 @@ pharmacy_detail_current as (
                 '||',
                 phc.rendering_bill_provider_last,
                 coalesce(phc.rendering_bill_provider_first, ''),
-                coalesce(phc.rendering_bill_provider_middle, ''),
                 phc.rendering_bill_provider_state_1,
                 phc.rendering_bill_provider_4
                 )
@@ -140,7 +139,6 @@ pharmacy_detail_historical as (
                 '||',
                 phh.rendering_bill_provider_last,
                 coalesce(phh.rendering_bill_provider_first, ''),
-                coalesce(phh.rendering_bill_provider_middle, ''),
                 phh.rendering_bill_provider_state_1,
                 phh.rendering_bill_provider_4
                 )
@@ -216,7 +214,6 @@ institutional_detail_current as (
                 '||',
                 ihc.rendering_bill_provider_last,
                 coalesce(ihc.rendering_bill_provider_first, ''),
-                coalesce(ihc.rendering_bill_provider_middle, ''),
                 ihc.rendering_bill_provider_state_1,
                 ihc.rendering_bill_provider_4
                 )
@@ -296,7 +293,6 @@ institutional_detail_historical as (
                 '||',
                 ihh.rendering_bill_provider_last,
                 coalesce(ihh.rendering_bill_provider_first, ''),
-                coalesce(ihh.rendering_bill_provider_middle, ''),
                 ihh.rendering_bill_provider_state_1,
                 ihh.rendering_bill_provider_4
                 )
@@ -376,7 +372,6 @@ professional_detail_current as (
                 '||',
                 prhc.rendering_bill_provider_last,
                 coalesce(prhc.rendering_bill_provider_first, ''),
-                coalesce(prhc.rendering_bill_provider_middle, ''),
                 prhc.rendering_bill_provider_state_1,
                 prhc.rendering_bill_provider_4
                 )
@@ -456,7 +451,6 @@ professional_detail_historical as (
                 '||',
                 prhh.rendering_bill_provider_last,
                 coalesce(prhh.rendering_bill_provider_first, ''),
-                coalesce(prhh.rendering_bill_provider_middle, ''),
                 prhh.rendering_bill_provider_state_1,
                 prhh.rendering_bill_provider_4
                 )

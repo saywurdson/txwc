@@ -13,7 +13,7 @@ from tqdm import tqdm
 load_dotenv()
 
 APP_TOKEN = os.getenv('APPLICATION_TOKEN')
-BASE_DIR = './csv_data'
+BASE_DIR = './json_data'
 os.makedirs(BASE_DIR, exist_ok=True)
 
 class TqdmLoggingHandler(logging.Handler):
@@ -48,7 +48,8 @@ def fetch_batch(dataset_identifier, name, time_period, order_by, limit, offset):
     retries = 0
     max_retries = 5
     base_sleep = 1
-    url = f"https://data.texas.gov/resource/{dataset_identifier}.csv"
+    # Switch to JSON endpoint
+    url = f"https://data.texas.gov/resource/{dataset_identifier}.json"
     headers = {"X-App-Token": APP_TOKEN}
     params = {
         "$order": order_by,
@@ -63,7 +64,7 @@ def fetch_batch(dataset_identifier, name, time_period, order_by, limit, offset):
             response.raise_for_status()
             dataset_dir = os.path.join(BASE_DIR, dataset_identifier)
             os.makedirs(dataset_dir, exist_ok=True)
-            file_name = f"{name}_{time_period}_{offset}.csv"
+            file_name = f"{name}_{time_period}_{offset}.json"
             file_path = os.path.join(dataset_dir, file_name)
             with open(file_path, 'wb') as f:
                 f.write(response.content)
@@ -120,9 +121,9 @@ def process_datasets(datasets, order_by=":id",
                      limit_per_page=5000, max_pages=None, offset=0):
     dataset_files = {}
     for ds_id, (name, period) in tqdm(datasets.items(), total=len(datasets), desc="Downloading datasets"):
-        csvs = fetch_data(ds_id, name, period, order_by, limit_per_page, max_pages, offset)
-        if csvs:
-            dataset_files[f"{name}_{period}"] = csvs
+        jsons = fetch_data(ds_id, name, period, order_by, limit_per_page, max_pages, offset)
+        if jsons:
+            dataset_files[f"{name}_{period}"] = jsons
     return dataset_files
 
 def filter_datasets(all_datasets, ds_type='all', time_period='all'):
@@ -138,11 +139,11 @@ def filter_datasets(all_datasets, ds_type='all', time_period='all'):
     return filtered
 
 def main():
-    parser = argparse.ArgumentParser(description='Process TX Workers Comp data with pagination.')
+    parser = argparse.ArgumentParser(description='Process TX Workers Comp data with pagination using JSON endpoint.')
     parser.add_argument('--max_pages', type=int, default=None, 
-                       help='Maximum pages to fetch. If omitted, fetch all pages.')
+                        help='Maximum pages to fetch. If omitted, fetch all pages.')
     parser.add_argument('--offset', type=int, default=0,
-                       help='Starting offset for data fetch.')
+                        help='Starting offset for data fetch.')
     parser.add_argument('--dataset', type=str,
                         choices=['professional', 'institutional', 'pharmacy', 'all'], 
                         default='all',
@@ -192,14 +193,19 @@ def main():
     conn = duckdb.connect('tx_workers_comp.db')
     conn.execute("CREATE SCHEMA IF NOT EXISTS raw;")
 
-    # Create table if not exists, then bulk-insert from a glob pattern
-    for ds_id, (name, period) in selected_datasets.items():
+    # Create table if not exists, then bulk-insert from a glob pattern using JSON files
+    for ds_id, (name, period) in tqdm(selected_datasets.items(), total=len(selected_datasets), desc="Creating tables in DB"):
         tbl = f"{name}_{period}"
-        csv_files = dataset_files.get(tbl, [])
-        if not csv_files:
+        json_files = dataset_files.get(tbl, [])
+        if not json_files:
             continue
 
-        # 1) Create an empty table if it doesn't exist (use the first CSV to define schema)
+        # Build a glob pattern that matches all JSON files for this dataset
+        json_dir = os.path.dirname(json_files[0])
+        glob_name = f"{name}_{period}_*.json"
+        json_path_glob = os.path.join(json_dir, glob_name)
+
+        # 1) Create the table using the unioned schema from all files via the glob pattern.
         conn.execute(f"""
             CREATE TABLE IF NOT EXISTS raw.{tbl} AS 
             SELECT 
@@ -208,16 +214,15 @@ def main():
                 CAST(":updated_at" AS VARCHAR) AS updated_at,
                 CAST(":version" AS VARCHAR) AS version,
                 * EXCLUDE(":id", ":created_at", ":updated_at", ":version")
-            FROM read_csv_auto('{csv_files[0]}', ALL_VARCHAR=TRUE)
+            FROM read_json_auto('{json_path_glob}', 
+                                auto_detect=True, 
+                                sample_size=-1, 
+                                maximum_depth=-1, 
+                                union_by_name=True)
             WHERE 1=0;
         """)
 
-        # 2) Build a glob pattern for all CSVs in the dataset
-        csv_dir = os.path.dirname(csv_files[0])
-        glob_name = f"{name}_{period}_*.csv"
-        csv_path_glob = os.path.join(csv_dir, glob_name)
-
-        # 3) Insert only new rows from all matching CSV files at once
+        # 2) Insert rows from all matching JSON files using the same glob pattern.
         conn.execute(f"""
             INSERT INTO raw.{tbl}
             SELECT 
@@ -226,7 +231,11 @@ def main():
                 CAST(":updated_at" AS VARCHAR) AS updated_at,
                 CAST(":version" AS VARCHAR) AS version,
                 * EXCLUDE(":id", ":created_at", ":updated_at", ":version")
-            FROM read_csv_auto('{csv_path_glob}', ALL_VARCHAR=TRUE) AS multi_file_insert
+            FROM read_json_auto('{json_path_glob}', 
+                                auto_detect=True, 
+                                sample_size=-1, 
+                                maximum_depth=-1, 
+                                union_by_name=True) AS multi_file_insert
             WHERE NOT EXISTS (
                 SELECT 1 FROM raw.{tbl} old_data
                 WHERE old_data.row_id = multi_file_insert.":id"

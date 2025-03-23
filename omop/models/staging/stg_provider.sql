@@ -15,7 +15,6 @@ institutional_header_current as (
                 '||',
                 rendering_bill_provider_last,
                 coalesce(rendering_bill_provider_first, ''),
-                coalesce(rendering_bill_provider_middle, ''),
                 rendering_bill_provider_state_1,
                 rendering_bill_provider_4
                 )
@@ -27,11 +26,6 @@ institutional_header_current as (
             case 
                 when rendering_bill_provider_first is not null 
                 then concat(', ', rendering_bill_provider_first)
-                else ''
-            end,
-            case 
-                when rendering_bill_provider_middle is not null 
-                then concat(' ', rendering_bill_provider_middle)
                 else ''
             end
         ) as provider_name,
@@ -50,7 +44,7 @@ institutional_header_current as (
         cast(null as integer) as year_of_birth,
         cast(null as integer) as gender_concept_id,
         rendering_bill_provider_state_1 as provider_source_value,
-        rendering_bill_provider as specialty_source_value,
+        cast(null as varchar) as specialty_source_value,
         cast(null as integer) as specialty_source_concept_id,
         cast(null as varchar) as gender_source_value,
         cast(null as integer) as gender_source_concept_id
@@ -68,7 +62,6 @@ institutional_header_historical as (
                 '||',
                 rendering_bill_provider_last,
                 coalesce(rendering_bill_provider_first, ''),
-                coalesce(rendering_bill_provider_middle, ''),
                 rendering_bill_provider_state_1,
                 rendering_bill_provider_4
                 )
@@ -80,11 +73,6 @@ institutional_header_historical as (
             case 
                 when rendering_bill_provider_first is not null 
                 then concat(', ', rendering_bill_provider_first)
-                else ''
-            end,
-            case 
-                when rendering_bill_provider_middle is not null 
-                then concat(' ', rendering_bill_provider_middle)
                 else ''
             end
         ) as provider_name,
@@ -103,7 +91,7 @@ institutional_header_historical as (
         cast(null as integer) as year_of_birth,
         cast(null as integer) as gender_concept_id,
         rendering_bill_provider_state_1 as provider_source_value,
-        rendering_bill_provider as specialty_source_value,
+        cast(null as varchar) as specialty_source_value,
         cast(null as integer) as specialty_source_concept_id,
         cast(null as varchar) as gender_source_value,
         cast(null as integer) as gender_source_concept_id
@@ -121,7 +109,6 @@ professional_header_historical as (
                 '||',
                 rendering_bill_provider_last,
                 coalesce(rendering_bill_provider_first, ''),
-                coalesce(rendering_bill_provider_middle, ''),
                 rendering_bill_provider_state_1,
                 rendering_bill_provider_4
                 )
@@ -133,11 +120,6 @@ professional_header_historical as (
             case 
                 when rendering_bill_provider_first is not null 
                 then concat(', ', rendering_bill_provider_first)
-                else ''
-            end,
-            case 
-                when rendering_bill_provider_middle is not null 
-                then concat(' ', rendering_bill_provider_middle)
                 else ''
             end
         ) as provider_name,
@@ -157,7 +139,7 @@ professional_header_historical as (
         cast(null as integer) as year_of_birth,
         cast(null as integer) as gender_concept_id,
         rendering_bill_provider_state_1 as provider_source_value,
-        rendering_bill_provider as specialty_source_value,
+        cast(null as varchar) as specialty_source_value,
         cast(null as integer) as specialty_source_concept_id,
         cast(null as varchar) as gender_source_value,
         cast(null as integer) as gender_source_concept_id
@@ -175,7 +157,6 @@ professional_header_current as (
                 '||',
                 rendering_bill_provider_last,
                 coalesce(rendering_bill_provider_first, ''),
-                coalesce(rendering_bill_provider_middle, ''),
                 rendering_bill_provider_state_1,
                 rendering_bill_provider_4
                 )
@@ -187,11 +168,6 @@ professional_header_current as (
             case 
                 when rendering_bill_provider_first is not null 
                 then concat(', ', rendering_bill_provider_first)
-                else ''
-            end,
-            case 
-                when rendering_bill_provider_middle is not null 
-                then concat(' ', rendering_bill_provider_middle)
                 else ''
             end
         ) as provider_name,
@@ -211,7 +187,7 @@ professional_header_current as (
         cast(null as integer) as year_of_birth,
         cast(null as integer) as gender_concept_id,
         rendering_bill_provider_state_1 as provider_source_value,
-        rendering_bill_provider as specialty_source_value,
+        cast(null as varchar) as specialty_source_value,
         cast(null as integer) as specialty_source_concept_id,
         cast(null as varchar) as gender_source_value,
         cast(null as integer) as gender_source_concept_id
@@ -229,7 +205,6 @@ pharmacy_header_current as (
                 '||',
                 rendering_bill_provider_last,
                 coalesce(rendering_bill_provider_first, ''),
-                coalesce(rendering_bill_provider_middle, ''),
                 rendering_bill_provider_state_1,
                 rendering_bill_provider_4
                 )
@@ -241,11 +216,6 @@ pharmacy_header_current as (
             case 
                 when rendering_bill_provider_first is not null 
                 then concat(', ', rendering_bill_provider_first)
-                else ''
-            end,
-            case 
-                when rendering_bill_provider_middle is not null 
-                then concat(' ', rendering_bill_provider_middle)
                 else ''
             end
         ) as provider_name,
@@ -265,7 +235,7 @@ pharmacy_header_current as (
         cast(null as integer) as year_of_birth,
         cast(null as integer) as gender_concept_id,
         rendering_bill_provider_state_1 as provider_source_value,
-        rendering_bill_provider as specialty_source_value,
+        cast(null as varchar) as specialty_source_value,
         cast(null as integer) as specialty_source_concept_id,
         cast(null as varchar) as gender_source_value,
         cast(null as integer) as gender_source_concept_id
@@ -283,7 +253,6 @@ pharmacy_header_historical as (
                 '||',
                 rendering_bill_provider_last,
                 coalesce(rendering_bill_provider_first, ''),
-                coalesce(rendering_bill_provider_middle, ''),
                 rendering_bill_provider_state_1,
                 rendering_bill_provider_4
                 )
@@ -295,11 +264,6 @@ pharmacy_header_historical as (
             case 
                 when rendering_bill_provider_first is not null 
                 then concat(', ', rendering_bill_provider_first)
-                else ''
-            end,
-            case 
-                when rendering_bill_provider_middle is not null 
-                then concat(' ', rendering_bill_provider_middle)
                 else ''
             end
         ) as provider_name,
@@ -319,7 +283,7 @@ pharmacy_header_historical as (
         cast(null as integer) as year_of_birth,
         cast(null as integer) as gender_concept_id,
         rendering_bill_provider_state_1 as provider_source_value,
-        rendering_bill_provider as specialty_source_value,
+        cast(null as varchar) as specialty_source_value,
         cast(null as integer) as specialty_source_concept_id,
         cast(null as varchar) as gender_source_value,
         cast(null as integer) as gender_source_concept_id

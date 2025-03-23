@@ -47,7 +47,6 @@ institutional_header_current as (
                 '||',
                 rendering_bill_provider_last,
                 coalesce(rendering_bill_provider_first, ''),
-                coalesce(rendering_bill_provider_middle, ''),
                 rendering_bill_provider_state_1,
                 rendering_bill_provider_4
                 )
@@ -115,7 +114,6 @@ institutional_header_historical as (
                 '||',
                 rendering_bill_provider_last,
                 coalesce(rendering_bill_provider_first, ''),
-                coalesce(rendering_bill_provider_middle, ''),
                 rendering_bill_provider_state_1,
                 rendering_bill_provider_4
                 )
@@ -183,7 +181,6 @@ professional_header_historical as (
                 '||',
                 rendering_bill_provider_last,
                 coalesce(rendering_bill_provider_first, ''),
-                coalesce(rendering_bill_provider_middle, ''),
                 rendering_bill_provider_state_1,
                 rendering_bill_provider_4
                 )
@@ -252,7 +249,6 @@ professional_header_current as (
                 '||',
                 rendering_bill_provider_last,
                 coalesce(rendering_bill_provider_first, ''),
-                coalesce(rendering_bill_provider_middle, ''),
                 rendering_bill_provider_state_1,
                 rendering_bill_provider_4
                 )
@@ -321,7 +317,6 @@ pharmacy_header_current as (
                 '||',
                 rendering_bill_provider_last,
                 coalesce(rendering_bill_provider_first, ''),
-                coalesce(rendering_bill_provider_middle, ''),
                 rendering_bill_provider_state_1,
                 rendering_bill_provider_4
                 )
@@ -390,7 +385,6 @@ pharmacy_header_historical as (
                 '||',
                 rendering_bill_provider_last,
                 coalesce(rendering_bill_provider_first, ''),
-                coalesce(rendering_bill_provider_middle, ''),
                 rendering_bill_provider_state_1,
                 rendering_bill_provider_4
                 )
