@@ -1,449 +1,227 @@
-{% set exists_i_current = check_table_exists('raw', 'institutional_header_current') %}
-{% set exists_i_historical = check_table_exists('raw', 'institutional_header_historical') %}
-{% set exists_pr_current = check_table_exists('raw', 'professional_header_current') %}
-{% set exists_pr_historical = check_table_exists('raw', 'professional_header_historical') %}
-{% set exists_ph_current = check_table_exists('raw', 'pharmacy_header_current') %}
-{% set exists_ph_historical = check_table_exists('raw', 'pharmacy_header_historical') %}
+{% set header_list = [
+  ('institutional_header_current', 'raw', 'institutional'),
+  ('institutional_header_historical', 'raw', 'institutional'),
+  ('professional_header_current', 'raw', 'professional'),
+  ('professional_header_historical', 'raw', 'professional'),
+  ('pharmacy_header_current', 'raw', 'pharmacy'),
+  ('pharmacy_header_historical', 'raw', 'pharmacy')
+] %}
 
-with
-{% if exists_i_current %}
-institutional_header_current as (
-    select distinct
-        case 
-            when patient_account_number is null 
-                or trim(patient_account_number) = '' 
-            then lpad(
-                cast(
-                    (
-                    hash(
-                        concat_ws(
-                        '||',
-                        coalesce(employee_mailing_city, ''),
-                        coalesce(employee_mailing_state_code, ''),
-                        coalesce(employee_mailing_postal_code, ''),
-                        coalesce(employee_mailing_country, ''),
-                        coalesce(cast(employee_date_of_birth as varchar), ''),
-                        coalesce(employee_gender_code, '')
-                        ),
-                        'xxhash64'
-                    ) % 1000000000
-                    ) as varchar
-                ),
-                9,
-                '0'
-                )
-            else patient_account_number
-        end as person_id,
-        cast(null as integer) as gender_concept_id,
-        extract(year from cast(employee_date_of_birth as date)) as year_of_birth,
-        extract(month from cast(employee_date_of_birth as date)) as month_of_birth,
-        extract(day from cast(employee_date_of_birth as date)) as day_of_birth,
-        cast(employee_date_of_birth as timestamp) as birth_datetime,
-        cast(null as integer) as race_concept_id,
-        cast(null as integer) as ethnicity_concept_id,
+{% set cte_queries = [] %}
+
+{% for table, schema, header_type in header_list %}
+  {% if check_table_exists(schema, table) %}
+    {% if header_type == 'institutional' %}
+      {% set query %}
+{{ table }} as (
+  select distinct
+    case 
+      when patient_account_number is null or trim(patient_account_number) = '' then lpad(
         cast(
+          (
             hash(
-                concat_ws(
+              concat_ws(
                 '||',
-                employee_mailing_city,
-                employee_mailing_country,
-                employee_mailing_postal_code,
-                employee_mailing_state_code
-                )
-            , 'xxhash64'
+                coalesce(employee_mailing_city, ''),
+                coalesce(employee_mailing_state_code, ''),
+                coalesce(employee_mailing_postal_code, ''),
+                coalesce(employee_mailing_country, ''),
+                coalesce(cast(employee_date_of_birth as varchar), ''),
+                coalesce(employee_gender_code, '')
+              ),
+              'xxhash64'
             ) % 1000000000
-        as varchar) as location_id,
-        cast(null as integer) as provider_id,
-        cast(
-            hash(
-                concat_ws(
-                '||',
-                billing_provider_last_name
-                )
-            , 'xxhash64'
-            ) % 1000000000
-        as varchar) as care_site_id,
-        cast(patient_account_number as varchar) as person_source_value,
-        cast(employee_gender_code as varchar) as gender_source_value,
-        cast(null as integer) as gender_source_concept_id,
-        cast(null as varchar) as race_source_value,
-        cast(null as integer) as race_source_concept_id,
-        cast(null as varchar) as ethnicity_source_value,
-        cast(null as integer) as ethnicity_source_concept_id
-    from {{ source('raw', 'institutional_header_current') }}
+          ) as varchar
+        ),
+        9,
+        '0'
+      )
+      else patient_account_number
+    end as person_id,
+    cast(null as integer) as gender_concept_id,
+    extract(year from cast(employee_date_of_birth as date)) as year_of_birth,
+    extract(month from cast(employee_date_of_birth as date)) as month_of_birth,
+    extract(day from cast(employee_date_of_birth as date)) as day_of_birth,
+    cast(employee_date_of_birth as timestamp) as birth_datetime,
+    cast(null as integer) as race_concept_id,
+    cast(null as integer) as ethnicity_concept_id,
+    cast(
+      hash(
+        concat_ws(
+          '||',
+          employee_mailing_city,
+          employee_mailing_country,
+          employee_mailing_postal_code,
+          employee_mailing_state_code
+        ),
+        'xxhash64'
+      ) % 1000000000
+    as varchar) as location_id,
+    cast(null as integer) as provider_id,
+    cast(
+      hash(
+        concat_ws('||', billing_provider_last_name),
+        'xxhash64'
+      ) % 1000000000
+    as varchar) as care_site_id,
+    cast(patient_account_number as varchar) as person_source_value,
+    cast(employee_gender_code as varchar) as gender_source_value,
+    cast(null as integer) as gender_source_concept_id,
+    cast(null as varchar) as race_source_value,
+    cast(null as integer) as race_source_concept_id,
+    cast(null as varchar) as ethnicity_source_value,
+    cast(null as integer) as ethnicity_source_concept_id
+  from {{ source(schema, table) }}
 )
-{% endif %}
-
-{% if exists_i_historical %}
-{% if exists_i_current %}, {% endif %}
-institutional_header_historical as (
-    select distinct
-        case 
-            when patient_account_number is null 
-                or trim(patient_account_number) = '' 
-            then lpad(
-                cast(
-                    (
-                    hash(
-                        concat_ws(
-                        '||',
-                        coalesce(employee_mailing_city, ''),
-                        coalesce(employee_mailing_state_code, ''),
-                        coalesce(employee_mailing_postal_code, ''),
-                        coalesce(employee_mailing_country, ''),
-                        coalesce(cast(employee_date_of_birth as varchar), ''),
-                        coalesce(employee_gender_code, '')
-                        ),
-                        'xxhash64'
-                    ) % 1000000000
-                    ) as varchar
-                ),
-                9,
-                '0'
-                )
-            else patient_account_number
-        end as person_id,
-        cast(null as integer) as gender_concept_id,
-        extract(year from cast(employee_date_of_birth as date)) as year_of_birth,
-        extract(month from cast(employee_date_of_birth as date)) as month_of_birth,
-        extract(day from cast(employee_date_of_birth as date)) as day_of_birth,
-        cast(employee_date_of_birth as timestamp) as birth_datetime,
-        cast(null as integer) as race_concept_id,
-        cast(null as integer) as ethnicity_concept_id,
+      {% endset %}
+    {% elif header_type == 'professional' %}
+      {% set query %}
+{{ table }} as (
+  select distinct
+    case 
+      when patient_account_number is null or trim(patient_account_number) = '' then lpad(
         cast(
+          (
             hash(
-                concat_ws(
+              concat_ws(
                 '||',
-                employee_mailing_city,
-                employee_mailing_country,
-                employee_mailing_postal_code,
-                employee_mailing_state_code
-                )
-            , 'xxhash64'
+                coalesce(employee_mailing_city, ''),
+                coalesce(employee_mailing_state_code, ''),
+                coalesce(employee_mailing_postal_code, ''),
+                coalesce(employee_mailing_country, ''),
+                coalesce(cast(employee_date_of_birth as varchar), ''),
+                coalesce(employee_gender_code, '')
+              ),
+              'xxhash64'
             ) % 1000000000
-        as varchar) as location_id,
-        cast(null as integer) as provider_id,
-        cast(
-            hash(
-                concat_ws(
-                '||',
-                billing_provider_last_name
-                )
-            , 'xxhash64'
-            ) % 1000000000
-        as varchar) as care_site_id,
-        cast(patient_account_number as varchar) as person_source_value,
-        cast(employee_gender_code as varchar) as gender_source_value,
-        cast(null as integer) as gender_source_concept_id,
-        cast(null as varchar) as race_source_value,
-        cast(null as integer) as race_source_concept_id,
-        cast(null as varchar) as ethnicity_source_value,
-        cast(null as integer) as ethnicity_source_concept_id
-    from {{ source('raw', 'institutional_header_historical') }}
+          ) as varchar
+        ),
+        9,
+        '0'
+      )
+      else patient_account_number
+    end as person_id,
+    cast(null as integer) as gender_concept_id,
+    extract(year from cast(employee_date_of_birth as date)) as year_of_birth,
+    extract(month from cast(employee_date_of_birth as date)) as month_of_birth,
+    extract(day from cast(employee_date_of_birth as date)) as day_of_birth,
+    cast(employee_date_of_birth as timestamp) as birth_datetime,
+    cast(null as integer) as race_concept_id,
+    cast(null as integer) as ethnicity_concept_id,
+    cast(
+      hash(
+        concat_ws(
+          '||',
+          employee_mailing_city,
+          employee_mailing_country,
+          employee_mailing_postal_code,
+          employee_mailing_state_code
+        ),
+        'xxhash64'
+      ) % 1000000000
+    as varchar) as location_id,
+    cast(null as integer) as provider_id,
+    cast(
+      hash(
+        concat_ws('||', billing_provider_last_name, facility_primary_address),
+        'xxhash64'
+      ) % 1000000000
+    as varchar) as care_site_id,
+    cast(patient_account_number as varchar) as person_source_value,
+    cast(employee_gender_code as varchar) as gender_source_value,
+    cast(null as integer) as gender_source_concept_id,
+    cast(null as varchar) as race_source_value,
+    cast(null as integer) as race_source_concept_id,
+    cast(null as varchar) as ethnicity_source_value,
+    cast(null as integer) as ethnicity_source_concept_id
+  from {{ source(schema, table) }}
 )
-{% endif %}
-
-{% if exists_pr_historical %}
-{% if exists_i_historical %}, {% endif %}
-professional_header_historical as (
-    select distinct
-        case 
-            when patient_account_number is null 
-                or trim(patient_account_number) = '' 
-            then lpad(
-                cast(
-                    (
-                    hash(
-                        concat_ws(
-                        '||',
-                        coalesce(employee_mailing_city, ''),
-                        coalesce(employee_mailing_state_code, ''),
-                        coalesce(employee_mailing_postal_code, ''),
-                        coalesce(employee_mailing_country, ''),
-                        coalesce(cast(employee_date_of_birth as varchar), ''),
-                        coalesce(employee_gender_code, '')
-                        ),
-                        'xxhash64'
-                    ) % 1000000000
-                    ) as varchar
-                ),
-                9,
-                '0'
-                )
-            else patient_account_number
-        end as person_id,
-        cast(null as integer) as gender_concept_id,
-        extract(year from cast(employee_date_of_birth as date)) as year_of_birth,
-        extract(month from cast(employee_date_of_birth as date)) as month_of_birth,
-        extract(day from cast(employee_date_of_birth as date)) as day_of_birth,
-        cast(employee_date_of_birth as timestamp) as birth_datetime,
-        cast(null as integer) as race_concept_id,
-        cast(null as integer) as ethnicity_concept_id,
+      {% endset %}
+    {% elif header_type == 'pharmacy' %}
+      {% set query %}
+{{ table }} as (
+  select distinct
+    case 
+      when patient_account_number is null or trim(patient_account_number) = '' then lpad(
         cast(
+          (
             hash(
-                concat_ws(
+              concat_ws(
                 '||',
-                employee_mailing_city,
-                employee_mailing_country,
-                employee_mailing_postal_code,
-                employee_mailing_state_code
-                )
-            , 'xxhash64'
+                coalesce(employee_mailing_city, ''),
+                coalesce(employee_mailing_state_code, ''),
+                coalesce(employee_mailing_postal_code, ''),
+                coalesce(employee_mailing_country, ''),
+                coalesce(cast(employee_date_of_birth as varchar), ''),
+                coalesce(employee_gender_code, '')
+              ),
+              'xxhash64'
             ) % 1000000000
-        as varchar) as location_id,
-        cast(null as integer) as provider_id,
-        cast(
-            hash(
-                concat_ws(
-                '||',
-                billing_provider_last_name,
-                facility_primary_address
-                )
-            , 'xxhash64'
-            ) % 1000000000
-        as varchar) as care_site_id,
-        cast(patient_account_number as varchar) as person_source_value,
-        cast(employee_gender_code as varchar) as gender_source_value,
-        cast(null as integer) as gender_source_concept_id,
-        cast(null as varchar) as race_source_value,
-        cast(null as integer) as race_source_concept_id,
-        cast(null as varchar) as ethnicity_source_value,
-        cast(null as integer) as ethnicity_source_concept_id
-    from {{ source('raw', 'professional_header_historical') }}
+          ) as varchar
+        ),
+        9,
+        '0'
+      )
+      else patient_account_number
+    end as person_id,
+    cast(null as integer) as gender_concept_id,
+    extract(year from cast(employee_date_of_birth as date)) as year_of_birth,
+    extract(month from cast(employee_date_of_birth as date)) as month_of_birth,
+    extract(day from cast(employee_date_of_birth as date)) as day_of_birth,
+    cast(employee_date_of_birth as timestamp) as birth_datetime,
+    cast(null as integer) as race_concept_id,
+    cast(null as integer) as ethnicity_concept_id,
+    cast(
+      hash(
+        concat_ws(
+          '||',
+          employee_mailing_city,
+          employee_mailing_country,
+          employee_mailing_postal_code,
+          employee_mailing_state_code
+        ),
+        'xxhash64'
+      ) % 1000000000
+    as varchar) as location_id,
+    cast(null as integer) as provider_id,
+    cast(
+      hash(
+        concat_ws('||', billing_provider_last_name, billing_provider_fein),
+        'xxhash64'
+      ) % 1000000000
+    as varchar) as care_site_id,
+    cast(patient_account_number as varchar) as person_source_value,
+    cast(employee_gender_code as varchar) as gender_source_value,
+    cast(null as integer) as gender_source_concept_id,
+    cast(null as varchar) as race_source_value,
+    cast(null as integer) as race_source_concept_id,
+    cast(null as varchar) as ethnicity_source_value,
+    cast(null as integer) as ethnicity_source_concept_id
+  from {{ source(schema, table) }}
 )
-{% endif %}
+      {% endset %}
+    {% endif %}
+    {% do cte_queries.append(query) %}
+  {% endif %}
+{% endfor %}
 
-{% if exists_pr_current %}
-{% if exists_pr_historical %}, {% endif %}
-professional_header_current as (
-    select distinct
-        case 
-            when patient_account_number is null 
-                or trim(patient_account_number) = '' 
-            then lpad(
-                cast(
-                    (
-                    hash(
-                        concat_ws(
-                        '||',
-                        coalesce(employee_mailing_city, ''),
-                        coalesce(employee_mailing_state_code, ''),
-                        coalesce(employee_mailing_postal_code, ''),
-                        coalesce(employee_mailing_country, ''),
-                        coalesce(cast(employee_date_of_birth as varchar), ''),
-                        coalesce(employee_gender_code, '')
-                        ),
-                        'xxhash64'
-                    ) % 1000000000
-                    ) as varchar
-                ),
-                9,
-                '0'
-                )
-            else patient_account_number
-        end as person_id,
-        cast(null as integer) as gender_concept_id,
-        extract(year from cast(employee_date_of_birth as date)) as year_of_birth,
-        extract(month from cast(employee_date_of_birth as date)) as month_of_birth,
-        extract(day from cast(employee_date_of_birth as date)) as day_of_birth,
-        cast(employee_date_of_birth as timestamp) as birth_datetime,
-        cast(null as integer) as race_concept_id,
-        cast(null as integer) as ethnicity_concept_id,
-        cast(
-            hash(
-                concat_ws(
-                '||',
-                employee_mailing_city,
-                employee_mailing_country,
-                employee_mailing_postal_code,
-                employee_mailing_state_code
-                )
-            , 'xxhash64'
-            ) % 1000000000
-        as varchar) as location_id,
-        cast(null as integer) as provider_id,
-        cast(
-            hash(
-                concat_ws(
-                '||',
-                billing_provider_last_name,
-                facility_primary_address
-                )
-            , 'xxhash64'
-            ) % 1000000000
-        as varchar) as care_site_id,
-        cast(patient_account_number as varchar) as person_source_value,
-        cast(employee_gender_code as varchar) as gender_source_value,
-        cast(null as integer) as gender_source_concept_id,
-        cast(null as varchar) as race_source_value,
-        cast(null as integer) as race_source_concept_id,
-        cast(null as varchar) as ethnicity_source_value,
-        cast(null as integer) as ethnicity_source_concept_id
-    from {{ source('raw', 'professional_header_current') }}
-)
-{% endif %}
+{% set valid_tables = [] %}
+{% for table, schema, header_type in header_list %}
+  {% if check_table_exists(schema, table) %}
+    {% do valid_tables.append(table) %}
+  {% endif %}
+{% endfor %}
 
-{% if exists_ph_current %}
-{% if exists_pr_current %}, {% endif %}
-pharmacy_header_current as (
-    select distinct
-        case 
-            when patient_account_number is null 
-                or trim(patient_account_number) = '' 
-            then lpad(
-                cast(
-                    (
-                    hash(
-                        concat_ws(
-                        '||',
-                        coalesce(employee_mailing_city, ''),
-                        coalesce(employee_mailing_state_code, ''),
-                        coalesce(employee_mailing_postal_code, ''),
-                        coalesce(employee_mailing_country, ''),
-                        coalesce(cast(employee_date_of_birth as varchar), ''),
-                        coalesce(employee_gender_code, '')
-                        ),
-                        'xxhash64'
-                    ) % 1000000000
-                    ) as varchar
-                ),
-                9,
-                '0'
-                )
-            else patient_account_number
-        end as person_id,
-        cast(null as integer) as gender_concept_id,
-        extract(year from cast(employee_date_of_birth as date)) as year_of_birth,
-        extract(month from cast(employee_date_of_birth as date)) as month_of_birth,
-        extract(day from cast(employee_date_of_birth as date)) as day_of_birth,
-        cast(employee_date_of_birth as timestamp) as birth_datetime,
-        cast(null as integer) as race_concept_id,
-        cast(null as integer) as ethnicity_concept_id,
-        cast(
-            hash(
-                concat_ws(
-                '||',
-                employee_mailing_city,
-                employee_mailing_country,
-                employee_mailing_postal_code,
-                employee_mailing_state_code
-                )
-            , 'xxhash64'
-            ) % 1000000000
-        as varchar) as location_id,
-        cast(null as integer) as provider_id,
-        cast(
-            hash(
-                concat_ws(
-                '||',
-                billing_provider_last_name,
-                billing_provider_fein
-                )
-            , 'xxhash64'
-            ) % 1000000000
-        as varchar) as care_site_id,
-        cast(patient_account_number as varchar) as person_source_value,
-        cast(employee_gender_code as varchar) as gender_source_value,
-        cast(null as integer) as gender_source_concept_id,
-        cast(null as varchar) as race_source_value,
-        cast(null as integer) as race_source_concept_id,
-        cast(null as varchar) as ethnicity_source_value,
-        cast(null as integer) as ethnicity_source_concept_id
-    from {{ source('raw', 'pharmacy_header_current') }}
-)
-{% endif %}
-
-{% if exists_ph_historical %}
-{% if exists_ph_current %}, {% endif %}
-pharmacy_header_historical as (
-    select distinct
-        case 
-            when patient_account_number is null 
-                or trim(patient_account_number) = '' 
-            then lpad(
-                cast(
-                    (
-                    hash(
-                        concat_ws(
-                        '||',
-                        coalesce(employee_mailing_city, ''),
-                        coalesce(employee_mailing_state_code, ''),
-                        coalesce(employee_mailing_postal_code, ''),
-                        coalesce(employee_mailing_country, ''),
-                        coalesce(cast(employee_date_of_birth as varchar), ''),
-                        coalesce(employee_gender_code, '')
-                        ),
-                        'xxhash64'
-                    ) % 1000000000
-                    ) as varchar
-                ),
-                9,
-                '0'
-                )
-            else patient_account_number
-        end as person_id,
-        cast(null as integer) as gender_concept_id,
-        extract(year from cast(employee_date_of_birth as date)) as year_of_birth,
-        extract(month from cast(employee_date_of_birth as date)) as month_of_birth,
-        extract(day from cast(employee_date_of_birth as date)) as day_of_birth,
-        cast(employee_date_of_birth as timestamp) as birth_datetime,
-        cast(null as integer) as race_concept_id,
-        cast(null as integer) as ethnicity_concept_id,
-        cast(
-            hash(
-                concat_ws(
-                '||',
-                employee_mailing_city,
-                employee_mailing_country,
-                employee_mailing_postal_code,
-                employee_mailing_state_code
-                )
-            , 'xxhash64'
-            ) % 1000000000
-        as varchar) as location_id,
-        cast(null as integer) as provider_id,
-        cast(
-            hash(
-                concat_ws(
-                '||',
-                billing_provider_last_name,
-                billing_provider_fein
-                )
-            , 'xxhash64'
-            ) % 1000000000
-        as varchar) as care_site_id,
-        cast(patient_account_number as varchar) as person_source_value,
-        cast(employee_gender_code as varchar) as gender_source_value,
-        cast(null as integer) as gender_source_concept_id,
-        cast(null as varchar) as race_source_value,
-        cast(null as integer) as race_source_concept_id,
-        cast(null as varchar) as ethnicity_source_value,
-        cast(null as integer) as ethnicity_source_concept_id
-    from {{ source('raw', 'pharmacy_header_historical') }}
-)
-{% endif %}
-
-{% set cte_list = [] %}
-{% if exists_i_current %}
-  {% set _ = cte_list.append("select * from institutional_header_current") %}
-{% endif %}
-{% if exists_i_historical %}
-  {% set _ = cte_list.append("select * from institutional_header_historical") %}
-{% endif %}
-{% if exists_pr_current %}
-  {% set _ = cte_list.append("select * from professional_header_current") %}
-{% endif %}
-{% if exists_pr_historical %}
-  {% set _ = cte_list.append("select * from professional_header_historical") %}
-{% endif %}
-{% if exists_ph_current %}
-  {% set _ = cte_list.append("select * from pharmacy_header_current") %}
-{% endif %}
-{% if exists_ph_historical %}
-  {% set _ = cte_list.append("select * from pharmacy_header_historical") %}
+{% if cte_queries | length > 0 %}
+with {{ cte_queries | join(",\n") }}
 {% endif %}
 
 select *
 from (
-    {{ cte_list | join(" union ") }}
+  {% for table in valid_tables %}
+    select * from {{ table }}
+    {% if not loop.last %}
+      union
+    {% endif %}
+  {% endfor %}
 ) as final_result

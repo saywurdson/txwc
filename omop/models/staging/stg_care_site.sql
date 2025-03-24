@@ -1,245 +1,99 @@
-{% set exists_i_current = check_table_exists('raw', 'institutional_header_current') %}
-{% set exists_i_historical = check_table_exists('raw', 'institutional_header_historical') %}
-{% set exists_pr_current = check_table_exists('raw', 'professional_header_current') %}
-{% set exists_pr_historical = check_table_exists('raw', 'professional_header_historical') %}
-{% set exists_ph_current = check_table_exists('raw', 'pharmacy_header_current') %}
-{% set exists_ph_historical = check_table_exists('raw', 'pharmacy_header_historical') %}
+{% set table_list = [
+    ('institutional_header_current', 'raw'),
+    ('institutional_header_historical', 'raw'),
+    ('professional_header_current', 'raw'),
+    ('professional_header_historical', 'raw'),
+    ('pharmacy_header_current', 'raw'),
+    ('pharmacy_header_historical', 'raw')
+] %}
 
-with
-{% if exists_i_current %}
-institutional_header_current as (
-    select distinct
-        cast(
-            hash(
-                concat_ws(
-                '||',
-                billing_provider_last_name
-                )
-            , 'xxhash64'
-            ) % 1000000000
-        as varchar) as care_site_id,
-        billing_provider_last_name as care_site_name,
-        8717 as place_of_service_concept_id,
-        cast(
-            hash(
-                concat_ws(
-                '||',
-                billing_provider_last_name,
-                facility_primary_address,
-                facility_city,
-                facility_state_code,
-                facility_postal_code,
-                facility_country_code
-                )
-            , 'xxhash64'
-            ) % 1000000000
-        as varchar) as location_id,
-        cast(null as varchar) as care_site_source_value,
-        cast(null as varchar) as place_of_service_source_value
-    from {{ source('raw', 'institutional_header_current') }}
-)
-{% endif %}
+{% set cte_queries = [] %}
 
-{% if exists_i_historical %}
-{% if exists_i_current %}, {% endif %}
-institutional_header_historical as (
-    select distinct
-        cast(
-            hash(
-                concat_ws(
-                '||',
-                billing_provider_last_name
-                )
-            , 'xxhash64'
-            ) % 1000000000
-        as varchar) as care_site_id,
-        billing_provider_last_name as care_site_name,
-        8717 as place_of_service_concept_id,
-        cast(
-            hash(
-                concat_ws(
-                '||',
-                billing_provider_last_name,
-                facility_primary_address,
-                facility_city,
-                facility_state_code,
-                facility_postal_code,
-                facility_country_code
-                )
-            , 'xxhash64'
-            ) % 1000000000
-        as varchar) as location_id,
-        cast(null as varchar) as care_site_source_value,
-        cast(null as varchar) as place_of_service_source_value
-    from {{ source('raw', 'institutional_header_historical') }}
-)
-{% endif %}
+{% for table, schema in table_list %}
+    {% if check_table_exists(schema, table) %}
+        {% set cte_query %}
+        {{ table }} as (
+            select distinct
+                cast(
+                    hash(
+                        concat_ws(
+                            '||',
+                            {% if 'pharmacy' in table %}
+                                billing_provider_last_name,
+                                billing_provider_fein
+                            {% elif 'professional' in table %}
+                                billing_provider_last_name,
+                                facility_primary_address
+                            {% else %}
+                                billing_provider_last_name
+                            {% endif %}
+                        )
+                    , 'xxhash64'
+                    ) % 1000000000
+                as varchar) as care_site_id,
+                {% if 'pharmacy' in table %}
+                    coalesce(facility_name, billing_provider_last_name) as care_site_name,
+                    38004338 as place_of_service_concept_id,
+                {% elif 'professional' in table %}
+                    billing_provider_last_name as care_site_name,
+                    8716 as place_of_service_concept_id,
+                {% else %}
+                    billing_provider_last_name as care_site_name,
+                    8717 as place_of_service_concept_id,
+                {% endif %}
+                cast(
+                    hash(
+                        concat_ws(
+                            '||',
+                            {% if 'pharmacy' in table %}
+                                billing_provider_last_name,
+                                billing_provider_fein,
+                                billing_provider_primary_1,
+                                billing_provider_city,
+                                billing_provider_state_code,
+                                billing_provider_postal_code
+                            {% else %}
+                                billing_provider_last_name,
+                                facility_primary_address,
+                                facility_city,
+                                facility_state_code,
+                                facility_postal_code,
+                                facility_country_code
+                            {% endif %}
+                        )
+                    , 'xxhash64'
+                    ) % 1000000000
+                as varchar) as location_id,
+                cast(null as varchar) as care_site_source_value,
+                cast(null as varchar) as place_of_service_source_value
+            from {{ source(schema, table) }}
+        )
+        {% endset %}
+        {% do cte_queries.append(cte_query) %}
+    {% endif %}
+{% endfor %}
 
-{% if exists_pr_historical %}
-{% if exists_i_historical %}, {% endif %}
-professional_header_historical as (
-    select distinct
-        cast(
-            hash(
-                concat_ws(
-                '||',
-                billing_provider_last_name,
-                facility_primary_address
-                )
-            , 'xxhash64'
-            ) % 1000000000
-        as varchar) as care_site_id,
-        billing_provider_last_name as care_site_name,
-        8716 as place_of_service_concept_id,
-        cast(
-            hash(
-                concat_ws(
-                '||',
-                billing_provider_last_name,
-                facility_primary_address,
-                facility_city,
-                facility_state_code,
-                facility_postal_code,
-                facility_country_code
-                )
-            , 'xxhash64'
-            ) % 1000000000
-        as varchar) as location_id,
-        cast(null as varchar) as care_site_source_value,
-        cast(null as varchar) as place_of_service_source_value
-    from {{ source('raw', 'professional_header_historical') }}
-)
+{% if cte_queries | length > 0 %}
+with {{ cte_queries | join(', ') }}
 {% endif %}
 
-{% if exists_pr_current %}
-{% if exists_pr_historical %}, {% endif %}
-professional_header_current as (
-    select distinct
-        cast(
-            hash(
-                concat_ws(
-                '||',
-                billing_provider_last_name,
-                facility_primary_address
-                )
-            , 'xxhash64'
-            ) % 1000000000
-        as varchar) as care_site_id,
-        billing_provider_last_name as care_site_name,
-        8716 as place_of_service_concept_id,
-        cast(
-            hash(
-                concat_ws(
-                '||',
-                billing_provider_last_name,
-                facility_primary_address,
-                facility_city,
-                facility_state_code,
-                facility_postal_code,
-                facility_country_code
-                )
-            , 'xxhash64'
-            ) % 1000000000
-        as varchar) as location_id,
-        cast(null as varchar) as care_site_source_value,
-        cast(null as varchar) as place_of_service_source_value
-    from {{ source('raw', 'professional_header_current') }}
-)
-{% endif %}
+{% set valid_tables = [] %}
+{% for table, schema in table_list %}
+    {% if check_table_exists(schema, table) %}
+         {% do valid_tables.append(table) %}
+    {% endif %}
+{% endfor %}
 
-{% if exists_ph_current %}
-{% if exists_pr_current %}, {% endif %}
-pharmacy_header_current as (
-    select distinct
-        cast(
-            hash(
-                concat_ws(
-                '||',
-                billing_provider_last_name,
-                billing_provider_fein
-                )
-            , 'xxhash64'
-            ) % 1000000000
-        as varchar) as care_site_id,
-        coalesce(facility_name, billing_provider_last_name) as care_site_name,
-        38004338 as place_of_service_concept_id,
-        cast(
-            hash(
-                concat_ws(
-                '||',
-                billing_provider_last_name,
-                billing_provider_fein,
-                billing_provider_primary_1,
-                billing_provider_city,
-                billing_provider_state_code,
-                billing_provider_postal_code
-                )
-            , 'xxhash64'
-            ) % 1000000000
-        as varchar) as location_id,
-        cast(null as varchar) as care_site_source_value,
-        cast(null as varchar) as place_of_service_source_value
-    from {{ source('raw', 'pharmacy_header_current') }}
-)
-{% endif %}
-
-{% if exists_ph_historical %}
-{% if exists_ph_current %}, {% endif %}
-pharmacy_header_historical as (
-    select distinct
-        cast(
-            hash(
-                concat_ws(
-                '||',
-                billing_provider_last_name,
-                billing_provider_fein
-                )
-            , 'xxhash64'
-            ) % 1000000000
-        as varchar) as care_site_id,
-        coalesce(facility_name, billing_provider_last_name) as care_site_name,
-        38004338 as place_of_service_concept_id,
-        cast(
-            hash(
-                concat_ws(
-                '||',
-                billing_provider_last_name,
-                billing_provider_fein,
-                billing_provider_primary_1,
-                billing_provider_city,
-                billing_provider_state_code,
-                billing_provider_postal_code
-                )
-            , 'xxhash64'
-            ) % 1000000000
-        as varchar) as location_id,
-        cast(null as varchar) as care_site_source_value,
-        cast(null as varchar) as place_of_service_source_value
-    from {{ source('raw', 'pharmacy_header_historical') }}
-)
-{% endif %}
-
-{% set cte_list = [] %}
-{% if exists_i_current %}
-  {% set _ = cte_list.append("select * from institutional_header_current") %}
-{% endif %}
-{% if exists_i_historical %}
-  {% set _ = cte_list.append("select * from institutional_header_historical") %}
-{% endif %}
-{% if exists_pr_current %}
-  {% set _ = cte_list.append("select * from professional_header_current") %}
-{% endif %}
-{% if exists_pr_historical %}
-  {% set _ = cte_list.append("select * from professional_header_historical") %}
-{% endif %}
-{% if exists_ph_current %}
-  {% set _ = cte_list.append("select * from pharmacy_header_current") %}
-{% endif %}
-{% if exists_ph_historical %}
-  {% set _ = cte_list.append("select * from pharmacy_header_historical") %}
-{% endif %}
-
+{% if valid_tables | length > 0 %}
 select *
 from (
-    {{ cte_list | join(" union ") }}
+    {% for table in valid_tables %}
+        select * from {{ table }}
+        {% if not loop.last %}
+            union all
+        {% endif %}
+    {% endfor %}
 ) as final_result
+{% else %}
+select null as message
+{% endif %}
