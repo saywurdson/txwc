@@ -1,13 +1,13 @@
 select 
     row_number() over (order by device_exposure_id) as device_exposure_id,
     person_id,
-    {{ get_concept_ids(
+    cast({{ get_concept_ids(
          "device_source_concept_id",
          domain_id='Device',
          vocabulary_id=['HCPCS'],
          vocabulary_target='SNOMED',
          required_value=0
-    ) }} as device_concept_id,
+    ) }} as integer) as device_concept_id,
     device_exposure_start_date,
     device_exposure_start_datetime,
     device_exposure_end_date,

@@ -1,12 +1,12 @@
 select
     person_id,
-    {{ get_concept_ids(
+    cast({{ get_concept_ids(
          "gender_source_concept_id",
          domain_id='Gender',
          vocabulary_id=['Gender'],
          vocabulary_target='Gender',
          required_value=0
-    ) }} as gender_concept_id,
+    ) }} as integer) as gender_concept_id,
     year_of_birth,
     month_of_birth,
     day_of_birth,

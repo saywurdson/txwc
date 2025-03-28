@@ -1,13 +1,13 @@
 select 
     row_number() over (order by measurement_id) as measurement_id,
     person_id,
-    {{ get_concept_ids(
+    cast({{ get_concept_ids(
          "measurement_source_concept_id",
          domain_id='Measurement',
          vocabulary_id=['ICD9CM', 'ICD10CM', 'CPT4', 'HCPCS'],
          vocabulary_target='SNOMED',
          required_value=0
-    ) }} as measurement_concept_id,
+    ) }} as integer) as measurement_concept_id,
     measurement_date,
     measurement_datetime,
     measurement_time,

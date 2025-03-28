@@ -77,8 +77,8 @@
       else ihc.patient_account_number
     end as person_id,
     cast(null as integer) as observation_concept_id,
-    cast(ihc.service_bill_from_date as date) as observation_date,
-    cast(ihc.service_bill_from_date as timestamp) as observation_datetime,
+    cast(ihc.reporting_period_start_date as date) as observation_date,
+    cast(ihc.reporting_period_start_date as timestamp) as observation_datetime,
     32855 as observation_type_concept_id,
     cast(null as float) as value_as_number,
     cast(null as varchar) as value_as_string,
@@ -153,8 +153,8 @@
       else phc.patient_account_number
     end as person_id,
     cast(null as integer) as observation_concept_id,
-    cast(phc.service_bill_from_date as date) as observation_date,
-    cast(phc.service_bill_from_date as timestamp) as observation_datetime,
+    cast(phc.reporting_period_start_date as date) as observation_date,
+    cast(phc.reporting_period_start_date as timestamp) as observation_datetime,
     32855 as observation_type_concept_id,
     cast(null as float) as value_as_number,
     cast(null as varchar) as value_as_string,

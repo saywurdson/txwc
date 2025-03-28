@@ -1,13 +1,13 @@
 select
     row_number() over (order by condition_occurrence_id) as condition_occurrence_id,
     person_id,
-    {{ get_concept_ids(
+    cast({{ get_concept_ids(
          "condition_source_concept_id",
          domain_id='Condition',
          vocabulary_id=['ICD9CM', 'ICD10CM'],
          vocabulary_target='SNOMED',
          required_value=0
-    ) }} as condition_concept_id,
+    ) }} as integer) as condition_concept_id,
     condition_start_date,
     condition_start_datetime,
     condition_end_date,

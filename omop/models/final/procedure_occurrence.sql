@@ -1,13 +1,13 @@
 select
     row_number() over (order by procedure_occurrence_id) as procedure_occurrence_id,
     person_id,
-    {{ get_concept_ids(
+    cast({{ get_concept_ids(
         "procedure_source_concept_id",
          domain_id='Procedure',
          vocabulary_id=['ICD9Proc', 'ICD10PCS', 'CPT4', 'HCPCS'],
          vocabulary_target='SNOMED',
          required_value=0
-    ) }} as procedure_concept_id,
+    ) }} as integer) as procedure_concept_id,
     procedure_date,
     procedure_datetime,
     procedure_end_date,

@@ -30,11 +30,11 @@ institutional_header_current as (
               )
           else patient_account_number
       end as person_id,
-      cast(null as integer) as visit_concept_id,
-      cast(service_bill_from_date as date) as visit_start_date,
-      cast(service_bill_from_date as timestamp) as visit_start_datetime,
-      cast(service_bill_to_date as date) as visit_end_date,
-      cast(service_bill_to_date as timestamp) as visit_end_datetime,
+      8717 as visit_concept_id,
+      cast(reporting_period_start_date as date) as visit_start_date,
+      cast(reporting_period_start_date as timestamp) as visit_start_datetime,
+      cast(reporting_period_end_date as date) as visit_end_date,
+      cast(reporting_period_end_date as timestamp) as visit_end_datetime,
       32855 as visit_type_concept_id,
       cast(
         hash(concat_ws('||', rendering_bill_provider_last,
@@ -47,7 +47,14 @@ institutional_header_current as (
       ) as care_site_id,
       cast(facility_code as varchar) as visit_source_value,
       cast(null as integer) as visit_source_concept_id,
-      cast(null as integer) as admitted_from_source_value,
+      case
+        when admission_type_code = '1' then 8870
+        when admission_type_code = '2' then 8782
+        when admission_type_code = '3' then 0
+        when admission_type_code = '9' then 0
+        else null
+      end as admitted_from_concept_id,
+      admission_type_code as admitted_from_source_value,
       cast(null as integer) as discharged_to_concept_id,
       cast(null as integer) as discharged_to_source_value,
       cast(null as integer) as preceding_visit_occurrence_id
@@ -80,11 +87,11 @@ institutional_header_historical as (
               )
           else patient_account_number
       end as person_id,
-      cast(null as integer) as visit_concept_id,
-      cast(service_bill_from_date as date) as visit_start_date,
-      cast(service_bill_from_date as timestamp) as visit_start_datetime,
-      cast(service_bill_to_date as date) as visit_end_date,
-      cast(service_bill_to_date as timestamp) as visit_end_datetime,
+      8717 as visit_concept_id,
+      cast(reporting_period_start_date as date) as visit_start_date,
+      cast(reporting_period_start_date as timestamp) as visit_start_datetime,
+      cast(reporting_period_end_date as date) as visit_end_date,
+      cast(reporting_period_end_date as timestamp) as visit_end_datetime,
       32855 as visit_type_concept_id,
       cast(
         hash(concat_ws('||', rendering_bill_provider_last,
@@ -97,7 +104,14 @@ institutional_header_historical as (
       ) as care_site_id,
       cast(facility_code as varchar) as visit_source_value,
       cast(null as integer) as visit_source_concept_id,
-      cast(null as integer) as admitted_from_source_value,
+      case
+        when admission_type_code = '1' then 8870
+        when admission_type_code = '2' then 8782
+        when admission_type_code = '3' then 0
+        when admission_type_code = '9' then 0
+        else null
+      end as admitted_from_concept_id,
+      admission_type_code as admitted_from_source_value,
       cast(null as integer) as discharged_to_concept_id,
       cast(null as integer) as discharged_to_source_value,
       cast(null as integer) as preceding_visit_occurrence_id
@@ -130,11 +144,11 @@ professional_header_current as (
               )
           else patient_account_number
       end as person_id,
-      cast(null as integer) as visit_concept_id,
-      cast(service_bill_from_date as date) as visit_start_date,
-      cast(service_bill_from_date as timestamp) as visit_start_datetime,
-      cast(service_bill_to_date as date) as visit_end_date,
-      cast(service_bill_to_date as timestamp) as visit_end_datetime,
+      8716 as visit_concept_id,
+      cast(reporting_period_start_date as date) as visit_start_date,
+      cast(reporting_period_start_date as timestamp) as visit_start_datetime,
+      cast(reporting_period_end_date as date) as visit_end_date,
+      cast(reporting_period_end_date as timestamp) as visit_end_datetime,
       32873 as visit_type_concept_id,
       cast(
         hash(concat_ws('||', rendering_bill_provider_last,
@@ -147,6 +161,7 @@ professional_header_current as (
       ) as care_site_id,
       cast(place_of_service_bill_code as varchar) as visit_source_value,
       cast(null as integer) as visit_source_concept_id,
+      cast(null as integer) as admitted_from_concept_id,
       cast(null as integer) as admitted_from_source_value,
       cast(null as integer) as discharged_to_concept_id,
       cast(null as integer) as discharged_to_source_value,
@@ -180,11 +195,11 @@ professional_header_historical as (
               )
           else patient_account_number
       end as person_id,
-      cast(null as integer) as visit_concept_id,
-      cast(service_bill_from_date as date) as visit_start_date,
-      cast(service_bill_from_date as timestamp) as visit_start_datetime,
-      cast(service_bill_to_date as date) as visit_end_date,
-      cast(service_bill_to_date as timestamp) as visit_end_datetime,
+      8716 as visit_concept_id,
+      cast(reporting_period_start_date as date) as visit_start_date,
+      cast(reporting_period_start_date as timestamp) as visit_start_datetime,
+      cast(reporting_period_end_date as date) as visit_end_date,
+      cast(reporting_period_end_date as timestamp) as visit_end_datetime,
       32873 as visit_type_concept_id,
       cast(
         hash(concat_ws('||', rendering_bill_provider_last,
@@ -197,6 +212,7 @@ professional_header_historical as (
       ) as care_site_id,
       cast(place_of_service_bill_code as varchar) as visit_source_value,
       cast(null as integer) as visit_source_concept_id,
+      cast(null as integer) as admitted_from_concept_id,
       cast(null as integer) as admitted_from_source_value,
       cast(null as integer) as discharged_to_concept_id,
       cast(null as integer) as discharged_to_source_value,
@@ -230,11 +246,11 @@ pharmacy_header_current as (
               )
           else patient_account_number
       end as person_id,
-      cast(null as integer) as visit_concept_id,
-      cast(service_bill_from_date as date) as visit_start_date,
-      cast(service_bill_from_date as timestamp) as visit_start_datetime,
-      cast(service_bill_to_date as date) as visit_end_date,
-      cast(service_bill_to_date as timestamp) as visit_end_datetime,
+      38004338 as visit_concept_id,
+      cast(reporting_period_start_date as date) as visit_start_date,
+      cast(reporting_period_start_date as timestamp) as visit_start_datetime,
+      cast(reporting_period_end_date as date) as visit_end_date,
+      cast(reporting_period_end_date as timestamp) as visit_end_datetime,
       32869 as visit_type_concept_id,
       cast(
         hash(concat_ws('||', rendering_bill_provider_last,
@@ -247,6 +263,7 @@ pharmacy_header_current as (
       ) as care_site_id,
       cast(place_of_service_bill_code as varchar) as visit_source_value,
       cast(null as integer) as visit_source_concept_id,
+      cast(null as integer) as admitted_from_concept_id,
       cast(null as integer) as admitted_from_source_value,
       cast(null as integer) as discharged_to_concept_id,
       cast(null as integer) as discharged_to_source_value,
@@ -280,11 +297,11 @@ pharmacy_header_historical as (
               )
           else patient_account_number
       end as person_id,
-      cast(null as integer) as visit_concept_id,
-      cast(service_bill_from_date as date) as visit_start_date,
-      cast(service_bill_from_date as timestamp) as visit_start_datetime,
-      cast(service_bill_to_date as date) as visit_end_date,
-      cast(service_bill_to_date as timestamp) as visit_end_datetime,
+      38004338 as visit_concept_id,
+      cast(reporting_period_start_date as date) as visit_start_date,
+      cast(reporting_period_start_date as timestamp) as visit_start_datetime,
+      cast(reporting_period_end_date as date) as visit_end_date,
+      cast(reporting_period_end_date as timestamp) as visit_end_datetime,
       32869 as visit_type_concept_id,
       cast(
         hash(concat_ws('||', rendering_bill_provider_last,
@@ -297,6 +314,7 @@ pharmacy_header_historical as (
       ) as care_site_id,
       cast(place_of_service_bill_code as varchar) as visit_source_value,
       cast(null as integer) as visit_source_concept_id,
+      cast(null as integer) as admitted_from_concept_id,
       cast(null as integer) as admitted_from_source_value,
       cast(null as integer) as discharged_to_concept_id,
       cast(null as integer) as discharged_to_source_value,

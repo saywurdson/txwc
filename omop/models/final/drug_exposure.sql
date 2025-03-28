@@ -1,13 +1,13 @@
 select 
     row_number() over (order by drug_exposure_id) as drug_exposure_id,
     person_id,
-    {{ get_concept_ids(
+    cast({{ get_concept_ids(
          "drug_source_concept_id",
          domain_id='Drug',
          vocabulary_id=['NDC', 'HCPCS'],
          vocabulary_target='RxNorm',
          required_value=0
-    ) }} as drug_concept_id,
+    ) }} as integer) as drug_concept_id,
     drug_exposure_start_date,
     drug_exposure_start_datetime,
     drug_exposure_end_date,
