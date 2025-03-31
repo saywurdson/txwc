@@ -1,5 +1,3 @@
-{{ config(materialized='table') }}
-
 -- adapted from https://github.com/OHDSI/ETL-CMS/blob/master/SQL/create_CDMv5_drug_era_non_stockpile.sql
 with
 -- normalize the drug exposure dates. we pick the first non-null value among:
@@ -27,9 +25,9 @@ ctepredrugtarget as (
       and c.concept_class_id = 'Ingredient'
       and d.drug_concept_id != 0
       and d.days_supply >= 0
-)
+),
 -- group overlapping exposures by generating start (-1) and end (1) events
-, ctesubexposureenddates as (
+ctesubexposureenddates as (
     select 
         person_id, 
         ingredient_concept_id, 
@@ -75,9 +73,9 @@ ctepredrugtarget as (
         ) rawdata
     ) e
     where (2 * e.start_ordinal) - e.overall_ord = 0
-)
+),
 -- for each exposure, identify the earliest end date (on or after the start date) from the sub-exposures
-, ctedrugexposureends as (
+ctedrugexposureends as (
     select 
         dt.person_id,
         dt.ingredient_concept_id as drug_concept_id,
@@ -93,9 +91,9 @@ ctepredrugtarget as (
          dt.person_id,
          dt.ingredient_concept_id,
          dt.drug_exposure_start_date
-)
+),
 -- aggregate overlapping exposures into sub-exposures
-, ctesubexposures as (
+ctesubexposures as (
     select 
         row_number() over (
             partition by person_id, drug_concept_id, drug_sub_exposure_end_date 
@@ -116,9 +114,9 @@ ctepredrugtarget as (
         from ctedrugexposureends
         group by person_id, drug_concept_id, drug_sub_exposure_end_date
     ) sub
-)
+),
 -- calculate the total days exposed in each sub-exposure period
-, ctefinaltarget as (
+ctefinaltarget as (
     select 
         row_number,
         person_id,
@@ -128,9 +126,9 @@ ctepredrugtarget as (
         drug_exposure_count,
         datediff('day', drug_sub_exposure_start_date, drug_sub_exposure_end_date) as days_exposed
     from ctesubexposures
-)
+),
 -- adjust the end dates by subtracting a 30-day grace period ("persistence window")
-, cteenddates as (
+cteenddates as (
     select 
         person_id, 
         ingredient_concept_id, 
@@ -176,9 +174,9 @@ ctepredrugtarget as (
         ) rawdata
     ) e
     where (2 * e.start_ordinal) - e.overall_ord = 0
-)
+),
 -- determine the definitive end date for each drug era by joining with the padded end dates
-, ctedrugeraends as (
+ctedrugeraends as (
     select 
         ft.person_id,
         ft.ingredient_concept_id as drug_concept_id,
