@@ -22,3 +22,4 @@ select
     condition_source_concept_id,
     condition_status_source_value
 from {{ ref('int_condition_occurrence') }}
+where condition_start_date is not null

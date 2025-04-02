@@ -29,3 +29,4 @@ select
     measurement_event_id,
     meas_event_field_concept_id
 from {{ ref('int_measurement') }}
+where measurement_date is not null

@@ -25,3 +25,4 @@ select
     unit_source_value,
     unit_source_concept_id
 from {{ ref('int_device_exposure') }}
+where device_exposure_start_date is not null

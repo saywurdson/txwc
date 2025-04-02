@@ -23,3 +23,4 @@ select
     discharged_to_source_value,
     preceding_visit_occurrence_id
 from {{ ref('int_visit_occurrence') }}
+where visit_start_date is not null

@@ -22,3 +22,4 @@ select
     procedure_source_concept_id,
     modifier_source_value
 from {{ ref('int_procedure_occurrence') }}
+where procedure_date is not null

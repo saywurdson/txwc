@@ -1,6 +1,6 @@
 select
     cast(cost_id as integer) as cost_id,
-    cast(cost_event_id as integer) as cost_event_id,
+    cast(cost_event_id as varchar) as cost_event_id,
     cast(cost_domain_id as integer) as cost_domain_id,
     cast(cost_type_concept_id as varchar) as cost_type_concept_id,
     cast(currency_concept_id as varchar) as currency_concept_id,

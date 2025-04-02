@@ -34,3 +34,4 @@ select
     observation_event_id,
     obs_event_field_concept_id
 from {{ ref('int_observation') }}
+where observation_date is not null

@@ -29,3 +29,4 @@ select
     route_source_value,
     dose_unit_source_value
 from {{ ref('int_drug_exposure') }}
+where drug_exposure_start_date is not null
