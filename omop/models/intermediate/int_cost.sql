@@ -2,8 +2,8 @@ select
     cast(cost_id as integer) as cost_id,
     cast(cost_event_id as integer) as cost_event_id,
     cast(cost_domain_id as integer) as cost_domain_id,
-    cast(cost_type_concept_id as integer) as cost_type_concept_id,
-    cast(currency_concept_id as integer) as currency_concept_id,
+    cast(cost_type_concept_id as varchar) as cost_type_concept_id,
+    cast(currency_concept_id as varchar) as currency_concept_id,
     cast(total_charge as float) as total_charge,
     cast(total_cost as float) as total_cost,
     cast(total_paid as float) as total_paid,
@@ -24,7 +24,7 @@ select
         standard_concept='S',
         invalid_reason='is null',
         required_value=0
-    ) }} as integer) as revenue_code_concept_id,
+    ) }} as varchar) as revenue_code_concept_id,
     cast(revenue_code_source_value as varchar) as revenue_code_source_value,
     cast({{ get_source_concept_ids(
         "drg_source_value",
@@ -33,6 +33,6 @@ select
         standard_concept='S',
         invalid_reason='is null',
         required_value=0
-    ) }} as integer) as drg_concept_id,
+    ) }} as varchar) as drg_concept_id,
     cast(drg_source_value as varchar) as drg_source_value
 from {{ ref('stg_cost') }}

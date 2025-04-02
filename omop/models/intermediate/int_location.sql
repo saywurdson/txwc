@@ -7,7 +7,7 @@ select
     cast(zip as varchar) as zip,
     cast(county as varchar) as county,
     cast(location_source_value as varchar) as location_source_value,
-    cast(country_concept_id as integer) as country_concept_id,
+    cast(country_concept_id as varchar) as country_concept_id,
     cast(country_source_value as varchar) as country_source_value,
     cast(latitude as float) as latitude,
     cast(longitude as float) as longitude

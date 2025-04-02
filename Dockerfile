@@ -19,7 +19,8 @@ RUN python -m pip install --upgrade pip && \
         "dlt[duckdb]" \
         paramiko \
         python-dotenv \
-        pyarrow==11.0.0
+        pyarrow==11.0.0 \
+        "ibis-framework[duckdb]"
 
 # If you need conda packages, install them as well
 RUN conda install -y -c conda-forge \
