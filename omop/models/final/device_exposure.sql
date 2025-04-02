@@ -7,7 +7,7 @@ select
          vocabulary_id=['HCPCS'],
          vocabulary_target='SNOMED',
          required_value=0
-    ) }} as integer) as device_concept_id,
+    ) }} as varchar) as device_concept_id,
     device_exposure_start_date,
     device_exposure_start_datetime,
     device_exposure_end_date,

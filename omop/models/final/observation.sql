@@ -7,7 +7,7 @@ select
          vocabulary_id=['ICD9CM', 'ICD10CM', 'CPT4', 'HCPCS'],
          vocabulary_target='SNOMED',
          required_value=0
-    ) }} as integer) as observation_concept_id,
+    ) }} as varchar) as observation_concept_id,
     observation_date,
     observation_datetime,
     observation_type_concept_id,
@@ -20,7 +20,7 @@ select
          vocabulary_target='SNOMED',
          relationship_id='Maps to value',
          required_value=0
-    ) }} as integer) as value_as_concept_id,
+    ) }} as varchar) as value_as_concept_id,
     qualifier_concept_id,
     unit_concept_id,
     provider_id,

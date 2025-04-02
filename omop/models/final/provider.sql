@@ -9,7 +9,7 @@ select
          vocabulary_id=['NUCC'],
          vocabulary_target=['NUCC', 'Medicare Specialty'],
          required_value=0
-    ) }} as integer) as specialty_concept_id,
+    ) }} as varchar) as specialty_concept_id,
     care_site_id,
     year_of_birth,
     gender_concept_id,

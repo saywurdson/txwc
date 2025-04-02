@@ -7,7 +7,7 @@ select
          vocabulary_id=['NDC', 'HCPCS'],
          vocabulary_target='RxNorm',
          required_value=0
-    ) }} as integer) as drug_concept_id,
+    ) }} as varchar) as drug_concept_id,
     drug_exposure_start_date,
     drug_exposure_start_datetime,
     drug_exposure_end_date,

@@ -7,7 +7,7 @@ select
          vocabulary_id=['ICD9Proc', 'ICD10PCS', 'CPT4', 'HCPCS'],
          vocabulary_target='SNOMED',
          required_value=0
-    ) }} as integer) as procedure_concept_id,
+    ) }} as varchar) as procedure_concept_id,
     procedure_date,
     procedure_datetime,
     procedure_end_date,

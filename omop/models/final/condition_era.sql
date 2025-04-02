@@ -67,7 +67,7 @@ final as (
     select
         row_number() over (order by person_id) as condition_era_id,
         cast(person_id as varchar) as person_id,
-        cast(condition_concept_id as integer) as condition_concept_id,
+        cast(condition_concept_id as varchar) as condition_concept_id,
         cast(min(condition_start_date) as date) as condition_era_start_date,
         cast(era_end_date as date) as condition_era_end_date,
         cast(count(*) as integer) as condition_occurrence_count

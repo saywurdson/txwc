@@ -6,7 +6,7 @@ select
          vocabulary_id=['Gender'],
          vocabulary_target='Gender',
          required_value=0
-    ) }} as integer) as gender_concept_id,
+    ) }} as varchar) as gender_concept_id,
     year_of_birth,
     month_of_birth,
     day_of_birth,

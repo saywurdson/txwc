@@ -7,7 +7,7 @@ select
          vocabulary_id=['ICD9CM', 'ICD10CM'],
          vocabulary_target='SNOMED',
          required_value=0
-    ) }} as integer) as condition_concept_id,
+    ) }} as varchar) as condition_concept_id,
     condition_start_date,
     condition_start_datetime,
     condition_end_date,

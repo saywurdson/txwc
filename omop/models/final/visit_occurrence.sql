@@ -7,7 +7,7 @@ select
          vocabulary_id=['UB04 Typ bill'],
          vocabulary_target='CMS Place of Service',
          required_value=0
-    ) }} as integer) as visit_concept_id,
+    ) }} as varchar) as visit_concept_id,
     visit_start_date,
     visit_start_datetime,
     visit_end_date,
