@@ -510,3 +510,117 @@ models:
             - not_null
         - name: condition_occurrence_count
           data_type: integer
+
+  - name: cost
+    config:
+      schema: omop
+      columns:
+        - name: cost_id
+          data_type: bigint
+          tests:
+            - unique
+            - not_null
+        - name: cost_event_id
+          data_type: varchar
+        - name: cost_domain_id
+          data_type: integer
+        - name: cost_type_concept_id
+          data_type: varchar
+        - name: currency_concept_id
+          data_type: varchar
+        - name: total_charge
+          data_type: float
+        - name: total_cost
+          data_type: float
+        - name: total_paid
+          data_type: float
+        - name: paid_by_payer
+          data_type: float
+        - name: paid_by_patient
+          data_type: float
+        - name: paid_patient_copay
+          data_type: float
+        - name: paid_patient_coinsurance
+          data_type: float
+        - name: paid_patient_deductible
+          data_type: float
+        - name: paid_by_primary
+          data_type: float
+        - name: paid_ingredient_cost
+          data_type: float
+        - name: paid_dispensing_fee
+          data_type: float
+        - name: payer_plan_period_id
+          data_type: integer
+        - name: amount_allowed
+          data_type: float
+        - name: revenue_code_concept_id
+          data_type: varchar
+        - name: revenue_code_source_value
+          data_type: varchar
+        - name: drg_concept_id
+          data_type: varchar
+        - name: drg_source_value
+          data_type: varchar
+
+  - name: drug_exposure
+    config:
+      schema: omop
+      columns:
+        - name: drug_exposure_id
+          data_type: bigint
+          tests:
+            - unique
+            - not_null
+        - name: person_id
+          data_type: varchar
+          tests:
+            - not_null
+        - name: drug_concept_id
+          data_type: varchar
+          tests:
+            - not_null
+        - name: drug_exposure_start_date
+          data_type: date
+          tests:
+            - not_null
+        - name: drug_exposure_start_datetime
+          data_type: timestamp
+        - name: drug_exposure_end_date
+          data_type: date
+        - name: drug_exposure_end_datetime
+          data_type: timestamp
+        - name: verbatim_end_date
+          data_type: date
+        - name: drug_type_concept_id
+          data_type: varchar
+          tests:
+            - not_null
+        - name: stop_reason
+          data_type: varchar
+        - name: refills
+          data_type: integer
+        - name: quantity
+          data_type: float
+        - name: days_supply
+          data_type: integer
+        - name: sig
+          data_type: varchar
+        - name: route_concept_id
+          data_type: varchar
+        - name: lot_number
+          data_type: varchar
+        - name: provider_id
+          data_type: integer
+        - name: visit_occurrence_id
+          data_type: integer
+        - name: visit_detail_id
+          data_type: integer
+        - name: drug_source_value
+          data_type: varchar
+        - name: drug_source_concept_id
+          data_type: varchar
+        - name: route_source_value
+          data_type: integer
+        - name: dose_unit_source_value
+          data_type: integer
