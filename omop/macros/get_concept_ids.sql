@@ -99,7 +99,6 @@
                   {% endfor %}
                 )
               {% endif %}
-              and c1.invalid_reason is null
               and c2.invalid_reason is null
               and c2.standard_concept = '{{ standard_concept }}'
             limit 1
