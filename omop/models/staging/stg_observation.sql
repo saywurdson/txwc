@@ -211,8 +211,10 @@
       else ihc.patient_account_number
     end as person_id,
     cast(null as integer) as observation_concept_id,
-    cast(idc.service_line_from_date as date) as observation_date,
-    cast(idc.service_line_from_date as timestamp) as observation_datetime,
+    CASE WHEN idc.service_line_from_date = 'N' THEN NULL 
+      ELSE cast(idc.service_line_from_date as date) END as observation_date,
+    CASE WHEN idc.service_line_from_date = 'N' THEN NULL 
+      ELSE cast(idc.service_line_from_date as timestamp) END as observation_datetime,
     32854 as observation_type_concept_id,
     cast(null as float) as value_as_number,
     cast(null as varchar) as value_as_string,

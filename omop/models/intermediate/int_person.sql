@@ -1,6 +1,6 @@
 select
     cast(person_id as varchar) as person_id,
-    cast(gender_concept_id as integer) as person_id,
+    cast(gender_concept_id as integer) as gender_concept_id,
     cast(year_of_birth as integer) as year_of_birth,
     cast(month_of_birth as integer) as month_of_birth,
     cast(day_of_birth as integer) as day_of_birth,

@@ -219,10 +219,14 @@
       else ihc.patient_account_number
     end as person_id,
     cast(null as integer) as procedure_concept_id,
-    cast(id.service_line_from_date as date) as procedure_date,
-    cast(id.service_line_from_date as timestamp) as procedure_datetime,
-    cast(id.service_line_to_date as date) as procedure_end_date,
-    cast(id.service_line_to_date as timestamp) as procedure_end_datetime,
+    CASE WHEN id.service_line_from_date = 'N' THEN NULL 
+        ELSE cast(id.service_line_from_date as date) END as procedure_date,
+    CASE WHEN id.service_line_from_date = 'N' THEN NULL 
+        ELSE cast(id.service_line_from_date as timestamp) END as procedure_datetime,
+    CASE WHEN id.service_line_to_date = 'N' THEN NULL 
+        ELSE cast(id.service_line_to_date as date) END as procedure_end_date,
+    CASE WHEN id.service_line_to_date = 'N' THEN NULL 
+        ELSE cast(id.service_line_to_date as timestamp) END as procedure_end_datetime,
     32854 as procedure_type_concept_id,
     cast(null as integer) as modifier_concept_id,
     cast(id.days_units_billed as integer) as quantity,

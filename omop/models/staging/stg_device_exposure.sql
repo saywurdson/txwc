@@ -54,10 +54,14 @@
             else header.patient_account_number
           end as person_id,
           cast(null as integer) as device_concept_id,
-          cast(detail.service_line_from_date as date) as device_exposure_start_date,
-          cast(detail.service_line_from_date as timestamp) as device_exposure_start_datetime,
-          cast(detail.service_line_to_date as date) as device_exposure_end_date,
-          cast(detail.service_line_to_date as timestamp) as device_exposure_end_datetime,
+          CASE WHEN detail.service_line_from_date = 'N' THEN NULL 
+              ELSE cast(detail.service_line_from_date as date) END as device_exposure_start_date,
+          CASE WHEN detail.service_line_from_date = 'N' THEN NULL 
+              ELSE cast(detail.service_line_from_date as timestamp) END as device_exposure_start_datetime,
+          CASE WHEN detail.service_line_to_date = 'N' THEN NULL 
+              ELSE cast(detail.service_line_to_date as date) END as device_exposure_end_date,
+          CASE WHEN detail.service_line_to_date = 'N' THEN NULL 
+              ELSE cast(detail.service_line_to_date as timestamp) END as device_exposure_end_datetime,
           {{ device_type_concept_id }} as device_type_concept_id,
           cast(null as varchar) as unique_device_id,
           cast(null as varchar) as production_id,

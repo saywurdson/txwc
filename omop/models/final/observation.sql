@@ -1,3 +1,8 @@
+WITH filtered_observations AS (
+    SELECT *
+    FROM {{ ref('int_observation') }}
+    WHERE observation_date IS NOT NULL
+)
 select 
     row_number() over (order by observation_id) as observation_id,
     person_id,
@@ -33,5 +38,4 @@ select
     value_source_value,
     observation_event_id,
     obs_event_field_concept_id
-from {{ ref('int_observation') }}
-where observation_date is not null
+from filtered_observations

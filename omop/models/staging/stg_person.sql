@@ -39,10 +39,10 @@
       else patient_account_number
     end as person_id,
     cast(null as integer) as gender_concept_id,
-    extract(year from cast(employee_date_of_birth as date)) as year_of_birth,
-    extract(month from cast(employee_date_of_birth as date)) as month_of_birth,
-    extract(day from cast(employee_date_of_birth as date)) as day_of_birth,
-    cast(employee_date_of_birth as timestamp) as birth_datetime,
+    extract(year from TRY_CAST(employee_date_of_birth as date)) as year_of_birth,
+    extract(month from TRY_CAST(employee_date_of_birth as date)) as month_of_birth,
+    extract(day from TRY_CAST(employee_date_of_birth as date)) as day_of_birth,
+    TRY_CAST(employee_date_of_birth as timestamp) as birth_datetime,
     cast(null as integer) as race_concept_id,
     cast(null as integer) as ethnicity_concept_id,
     cast(

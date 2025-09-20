@@ -27,3 +27,4 @@ select
     cast(measurement_event_id as integer) as measurement_event_id,
     cast(meas_event_field_concept_id as varchar) as meas_event_field_concept_id
 from {{ ref('stg_measurement') }}
+where measurement_id is not null

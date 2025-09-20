@@ -25,3 +25,4 @@ select
     cast(observation_event_id as integer) as observation_event_id,
     cast(obs_event_field_concept_id as varchar) as obs_event_field_concept_id
 from {{ ref('stg_observation') }}
+where observation_date is not null

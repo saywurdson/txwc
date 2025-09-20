@@ -27,3 +27,4 @@ select
     ) }} as varchar) as procedure_source_concept_id,
     cast(modifier_source_value as varchar) as modifier_source_value
 from {{ ref('stg_procedure_occurrence') }}
+where procedure_occurrence_id is not null

@@ -96,11 +96,16 @@
             else ihc.patient_account_number
           end as person_id,
           cast(null as integer) as drug_concept_id,
-          cast(idc.service_line_from_date as date) as drug_exposure_start_date,
-          cast(idc.service_line_from_date as timestamp) as drug_exposure_start_datetime,
-          cast(idc.service_line_to_date as date) as drug_exposure_end_date,
-          cast(idc.service_line_to_date as timestamp) as drug_exposure_end_datetime,
-          cast(idc.service_line_to_date as date) as verbatim_end_date,
+          CASE WHEN idc.service_line_from_date = 'N' THEN NULL 
+              ELSE cast(idc.service_line_from_date as date) END as drug_exposure_start_date,
+          CASE WHEN idc.service_line_from_date = 'N' THEN NULL 
+              ELSE cast(idc.service_line_from_date as timestamp) END as drug_exposure_start_datetime,
+          CASE WHEN idc.service_line_to_date = 'N' THEN NULL 
+              ELSE cast(idc.service_line_to_date as date) END as drug_exposure_end_date,
+          CASE WHEN idc.service_line_to_date = 'N' THEN NULL 
+              ELSE cast(idc.service_line_to_date as timestamp) END as drug_exposure_end_datetime,
+          CASE WHEN idc.service_line_to_date = 'N' THEN NULL 
+              ELSE cast(idc.service_line_to_date as date) END as verbatim_end_date,
           {{ drug_type_concept_id }} as drug_type_concept_id,
           cast(null as varchar) as stop_reason,
           0 as refills,
