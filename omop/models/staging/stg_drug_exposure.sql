@@ -42,15 +42,15 @@
             else phc.patient_account_number
           end as person_id,
           cast(null as integer) as drug_concept_id,
-          coalesce(cast(pdc.service_line_from_date as date), cast(pdc.prescription_line_date as date)) as drug_exposure_start_date,
-          coalesce(cast(pdc.service_line_from_date as timestamp), cast(pdc.prescription_line_date as timestamp)) as drug_exposure_start_datetime,
-          cast(pdc.service_line_from_date as date) + try_cast(pdc.drugs_supplies_number_of as integer) as drug_exposure_end_date,
-          cast(pdc.service_line_from_date as timestamp) + (try_cast(pdc.drugs_supplies_number_of as integer) * INTERVAL '1' DAY) as drug_exposure_end_datetime,
+          coalesce(try_cast(pdc.service_line_from_date as date), try_cast(pdc.prescription_line_date as date)) as drug_exposure_start_date,
+          coalesce(try_cast(pdc.service_line_from_date as timestamp), try_cast(pdc.prescription_line_date as timestamp)) as drug_exposure_start_datetime,
+          try_cast(pdc.service_line_from_date as date) + try_cast(pdc.drugs_supplies_number_of as integer) as drug_exposure_end_date,
+          try_cast(pdc.service_line_from_date as timestamp) + (try_cast(pdc.drugs_supplies_number_of as integer) * INTERVAL '1' DAY) as drug_exposure_end_datetime,
           cast(null as date) as verbatim_end_date,
           {{ drug_type_concept_id }} as drug_type_concept_id,
           cast(null as varchar) as stop_reason,
           0 as refills,
-          cast(pdc.drugs_supplies_quantity as float) as quantity,
+          try_cast(pdc.drugs_supplies_quantity as float) as quantity,
           try_cast(pdc.drugs_supplies_number_of as integer) as days_supply,
           cast(null as varchar) as sig,
           cast(null as integer) as route_concept_id,
@@ -96,21 +96,21 @@
             else ihc.patient_account_number
           end as person_id,
           cast(null as integer) as drug_concept_id,
-          CASE WHEN idc.service_line_from_date = 'N' THEN NULL 
-              ELSE cast(idc.service_line_from_date as date) END as drug_exposure_start_date,
-          CASE WHEN idc.service_line_from_date = 'N' THEN NULL 
-              ELSE cast(idc.service_line_from_date as timestamp) END as drug_exposure_start_datetime,
-          CASE WHEN idc.service_line_to_date = 'N' THEN NULL 
-              ELSE cast(idc.service_line_to_date as date) END as drug_exposure_end_date,
-          CASE WHEN idc.service_line_to_date = 'N' THEN NULL 
-              ELSE cast(idc.service_line_to_date as timestamp) END as drug_exposure_end_datetime,
-          CASE WHEN idc.service_line_to_date = 'N' THEN NULL 
-              ELSE cast(idc.service_line_to_date as date) END as verbatim_end_date,
+          CASE WHEN idc.service_line_from_date = 'N' THEN NULL
+              ELSE try_cast(idc.service_line_from_date as date) END as drug_exposure_start_date,
+          CASE WHEN idc.service_line_from_date = 'N' THEN NULL
+              ELSE try_cast(idc.service_line_from_date as timestamp) END as drug_exposure_start_datetime,
+          CASE WHEN idc.service_line_to_date = 'N' THEN NULL
+              ELSE try_cast(idc.service_line_to_date as date) END as drug_exposure_end_date,
+          CASE WHEN idc.service_line_to_date = 'N' THEN NULL
+              ELSE try_cast(idc.service_line_to_date as timestamp) END as drug_exposure_end_datetime,
+          CASE WHEN idc.service_line_to_date = 'N' THEN NULL
+              ELSE try_cast(idc.service_line_to_date as date) END as verbatim_end_date,
           {{ drug_type_concept_id }} as drug_type_concept_id,
           cast(null as varchar) as stop_reason,
           0 as refills,
           cast(null as integer) as quantity,
-          cast(idc.days_units_billed as integer) as days_supply,
+          try_cast(idc.days_units_billed as integer) as days_supply,
           cast(null as varchar) as sig,
           cast(null as integer) as route_concept_id,
           cast(null as integer) as lot_number,
@@ -159,16 +159,16 @@
             else prhc.patient_account_number
           end as person_id,
           cast(null as integer) as drug_concept_id,
-          cast(prdc.service_line_from_date as date) as drug_exposure_start_date,
-          cast(prdc.service_line_from_date as timestamp) as drug_exposure_start_datetime,
-          cast(prdc.service_line_to_date as date) as drug_exposure_end_date,
-          cast(prdc.service_line_to_date as timestamp) as drug_exposure_end_datetime,
-          cast(prdc.service_line_to_date as date) as verbatim_end_date,
+          try_cast(prdc.service_line_from_date as date) as drug_exposure_start_date,
+          try_cast(prdc.service_line_from_date as timestamp) as drug_exposure_start_datetime,
+          try_cast(prdc.service_line_to_date as date) as drug_exposure_end_date,
+          try_cast(prdc.service_line_to_date as timestamp) as drug_exposure_end_datetime,
+          try_cast(prdc.service_line_to_date as date) as verbatim_end_date,
           {{ drug_type_concept_id }} as drug_type_concept_id,
           cast(null as varchar) as stop_reason,
           0 as refills,
           cast(null as integer) as quantity,
-          cast(prdc.days_units_billed as integer) as days_supply,
+          try_cast(prdc.days_units_billed as integer) as days_supply,
           cast(null as varchar) as sig,
           cast(null as integer) as route_concept_id,
           cast(null as integer) as lot_number,
