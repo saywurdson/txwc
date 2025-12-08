@@ -65,7 +65,11 @@
                     ) % 1000000000
                 as varchar) as location_id,
                 cast(null as varchar) as care_site_source_value,
+                {% if 'institutional' in table %}
                 cast(null as varchar) as place_of_service_source_value
+                {% else %}
+                cast(place_of_service_bill_code as varchar) as place_of_service_source_value
+                {% endif %}
             from {{ source(schema, table) }}
         )
         {% endset %}

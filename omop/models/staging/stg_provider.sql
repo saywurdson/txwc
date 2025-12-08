@@ -73,16 +73,22 @@
       ) % 1000000000
     as varchar) as provider_id,
     concat(
-      rendering_bill_provider_last, 
-      case 
-        when rendering_bill_provider_first is not null 
+      rendering_bill_provider_last,
+      case
+        when rendering_bill_provider_first is not null
           then concat(', ', rendering_bill_provider_first)
         else ''
       end
     ) as provider_name,
     rendering_bill_provider_4 as npi,
     cast(null as varchar) as dea,
-    cast(null as integer) as specialty_concept_id,
+    -- Map NUCC specialty codes to OMOP concepts
+    {{ get_source_concept_ids(
+        "referring_provider_specialty",
+        domain_id='Provider',
+        vocabulary_id='NUCC',
+        required_value=0
+    ) }} as specialty_concept_id,
     cast(
       hash(
         concat_ws(
@@ -96,7 +102,7 @@
     cast(null as integer) as year_of_birth,
     cast(null as integer) as gender_concept_id,
     rendering_bill_provider_state_1 as provider_source_value,
-    cast(null as varchar) as specialty_source_value,
+    referring_provider_specialty as specialty_source_value,
     cast(null as integer) as specialty_source_concept_id,
     cast(null as varchar) as gender_source_value,
     cast(null as integer) as gender_source_concept_id

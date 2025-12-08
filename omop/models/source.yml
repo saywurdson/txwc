@@ -24,3 +24,4 @@ sources:
       - name: concept
       - name: concept_relationship
       - name: concept_ancestor
+      - name: drug_strength

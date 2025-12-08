@@ -47,11 +47,14 @@ institutional_header_current as (
       ) as care_site_id,
       cast(facility_code as varchar) as visit_source_value,
       cast(null as integer) as visit_source_concept_id,
+      -- UB04 Pri Typ of Adm concepts (per ResDAC admission type codes)
       case
-        when admission_type_code = '1' then 8870
-        when admission_type_code = '2' then 8782
-        when admission_type_code = '3' then 0
-        when admission_type_code = '9' then 0
+        when admission_type_code = '1' then 32203  -- Emergency
+        when admission_type_code = '2' then 32204  -- Urgent
+        when admission_type_code = '3' then 32205  -- Elective
+        when admission_type_code = '4' then 32206  -- Newborn
+        when admission_type_code = '5' then 32207  -- Trauma
+        when admission_type_code = '9' then 32208  -- Information not available
         else null
       end as admitted_from_concept_id,
       admission_type_code as admitted_from_source_value,
@@ -104,11 +107,14 @@ institutional_header_historical as (
       ) as care_site_id,
       cast(facility_code as varchar) as visit_source_value,
       cast(null as integer) as visit_source_concept_id,
+      -- UB04 Pri Typ of Adm concepts (per ResDAC admission type codes)
       case
-        when admission_type_code = '1' then 8870
-        when admission_type_code = '2' then 8782
-        when admission_type_code = '3' then 0
-        when admission_type_code = '9' then 0
+        when admission_type_code = '1' then 32203  -- Emergency
+        when admission_type_code = '2' then 32204  -- Urgent
+        when admission_type_code = '3' then 32205  -- Elective
+        when admission_type_code = '4' then 32206  -- Newborn
+        when admission_type_code = '5' then 32207  -- Trauma
+        when admission_type_code = '9' then 32208  -- Information not available
         else null
       end as admitted_from_concept_id,
       admission_type_code as admitted_from_source_value,

@@ -40,7 +40,11 @@
           ) % 1000000000
         as varchar) as location_id,
         facility_primary_address as address_1,
+        {% if header_type == 'professional' %}
+        facility_secondary_address as address_2,
+        {% else %}
         cast(null as varchar) as address_2,
+        {% endif %}
         facility_city as city,
         facility_state_code as state,
         facility_postal_code as zip,

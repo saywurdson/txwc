@@ -38,7 +38,11 @@
       )
       else patient_account_number
     end as person_id,
-    cast(null as integer) as gender_concept_id,
+    case
+      when employee_gender_code = 'M' then 8507  -- Male
+      when employee_gender_code = 'F' then 8532  -- Female
+      else 0  -- Unknown
+    end as gender_concept_id,
     extract(year from TRY_CAST(employee_date_of_birth as date)) as year_of_birth,
     extract(month from TRY_CAST(employee_date_of_birth as date)) as month_of_birth,
     extract(day from TRY_CAST(employee_date_of_birth as date)) as day_of_birth,
@@ -101,7 +105,11 @@
       )
       else patient_account_number
     end as person_id,
-    cast(null as integer) as gender_concept_id,
+    case
+      when employee_gender_code = 'M' then 8507  -- Male
+      when employee_gender_code = 'F' then 8532  -- Female
+      else 0  -- Unknown
+    end as gender_concept_id,
     extract(year from cast(employee_date_of_birth as date)) as year_of_birth,
     extract(month from cast(employee_date_of_birth as date)) as month_of_birth,
     extract(day from cast(employee_date_of_birth as date)) as day_of_birth,
@@ -164,7 +172,11 @@
       )
       else patient_account_number
     end as person_id,
-    cast(null as integer) as gender_concept_id,
+    case
+      when employee_gender_code = 'M' then 8507  -- Male
+      when employee_gender_code = 'F' then 8532  -- Female
+      else 0  -- Unknown
+    end as gender_concept_id,
     extract(year from cast(employee_date_of_birth as date)) as year_of_birth,
     extract(month from cast(employee_date_of_birth as date)) as month_of_birth,
     extract(day from cast(employee_date_of_birth as date)) as day_of_birth,

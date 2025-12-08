@@ -24,7 +24,7 @@ institutional_header_current as (
           h.total_charge_per_bill), 'xxhash64') % 1000000000 as varchar
       ) as cost_id,
       cast(h.bill_id as integer) as cost_event_id,
-      cast(null as integer) as cost_domain_id,
+      'Visit' as cost_domain_id,
       32855 as cost_type_concept_id,
       44818668 as currency_concept_id,
       TRY_CAST(h.total_charge_per_bill as float) as total_charge,
@@ -62,7 +62,7 @@ institutional_header_historical as (
           h.total_charge_per_bill), 'xxhash64') % 1000000000 as varchar
       ) as cost_id,
       cast(h.bill_id as integer) as cost_event_id,
-      cast(null as integer) as cost_domain_id,
+      'Visit' as cost_domain_id,
       32855 as cost_type_concept_id,
       44818668 as currency_concept_id,
       TRY_CAST(h.total_charge_per_bill as float) as total_charge,
@@ -100,7 +100,7 @@ professional_header_current as (
           total_charge_per_bill), 'xxhash64') % 1000000000 as varchar
       ) as cost_id,
       cast(bill_id as integer) as cost_event_id,
-      cast(null as integer) as cost_domain_id,
+      'Procedure' as cost_domain_id,
       32873 as cost_type_concept_id,
       44818668 as currency_concept_id,
       cast(total_charge_per_bill as float) as total_charge,
@@ -137,7 +137,7 @@ professional_header_historical as (
           total_charge_per_bill), 'xxhash64') % 1000000000 as varchar
       ) as cost_id,
       cast(bill_id as integer) as cost_event_id,
-      cast(null as integer) as cost_domain_id,
+      'Procedure' as cost_domain_id,
       32873 as cost_type_concept_id,
       44818668 as currency_concept_id,
       cast(total_charge_per_bill as float) as total_charge,
@@ -174,7 +174,7 @@ pharmacy_header_current as (
           total_charge_per_bill), 'xxhash64') % 1000000000 as varchar
       ) as cost_id,
       cast(bill_id as integer) as cost_event_id,
-      cast(null as integer) as cost_domain_id,
+      'Drug' as cost_domain_id,
       32869 as cost_type_concept_id,
       44818668 as currency_concept_id,
       cast(total_charge_per_bill as float) as total_charge,
@@ -211,7 +211,7 @@ pharmacy_header_historical as (
           total_charge_per_bill), 'xxhash64') % 1000000000 as varchar
       ) as cost_id,
       cast(bill_id as integer) as cost_event_id,
-      cast(null as integer) as cost_domain_id,
+      'Drug' as cost_domain_id,
       32869 as cost_type_concept_id,
       44818668 as currency_concept_id,
       cast(total_charge_per_bill as float) as total_charge,

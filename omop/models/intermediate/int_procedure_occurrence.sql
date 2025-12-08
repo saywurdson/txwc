@@ -9,9 +9,9 @@ select
     cast(procedure_type_concept_id as varchar) as procedure_type_concept_id,
     cast({{ get_source_concept_ids(
         "modifier_source_value",
-        domain_id='Observation',
+        domain_id=['Observation', 'Device', 'Procedure', 'Condition', 'Measurement'],
         vocabulary_id=['HCPCS', 'CPT4'],
-        standard_concept='S',
+        standard_concept=None,
         invalid_reason='is null',
         required_value=0
     ) }} as varchar) as modifier_concept_id,
