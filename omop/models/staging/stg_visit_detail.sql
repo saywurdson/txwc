@@ -53,20 +53,39 @@
             ELSE try_cast(d.service_line_from_date as date) END as visit_detail_start_date,
         CASE WHEN d.service_line_from_date = 'N' THEN NULL
             ELSE try_cast(d.service_line_from_date as timestamp) END as visit_detail_start_datetime,
-        CASE WHEN d.service_line_to_date = 'N' THEN NULL
-            ELSE try_cast(d.service_line_to_date as date) END as visit_detail_end_date,
-        CASE WHEN d.service_line_to_date = 'N' THEN NULL
-            ELSE try_cast(d.service_line_to_date as timestamp) END as visit_detail_end_datetime,
+        -- Fallback to visit end date (reporting_period_end_date) when service_line_to_date is null
+        COALESCE(
+            CASE WHEN d.service_line_to_date = 'N' THEN NULL ELSE try_cast(d.service_line_to_date as date) END,
+            try_cast(h.reporting_period_end_date as date)
+        ) as visit_detail_end_date,
+        COALESCE(
+            CASE WHEN d.service_line_to_date = 'N' THEN NULL ELSE try_cast(d.service_line_to_date as timestamp) END,
+            try_cast(h.reporting_period_end_date as timestamp)
+        ) as visit_detail_end_datetime,
         {% elif detail_type == 'pharmacy' %}
         coalesce(try_cast(d.service_line_from_date as date), try_cast(d.prescription_line_date as date)) as visit_detail_start_date,
         coalesce(try_cast(d.service_line_from_date as timestamp), try_cast(d.prescription_line_date as timestamp)) as visit_detail_start_datetime,
-        try_cast(d.service_line_to_date as date) as visit_detail_end_date,
-        try_cast(d.service_line_to_date as timestamp) as visit_detail_end_datetime,
+        -- Fallback to visit end date (reporting_period_end_date) when service_line_to_date is null
+        COALESCE(
+            try_cast(d.service_line_to_date as date),
+            try_cast(h.reporting_period_end_date as date)
+        ) as visit_detail_end_date,
+        COALESCE(
+            try_cast(d.service_line_to_date as timestamp),
+            try_cast(h.reporting_period_end_date as timestamp)
+        ) as visit_detail_end_datetime,
         {% else %}
         try_cast(d.service_line_from_date as date) as visit_detail_start_date,
         try_cast(d.service_line_from_date as timestamp) as visit_detail_start_datetime,
-        try_cast(d.service_line_to_date as date) as visit_detail_end_date,
-        try_cast(d.service_line_to_date as timestamp) as visit_detail_end_datetime,
+        -- Fallback to visit end date (reporting_period_end_date) when service_line_to_date is null
+        COALESCE(
+            try_cast(d.service_line_to_date as date),
+            try_cast(h.reporting_period_end_date as date)
+        ) as visit_detail_end_date,
+        COALESCE(
+            try_cast(d.service_line_to_date as timestamp),
+            try_cast(h.reporting_period_end_date as timestamp)
+        ) as visit_detail_end_datetime,
         {% endif %}
         {{ visit_detail_type_concept_id }} as visit_detail_type_concept_id,
         cast(hash(concat_ws('||',

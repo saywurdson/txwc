@@ -44,8 +44,15 @@
           cast(null as integer) as drug_concept_id,
           coalesce(try_cast(pdc.service_line_from_date as date), try_cast(pdc.prescription_line_date as date)) as drug_exposure_start_date,
           coalesce(try_cast(pdc.service_line_from_date as timestamp), try_cast(pdc.prescription_line_date as timestamp)) as drug_exposure_start_datetime,
-          try_cast(pdc.service_line_from_date as date) + try_cast(pdc.drugs_supplies_number_of as integer) as drug_exposure_end_date,
-          try_cast(pdc.service_line_from_date as timestamp) + (try_cast(pdc.drugs_supplies_number_of as integer) * INTERVAL '1' DAY) as drug_exposure_end_datetime,
+          -- Calculate end date: start_date + days_supply, fallback to visit_end_date
+          COALESCE(
+              coalesce(try_cast(pdc.service_line_from_date as date), try_cast(pdc.prescription_line_date as date)) + try_cast(pdc.drugs_supplies_number_of as integer),
+              try_cast(phc.reporting_period_end_date as date)
+          ) as drug_exposure_end_date,
+          COALESCE(
+              coalesce(try_cast(pdc.service_line_from_date as timestamp), try_cast(pdc.prescription_line_date as timestamp)) + (try_cast(pdc.drugs_supplies_number_of as integer) * INTERVAL '1' DAY),
+              try_cast(phc.reporting_period_end_date as timestamp)
+          ) as drug_exposure_end_datetime,
           cast(null as date) as verbatim_end_date,
           {{ drug_type_concept_id }} as drug_type_concept_id,
           cast(null as varchar) as stop_reason,
@@ -101,10 +108,27 @@
               ELSE try_cast(idc.service_line_from_date as date) END as drug_exposure_start_date,
           CASE WHEN idc.service_line_from_date = 'N' THEN NULL
               ELSE try_cast(idc.service_line_from_date as timestamp) END as drug_exposure_start_datetime,
-          CASE WHEN idc.service_line_to_date = 'N' THEN NULL
-              ELSE try_cast(idc.service_line_to_date as date) END as drug_exposure_end_date,
-          CASE WHEN idc.service_line_to_date = 'N' THEN NULL
-              ELSE try_cast(idc.service_line_to_date as timestamp) END as drug_exposure_end_datetime,
+          -- Use GREATEST of: service_line_to_date vs (start_date + days_supply), then fallback to visit_end_date
+          COALESCE(
+              GREATEST(
+                  CASE WHEN idc.service_line_to_date = 'N' THEN NULL ELSE try_cast(idc.service_line_to_date as date) END,
+                  CASE WHEN idc.service_line_from_date != 'N' AND idc.service_line_from_date IS NOT NULL
+                       AND try_cast(idc.days_units_billed as integer) IS NOT NULL
+                       THEN try_cast(idc.service_line_from_date as date) + try_cast(idc.days_units_billed as integer)
+                       ELSE NULL END
+              ),
+              try_cast(ihc.reporting_period_end_date as date)
+          ) as drug_exposure_end_date,
+          COALESCE(
+              GREATEST(
+                  CASE WHEN idc.service_line_to_date = 'N' THEN NULL ELSE try_cast(idc.service_line_to_date as timestamp) END,
+                  CASE WHEN idc.service_line_from_date != 'N' AND idc.service_line_from_date IS NOT NULL
+                       AND try_cast(idc.days_units_billed as integer) IS NOT NULL
+                       THEN try_cast(idc.service_line_from_date as timestamp) + (try_cast(idc.days_units_billed as integer) * INTERVAL '1' DAY)
+                       ELSE NULL END
+              ),
+              try_cast(ihc.reporting_period_end_date as timestamp)
+          ) as drug_exposure_end_datetime,
           CASE WHEN idc.service_line_to_date = 'N' THEN NULL
               ELSE try_cast(idc.service_line_to_date as date) END as verbatim_end_date,
           {{ drug_type_concept_id }} as drug_type_concept_id,
@@ -163,8 +187,27 @@
           cast(null as integer) as drug_concept_id,
           try_cast(prdc.service_line_from_date as date) as drug_exposure_start_date,
           try_cast(prdc.service_line_from_date as timestamp) as drug_exposure_start_datetime,
-          try_cast(prdc.service_line_to_date as date) as drug_exposure_end_date,
-          try_cast(prdc.service_line_to_date as timestamp) as drug_exposure_end_datetime,
+          -- Use GREATEST of: service_line_to_date vs (start_date + days_supply), then fallback to visit_end_date
+          COALESCE(
+              GREATEST(
+                  try_cast(prdc.service_line_to_date as date),
+                  CASE WHEN try_cast(prdc.service_line_from_date as date) IS NOT NULL
+                       AND try_cast(prdc.days_units_billed as integer) IS NOT NULL
+                       THEN try_cast(prdc.service_line_from_date as date) + try_cast(prdc.days_units_billed as integer)
+                       ELSE NULL END
+              ),
+              try_cast(prhc.reporting_period_end_date as date)
+          ) as drug_exposure_end_date,
+          COALESCE(
+              GREATEST(
+                  try_cast(prdc.service_line_to_date as timestamp),
+                  CASE WHEN try_cast(prdc.service_line_from_date as timestamp) IS NOT NULL
+                       AND try_cast(prdc.days_units_billed as integer) IS NOT NULL
+                       THEN try_cast(prdc.service_line_from_date as timestamp) + (try_cast(prdc.days_units_billed as integer) * INTERVAL '1' DAY)
+                       ELSE NULL END
+              ),
+              try_cast(prhc.reporting_period_end_date as timestamp)
+          ) as drug_exposure_end_datetime,
           try_cast(prdc.service_line_to_date as date) as verbatim_end_date,
           {{ drug_type_concept_id }} as drug_type_concept_id,
           cast(null as varchar) as stop_reason,

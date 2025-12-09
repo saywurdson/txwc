@@ -110,8 +110,9 @@
       when all_procedures.source_column = 'billing_provider_last_name_recovered' then cast(ihc.reporting_period_start_date as timestamp)
       else cast(ihc.principal_procedure_date as timestamp)
     end as procedure_datetime,
-    cast(null as date) as procedure_end_date,
-    cast(null as timestamp) as procedure_end_datetime,
+    -- Fallback to visit end date (reporting_period_end_date) when procedure_end_date is null
+    cast(ihc.reporting_period_end_date as date) as procedure_end_date,
+    cast(ihc.reporting_period_end_date as timestamp) as procedure_end_datetime,
     32855 as procedure_type_concept_id,
     cast(null as integer) as modifier_concept_id,
     1 as quantity,
@@ -195,8 +196,9 @@
       when unpivot_phc_diagnoses.source_column = 'fifth_icd_9cm_or_icd_10cm' then cast(phc.fourth_procedure_date as timestamp)
       else cast(phc.first_procedure_date as timestamp)
     end as procedure_datetime,
-    cast(null as date) as procedure_end_date,
-    cast(null as timestamp) as procedure_end_datetime,
+    -- Fallback to visit end date (reporting_period_end_date) when procedure_end_date is null
+    cast(phc.reporting_period_end_date as date) as procedure_end_date,
+    cast(phc.reporting_period_end_date as timestamp) as procedure_end_datetime,
     32855 as procedure_type_concept_id,
     cast(null as integer) as modifier_concept_id,
     1 as quantity,
@@ -250,10 +252,15 @@
         ELSE cast(id.service_line_from_date as date) END as procedure_date,
     CASE WHEN id.service_line_from_date = 'N' THEN NULL 
         ELSE cast(id.service_line_from_date as timestamp) END as procedure_datetime,
-    CASE WHEN id.service_line_to_date = 'N' THEN NULL 
-        ELSE cast(id.service_line_to_date as date) END as procedure_end_date,
-    CASE WHEN id.service_line_to_date = 'N' THEN NULL 
-        ELSE cast(id.service_line_to_date as timestamp) END as procedure_end_datetime,
+    -- Fallback to visit end date (reporting_period_end_date) when service_line_to_date is null
+    COALESCE(
+        CASE WHEN id.service_line_to_date = 'N' THEN NULL ELSE cast(id.service_line_to_date as date) END,
+        cast(ihc.reporting_period_end_date as date)
+    ) as procedure_end_date,
+    COALESCE(
+        CASE WHEN id.service_line_to_date = 'N' THEN NULL ELSE cast(id.service_line_to_date as timestamp) END,
+        cast(ihc.reporting_period_end_date as timestamp)
+    ) as procedure_end_datetime,
     32854 as procedure_type_concept_id,
     cast(null as integer) as modifier_concept_id,
     cast(id.days_units_billed as integer) as quantity,
@@ -302,8 +309,15 @@
     cast(null as integer) as procedure_concept_id,
     cast(prd.service_line_from_date as date) as procedure_date,
     cast(prd.service_line_from_date as timestamp) as procedure_datetime,
-    cast(prd.service_line_to_date as date) as procedure_end_date,
-    cast(prd.service_line_to_date as timestamp) as procedure_end_datetime,
+    -- Fallback to visit end date (reporting_period_end_date) when service_line_to_date is null
+    COALESCE(
+        cast(prd.service_line_to_date as date),
+        cast(prhc.reporting_period_end_date as date)
+    ) as procedure_end_date,
+    COALESCE(
+        cast(prd.service_line_to_date as timestamp),
+        cast(prhc.reporting_period_end_date as timestamp)
+    ) as procedure_end_datetime,
     32854 as procedure_type_concept_id,
     cast(null as integer) as modifier_concept_id,
     cast(prd.days_units_billed as integer) as quantity,
