@@ -36,7 +36,7 @@
       {% set query %}
 {{ alias }} as (
   with unpivot_ihc_diagnoses as (
-    select 
+    select
       ihc.bill_id,
       t.icd as procedure_source_value,
       t.source_column
@@ -49,6 +49,29 @@
       on c.concept_code = t.icd
     where c.domain_id = 'Procedure'
       and c.vocabulary_id in ('ICD10PCS','ICD9Proc')
+  ),
+  -- RECOVERY: Extract ICD procedure codes from billing_provider_last_name when columns are shifted
+  recovered_procedures as (
+    select
+      ihc.bill_id,
+      ihc.billing_provider_last_name as procedure_source_value,
+      'billing_provider_last_name_recovered' as source_column
+    from {{ source('raw', table) }} as ihc
+    join {{ source('omop','concept') }} as c
+      on c.concept_code = ihc.billing_provider_last_name
+    where c.domain_id = 'Procedure'
+      and c.vocabulary_id in ('ICD10PCS','ICD9Proc')
+      and LENGTH(ihc.billing_provider_state_code) > 2  -- Indicates column shift
+      -- Only recover if not already in unpivot_ihc_diagnoses
+      and ihc.bill_id not in (select bill_id from unpivot_ihc_diagnoses where procedure_source_value = ihc.billing_provider_last_name)
+  ),
+  -- Combine normal procedures with recovered ones
+  all_procedures as (
+    select bill_id, procedure_source_value, source_column
+    from unpivot_ihc_diagnoses
+    union all
+    select bill_id, procedure_source_value, source_column
+    from recovered_procedures
   )
   select 
     cast(hash(concat_ws('||', ihc.bill_id, ihc.row_id), 'xxhash64') % 1000000000 as varchar) as procedure_occurrence_id,
@@ -69,20 +92,22 @@
       else ihc.patient_account_number
     end as person_id,
     cast(null as integer) as procedure_concept_id,
-    case 
-      when unpivot_ihc_diagnoses.source_column = 'icd_9cm_or_icd_10cm_principal' then cast(ihc.principal_procedure_date as date)
-      when unpivot_ihc_diagnoses.source_column = 'first_icd_9cm_or_icd_10cm' then cast(ihc.first_procedure_date as date)
-      when unpivot_ihc_diagnoses.source_column = 'second_icd_9cm_or_icd_10cm' then cast(ihc.second_procedure_date as date)
-      when unpivot_ihc_diagnoses.source_column = 'third_icd_9cm_or_icd_10cm' then cast(ihc.third_procedure_date as date)
-      when unpivot_ihc_diagnoses.source_column = 'fourth_icd_9cm_or_icd_10cm' then cast(ihc.fourth_procedure_date as date)
+    case
+      when all_procedures.source_column = 'icd_9cm_or_icd_10cm_principal' then cast(ihc.principal_procedure_date as date)
+      when all_procedures.source_column = 'first_icd_9cm_or_icd_10cm' then cast(ihc.first_procedure_date as date)
+      when all_procedures.source_column = 'second_icd_9cm_or_icd_10cm' then cast(ihc.second_procedure_date as date)
+      when all_procedures.source_column = 'third_icd_9cm_or_icd_10cm' then cast(ihc.third_procedure_date as date)
+      when all_procedures.source_column = 'fourth_icd_9cm_or_icd_10cm' then cast(ihc.fourth_procedure_date as date)
+      when all_procedures.source_column = 'billing_provider_last_name_recovered' then cast(ihc.reporting_period_start_date as date)
       else cast(ihc.principal_procedure_date as date)
     end as procedure_date,
-    case 
-      when unpivot_ihc_diagnoses.source_column = 'icd_9cm_or_icd_10cm_principal' then cast(ihc.principal_procedure_date as timestamp)
-      when unpivot_ihc_diagnoses.source_column = 'first_icd_9cm_or_icd_10cm' then cast(ihc.first_procedure_date as timestamp)
-      when unpivot_ihc_diagnoses.source_column = 'second_icd_9cm_or_icd_10cm' then cast(ihc.second_procedure_date as timestamp)
-      when unpivot_ihc_diagnoses.source_column = 'third_icd_9cm_or_icd_10cm' then cast(ihc.third_procedure_date as timestamp)
-      when unpivot_ihc_diagnoses.source_column = 'fourth_icd_9cm_or_icd_10cm' then cast(ihc.fourth_procedure_date as timestamp)
+    case
+      when all_procedures.source_column = 'icd_9cm_or_icd_10cm_principal' then cast(ihc.principal_procedure_date as timestamp)
+      when all_procedures.source_column = 'first_icd_9cm_or_icd_10cm' then cast(ihc.first_procedure_date as timestamp)
+      when all_procedures.source_column = 'second_icd_9cm_or_icd_10cm' then cast(ihc.second_procedure_date as timestamp)
+      when all_procedures.source_column = 'third_icd_9cm_or_icd_10cm' then cast(ihc.third_procedure_date as timestamp)
+      when all_procedures.source_column = 'fourth_icd_9cm_or_icd_10cm' then cast(ihc.fourth_procedure_date as timestamp)
+      when all_procedures.source_column = 'billing_provider_last_name_recovered' then cast(ihc.reporting_period_start_date as timestamp)
       else cast(ihc.principal_procedure_date as timestamp)
     end as procedure_datetime,
     cast(null as date) as procedure_end_date,
@@ -97,12 +122,13 @@
       ihc.rendering_bill_provider_4
     ), 'xxhash64') % 1000000000 as varchar) as provider_id,
     cast(ihc.bill_id as varchar) as visit_occurrence_id,
-    cast(null as integer) as visit_detail_id,
-    unpivot_ihc_diagnoses.procedure_source_value,
+    -- Header-based ICD procedures don't have a corresponding detail line, so no visit_detail_id
+    cast(null as varchar) as visit_detail_id,
+    all_procedures.procedure_source_value,
     cast(null as integer) as procedure_source_concept_id,
     cast(null as varchar) as modifier_source_value
   from {{ source('raw', table) }} as ihc
-  join unpivot_ihc_diagnoses on cast(ihc.bill_id as varchar) = cast(unpivot_ihc_diagnoses.bill_id as varchar)
+  join all_procedures on cast(ihc.bill_id as varchar) = cast(all_procedures.bill_id as varchar)
 )
       {% endset %}
     {% elif htype == 'professional' %}
@@ -181,7 +207,8 @@
       phc.rendering_bill_provider_4
     ), 'xxhash64') % 1000000000 as varchar) as provider_id,
     cast(phc.bill_id as varchar) as visit_occurrence_id,
-    cast(null as integer) as visit_detail_id,
+    -- Header-based ICD procedures don't have a corresponding detail line, so no visit_detail_id
+    cast(null as varchar) as visit_detail_id,
     unpivot_phc_diagnoses.procedure_source_value,
     cast(null as integer) as procedure_source_concept_id,
     cast(null as varchar) as modifier_source_value
@@ -237,7 +264,8 @@
       ihc.rendering_bill_provider_4
     ), 'xxhash64') % 1000000000 as varchar) as provider_id,
     cast(id.bill_id as varchar) as visit_occurrence_id,
-    cast(null as integer) as visit_detail_id,
+    -- Detail-based HCPCS procedures link to visit_detail via bill_id + row_id hash
+    cast(hash(concat_ws('||', id.bill_id, id.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
     id.hcpcs_line_procedure_billed as procedure_source_value,
     cast(null as integer) as procedure_source_concept_id,
     id.first_hcpcs_modifier_billed as modifier_source_value
@@ -286,7 +314,8 @@
       prhc.rendering_bill_provider_4
     ), 'xxhash64') % 1000000000 as varchar) as provider_id,
     cast(prd.bill_id as varchar) as visit_occurrence_id,
-    cast(null as integer) as visit_detail_id,
+    -- Detail-based HCPCS procedures link to visit_detail via bill_id + row_id hash
+    cast(hash(concat_ws('||', prd.bill_id, prd.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
     prd.hcpcs_line_procedure_billed as procedure_source_value,
     cast(null as integer) as procedure_source_concept_id,
     prd.first_hcpcs_modifier_billed as modifier_source_value

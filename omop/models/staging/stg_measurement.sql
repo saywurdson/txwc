@@ -86,7 +86,8 @@
       ihc.rendering_bill_provider_4
     ), 'xxhash64') % 1000000000 as varchar) as provider_id,
     cast(ihc.bill_id as varchar) as visit_occurrence_id,
-    cast(null as integer) as visit_detail_id,
+    -- Header-based ICD measurements don't have a corresponding detail line, so no visit_detail_id
+    cast(null as varchar) as visit_detail_id,
     unique_diag.measurement_source_value,
     cast(null as integer) as measurement_source_concept_id,
     cast(null as varchar) as unit_source_value,
@@ -156,7 +157,8 @@
       phc.rendering_bill_provider_4
     ), 'xxhash64') % 1000000000 as varchar) as provider_id,
     cast(phc.bill_id as varchar) as visit_occurrence_id,
-    cast(null as integer) as visit_detail_id,
+    -- Header-based ICD measurements don't have a corresponding detail line, so no visit_detail_id
+    cast(null as varchar) as visit_detail_id,
     unpivot_cte.measurement_source_value,
     cast(null as integer) as measurement_source_concept_id,
     cast(null as varchar) as unit_source_value,
@@ -214,7 +216,8 @@
       ihc.rendering_bill_provider_4
     ), 'xxhash64') % 1000000000 as varchar) as provider_id,
     cast(idc.bill_id as varchar) as visit_occurrence_id,
-    cast(null as integer) as visit_detail_id,
+    -- Detail-based HCPCS measurements link to visit_detail via bill_id + row_id hash
+    cast(hash(concat_ws('||', idc.bill_id, idc.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
     idc.hcpcs_line_procedure_billed as measurement_source_value,
     cast(null as integer) as measurement_source_concept_id,
     cast(null as varchar) as unit_source_value,
@@ -270,7 +273,8 @@
       prhc.rendering_bill_provider_4
     ), 'xxhash64') % 1000000000 as varchar) as provider_id,
     cast(prdc.bill_id as varchar) as visit_occurrence_id,
-    cast(null as integer) as visit_detail_id,
+    -- Detail-based HCPCS measurements link to visit_detail via bill_id + row_id hash
+    cast(hash(concat_ws('||', prdc.bill_id, prdc.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
     prdc.hcpcs_line_procedure_billed as measurement_source_value,
     cast(null as integer) as measurement_source_concept_id,
     cast(null as varchar) as unit_source_value,

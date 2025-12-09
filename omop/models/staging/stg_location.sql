@@ -14,11 +14,7 @@
     {% if header_type in ['institutional', 'professional'] %}
       {% set mailing_fields = "employee_mailing_city, employee_mailing_state_code, employee_mailing_postal_code, employee_mailing_country" %}
     {% elif header_type == 'pharmacy' %}
-      {% if "historical" in table %}
-        {% set mailing_fields = "employee_mailing_city, employee_mailing_country, employee_mailing_postal_code, employee_mailing_state_code" %}
-      {% else %}
-        {% set mailing_fields = "employee_mailing_city, employee_mailing_state_code, employee_mailing_postal_code, employee_mailing_country" %}
-      {% endif %}
+      {% set mailing_fields = "employee_mailing_city, employee_mailing_state_code, employee_mailing_postal_code, employee_mailing_country" %}
     {% endif %}
 
     {% set mailing_parts = mailing_fields.split(',') | map('trim') | list %}

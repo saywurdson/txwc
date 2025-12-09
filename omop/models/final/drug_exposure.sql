@@ -33,6 +33,8 @@ select
     visit_detail_id,
     drug_source_value,
     drug_source_concept_id,
-    route_source_value,
-    dose_unit_source_value
+    -- Derive route source value (dose form name) from drug concept
+    {{ get_route_source_value("derived_drug_concept_id") }} as route_source_value,
+    -- Derive dose unit from drug_strength table
+    {{ get_dose_unit_source_value("derived_drug_concept_id") }} as dose_unit_source_value
 from drug_with_concept

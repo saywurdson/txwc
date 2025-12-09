@@ -63,6 +63,30 @@
           select bill_id, condition_source_value, source_column, priority
           from unpivot_cte
           where rn = 1
+        ),
+        -- RECOVERY: Extract ICD codes from billing_provider_last_name when columns are shifted
+        recovered_conditions as (
+          select
+            base.bill_id,
+            base.billing_provider_last_name as condition_source_value,
+            'billing_provider_last_name_recovered' as source_column,
+            99 as priority  -- Lowest priority since recovered
+          from base
+          join {{ source('omop','concept') }} as c
+            on c.concept_code = base.billing_provider_last_name
+          where c.domain_id = 'Condition'
+            and c.vocabulary_id in ('ICD10CM','ICD9CM')
+            and LENGTH(base.billing_provider_state_code) > 2  -- Indicates column shift
+            -- Only recover if not already in unique_diag
+            and base.bill_id not in (select bill_id from unique_diag where condition_source_value = base.billing_provider_last_name)
+        ),
+        -- Combine normal diagnoses with recovered ones
+        all_diagnoses as (
+          select bill_id, condition_source_value, source_column, priority
+          from unique_diag
+          union all
+          select bill_id, condition_source_value, source_column, priority
+          from recovered_conditions
         )
         select
           cast(hash(concat_ws('||', base.row_id, base.bill_id), 'xxhash64') % 1000000000 as varchar) as condition_occurrence_id,
@@ -91,8 +115,9 @@
           cast(base.reporting_period_end_date as timestamp) as condition_end_datetime,
           32855 as condition_type_concept_id,
           case
-            when unique_diag.source_column = 'principal_diagnosis_code' then 32902
-            when unique_diag.source_column = 'admitting_diagnosis_code' then 32890
+            when all_diagnoses.source_column = 'principal_diagnosis_code' then 32902
+            when all_diagnoses.source_column = 'admitting_diagnosis_code' then 32890
+            when all_diagnoses.source_column = 'billing_provider_last_name_recovered' then 32893  -- Secondary diagnosis
             else 32893
           end as condition_status_concept_id,
           cast(null as varchar) as stop_reason,
@@ -103,12 +128,13 @@
             base.rendering_bill_provider_4
           ), 'xxhash64') % 1000000000 as varchar) as provider_id,
           cast(base.bill_id as varchar) as visit_occurrence_id,
-          cast(null as integer) as visit_detail_id,
-          unique_diag.condition_source_value,
+          -- Header-based diagnoses don't have a corresponding detail line, so no visit_detail_id
+          cast(null as varchar) as visit_detail_id,
+          all_diagnoses.condition_source_value,
           cast(null as integer) as condition_source_concept_id,
           cast(null as varchar) as condition_status_source_value
         from base
-        join unique_diag on base.bill_id = unique_diag.bill_id
+        join all_diagnoses on base.bill_id = all_diagnoses.bill_id
       )
       {% endset %}
       
@@ -185,7 +211,8 @@
             base.rendering_bill_provider_4
           ), 'xxhash64') % 1000000000 as varchar) as provider_id,
           cast(base.bill_id as varchar) as visit_occurrence_id,
-          cast(null as integer) as visit_detail_id,
+          -- Header-based diagnoses don't have a corresponding detail line, so no visit_detail_id
+          cast(null as varchar) as visit_detail_id,
           unpivot_cte.condition_source_value,
           cast(null as integer) as condition_source_concept_id,
           cast(null as varchar) as condition_status_source_value
@@ -193,7 +220,7 @@
         join unpivot_cte on base.bill_id = unpivot_cte.bill_id
       )
       {% endset %}
-      
+
     {% elif header_type == 'pharmacy' %}
       {% set icd_columns_pharm = [
           ('first_icd_9cm_or_icd_10cm', None),
@@ -267,7 +294,8 @@
             base.rendering_bill_provider_4
           ), 'xxhash64') % 1000000000 as varchar) as provider_id,
           cast(base.bill_id as varchar) as visit_occurrence_id,
-          cast(null as integer) as visit_detail_id,
+          -- Header-based diagnoses don't have a corresponding detail line, so no visit_detail_id
+          cast(null as varchar) as visit_detail_id,
           unpivot_cte.condition_source_value,
           cast(null as integer) as condition_source_concept_id,
           cast(null as varchar) as condition_status_source_value
@@ -275,7 +303,7 @@
         join unpivot_cte on base.bill_id = unpivot_cte.bill_id
       )
       {% endset %}
-      
+
     {% endif %}
     {% do cte_queries.append(cte_query) %}
   {% endif %}

@@ -14,18 +14,32 @@
         {% set cte_query %}
         {{ table }} as (
             select distinct
+                -- Include full location info in care_site_id hash to ensure uniqueness
                 cast(
                     hash(
                         concat_ws(
                             '||',
                             {% if 'pharmacy' in table %}
                                 billing_provider_last_name,
-                                billing_provider_fein
+                                billing_provider_fein,
+                                billing_provider_primary_1,
+                                billing_provider_city,
+                                billing_provider_state_code,
+                                billing_provider_postal_code
                             {% elif 'professional' in table %}
                                 billing_provider_last_name,
-                                facility_primary_address
+                                facility_primary_address,
+                                facility_city,
+                                facility_state_code,
+                                facility_postal_code,
+                                facility_country_code
                             {% else %}
-                                billing_provider_last_name
+                                billing_provider_last_name,
+                                facility_primary_address,
+                                facility_city,
+                                facility_state_code,
+                                facility_postal_code,
+                                facility_country_code
                             {% endif %}
                         )
                     , 'xxhash64'
@@ -38,7 +52,13 @@
                     billing_provider_last_name as care_site_name,
                     8716 as place_of_service_concept_id,
                 {% else %}
-                    billing_provider_last_name as care_site_name,
+                    -- Fix for shifted columns: use billing_provider_state_code when it contains facility name
+                    -- Detects shifted records where state_code has facility name instead of 2-char state code
+                    case
+                        when LENGTH(billing_provider_state_code) > 2
+                        then billing_provider_state_code  -- Use facility name from shifted column
+                        else billing_provider_last_name   -- Use normal column
+                    end as care_site_name,
                     8717 as place_of_service_concept_id,
                 {% endif %}
                 cast(

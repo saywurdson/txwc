@@ -78,7 +78,8 @@
             ) % 1000000000
           as varchar) as provider_id,
           cast(detail.bill_id as varchar) as visit_occurrence_id,
-          cast(null as integer) as visit_detail_id,
+          -- Detail-based devices link to visit_detail via bill_id + row_id hash
+          cast(hash(concat_ws('||', detail.bill_id, detail.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
           detail.hcpcs_line_procedure_billed as device_source_value,
           cast(null as integer) as device_source_concept_id,
           cast(null as integer) as unit_concept_id,

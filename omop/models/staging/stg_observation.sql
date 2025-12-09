@@ -57,6 +57,30 @@
     select bill_id, observation_source_value, source_column, priority
     from unpivot_cte
     where rn = 1
+  ),
+  -- RECOVERY: Extract ICD observation codes from billing_provider_last_name when columns are shifted
+  recovered_observations as (
+    select
+      ihc.bill_id,
+      ihc.billing_provider_last_name as observation_source_value,
+      'billing_provider_last_name_recovered' as source_column,
+      99 as priority  -- Lowest priority since recovered
+    from {{ source('raw', table) }} as ihc
+    join {{ source('omop','concept') }} as c
+      on c.concept_code = ihc.billing_provider_last_name
+    where c.domain_id = 'Observation'
+      and c.vocabulary_id in ('ICD10CM','ICD9CM')
+      and LENGTH(ihc.billing_provider_state_code) > 2  -- Indicates column shift
+      -- Only recover if not already in unique_diag
+      and ihc.bill_id not in (select bill_id from unique_diag where observation_source_value = ihc.billing_provider_last_name)
+  ),
+  -- Combine normal observations with recovered ones
+  all_observations as (
+    select bill_id, observation_source_value, source_column, priority
+    from unique_diag
+    union all
+    select bill_id, observation_source_value, source_column, priority
+    from recovered_observations
   )
   select 
     cast(hash(concat_ws('||', ihc.row_id, ihc.bill_id), 'xxhash64') % 1000000000 as varchar) as observation_id,
@@ -92,8 +116,9 @@
       ihc.rendering_bill_provider_4
     ), 'xxhash64') % 1000000000 as varchar) as provider_id,
     cast(ihc.bill_id as varchar) as visit_occurrence_id,
-    cast(null as integer) as visit_detail_id,
-    unique_diag.observation_source_value,
+    -- Header-based ICD observations don't have a corresponding detail line, so no visit_detail_id
+    cast(null as varchar) as visit_detail_id,
+    all_observations.observation_source_value,
     cast(null as integer) as observation_source_concept_id,
     cast(null as varchar) as unit_source_value,
     cast(null as varchar) as qualifier_source_value,
@@ -101,7 +126,7 @@
     cast(null as integer) as observation_event_id,
     cast(null as integer) as obs_event_field_concept_id
   from {{ source('raw', table) }} as ihc
-  join unique_diag on cast(ihc.bill_id as varchar) = cast(unique_diag.bill_id as varchar)
+  join all_observations on cast(ihc.bill_id as varchar) = cast(all_observations.bill_id as varchar)
 )
       {% endset %}
     {% elif htype == 'professional' %}
@@ -168,7 +193,8 @@
       phc.rendering_bill_provider_4
     ), 'xxhash64') % 1000000000 as varchar) as provider_id,
     cast(phc.bill_id as varchar) as visit_occurrence_id,
-    cast(null as integer) as visit_detail_id,
+    -- Header-based ICD observations don't have a corresponding detail line, so no visit_detail_id
+    cast(null as varchar) as visit_detail_id,
     unpivot_cte.observation_source_value,
     cast(null as integer) as observation_source_concept_id,
     cast(null as varchar) as unit_source_value,
@@ -228,7 +254,8 @@
       ihc.rendering_bill_provider_4
     ), 'xxhash64') % 1000000000 as varchar) as provider_id,
     cast(idc.bill_id as varchar) as visit_occurrence_id,
-    cast(null as integer) as visit_detail_id,
+    -- Detail-based HCPCS observations link to visit_detail via bill_id + row_id hash
+    cast(hash(concat_ws('||', idc.bill_id, idc.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
     idc.hcpcs_line_procedure_billed as observation_source_value,
     cast(null as integer) as observation_source_concept_id,
     cast(null as varchar) as unit_source_value,
@@ -282,7 +309,8 @@
       prhc.rendering_bill_provider_4
     ), 'xxhash64') % 1000000000 as varchar) as provider_id,
     cast(prdc.bill_id as varchar) as visit_occurrence_id,
-    cast(null as integer) as visit_detail_id,
+    -- Detail-based HCPCS observations link to visit_detail via bill_id + row_id hash
+    cast(hash(concat_ws('||', prdc.bill_id, prdc.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
     prdc.hcpcs_line_procedure_billed as observation_source_value,
     cast(null as integer) as observation_source_concept_id,
     cast(null as varchar) as unit_source_value,

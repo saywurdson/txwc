@@ -24,7 +24,7 @@ select
         domain_id='Drug',
         vocabulary_id=['NDC', 'HCPCS']
     ) }} as varchar) as drug_source_concept_id,
-    cast(route_source_value as integer) as route_source_value,
-    cast(dose_unit_source_value as integer) as dose_unit_source_value
+    cast(route_source_value as varchar) as route_source_value,
+    cast(dose_unit_source_value as varchar) as dose_unit_source_value
 from {{ ref('stg_drug_exposure') }}
 where drug_exposure_id is not null

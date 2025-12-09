@@ -62,7 +62,8 @@
             phc.rendering_bill_provider_4
           ), 'xxhash64') % 1000000000 as varchar) as provider_id,
           cast(pdc.bill_id as varchar) as visit_occurrence_id,
-          cast(null as integer) as visit_detail_id,
+          -- visit_detail_id uses same hash as visit_detail table
+          cast(hash(concat_ws('||', pdc.bill_id, pdc.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
           pdc.ndc_billed_code as drug_source_value,
           cast(null as integer) as drug_source_concept_id,
           cast(null as varchar) as route_source_value,
@@ -121,7 +122,8 @@
             ihc.rendering_bill_provider_4
           ), 'xxhash64') % 1000000000 as varchar) as provider_id,
           cast(idc.bill_id as varchar) as visit_occurrence_id,
-          cast(null as integer) as visit_detail_id,
+          -- visit_detail_id uses same hash as visit_detail table
+          cast(hash(concat_ws('||', idc.bill_id, idc.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
           idc.hcpcs_line_procedure_billed as drug_source_value,
           cast(null as integer) as drug_source_concept_id,
           cast(null as varchar) as route_source_value,
@@ -179,7 +181,8 @@
             prhc.rendering_bill_provider_4
           ), 'xxhash64') % 1000000000 as varchar) as provider_id,
           cast(prdc.bill_id as varchar) as visit_occurrence_id,
-          cast(null as integer) as visit_detail_id,
+          -- visit_detail_id uses same hash as visit_detail table
+          cast(hash(concat_ws('||', prdc.bill_id, prdc.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
           prdc.hcpcs_line_procedure_billed as drug_source_value,
           cast(null as integer) as drug_source_concept_id,
           cast(null as varchar) as route_source_value,
