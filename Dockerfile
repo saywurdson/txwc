@@ -3,10 +3,15 @@ FROM jupyter/all-spark-notebook:python-3.11.6
 # Set working directory
 WORKDIR /container
 
-# Switch to root to install packages
+# Switch to root to install system packages
 USER root
 
-# Upgrade pip and install DuckDB and your pip packages
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Upgrade pip and install Python packages
 RUN python -m pip install --upgrade pip && \
     pip install --no-cache-dir \
         duckdb \
@@ -19,9 +24,10 @@ RUN python -m pip install --upgrade pip && \
         "dlt[duckdb]" \
         paramiko \
         python-dotenv \
-        pyarrow==11.0.0
+        pyarrow==11.0.0 \
+        mcp-server-motherduck
 
-# If you need conda packages, install them as well
+# Install conda packages
 RUN conda install -y -c conda-forge \
         xgboost \
         python-dotenv=0.21.1 \
@@ -29,9 +35,21 @@ RUN conda install -y -c conda-forge \
         findspark \
         pyspark \
         polars && \
-    conda install pip boto3 && \
-    conda update pandas -y && \
+    conda install -y pip boto3 && \
+    conda update -y pandas && \
     conda clean --all -f -y
 
-# Switch back to the notebook user
+# Switch back to notebook user for user-level installations
+USER $NB_UID
+
+# Install uv (provides uvx command)
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Add uv to PATH
+ENV PATH="/home/${NB_USER}/.cargo/bin:${PATH}"
+
+# Install Claude Code CLI
+RUN npm install -g @anthropic-ai/claude-code
+
+# Switch back to notebook user
 USER $NB_UID
