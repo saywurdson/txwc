@@ -1,4 +1,4 @@
-select 
+select
     row_number() over (order by measurement_id) as measurement_id,
     person_id,
     cast({{ get_concept_ids(

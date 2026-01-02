@@ -594,7 +594,7 @@ def main():
     args = parser.parse_args()
     
     # Connect to database
-    conn = duckdb.connect('tx_workers_comp.db')
+    conn = duckdb.connect('/workspaces/txwc/tx_workers_comp.db')
     conn.execute("CREATE SCHEMA IF NOT EXISTS raw;")
     
     # If report only, just show summary and exit

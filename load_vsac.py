@@ -2,7 +2,6 @@ import requests
 import pandas as pd
 import base64
 import concurrent.futures
-from xml.etree import ElementTree as ET
 from tqdm import tqdm
 import duckdb
 import os
@@ -14,72 +13,50 @@ API_KEY = os.getenv('API_KEY')
 # Constants
 BASE_URL_SVS = "https://cts.nlm.nih.gov/fhir"
 
-# Function to retrieve tag values for a given tag name
-def get_tag_values(tag_name):
+def get_all_value_set_ids():
+    """Retrieve all value set OIDs from VSAC using FHIR API pagination."""
     credentials = f"apikey:{API_KEY}".encode('utf-8')
     base64_encoded_credentials = base64.b64encode(credentials).decode('utf-8')
     headers = {
         "Authorization": f"Basic {base64_encoded_credentials}",
-        "Accept": "application/xml"
+        "Accept": "application/fhir+json"
     }
-    try:
-        response = requests.get(f"https://vsac.nlm.nih.gov/vsac/tagName/{tag_name}/tagValues", headers=headers)
-        response.raise_for_status()  # This will raise an exception for HTTP errors
-        return response.text
-    except requests.exceptions.RequestException as e:
-        tqdm.write(f"Error fetching data for tag {tag_name}: {e}")
-        return None
 
-def parse_xml_for_tag_values(xml_content):
-    root = ET.fromstring(xml_content)
-    values = [tag_value.text for tag_value in root.findall('.//value')]
-    return values
+    all_oids = []
+    url = f"{BASE_URL_SVS}/ValueSet?_count=1000"
 
-def get_latest_version_cms_eMeasureID(values):
-    latest_versions = {}
-    for value in values:
-        measure_id = ''.join(filter(str.isalpha, value))
-        version_number = ''.join(filter(str.isdigit, value))
-        if measure_id not in latest_versions or latest_versions[measure_id] < version_number:
-            latest_versions[measure_id] = version_number
-    return [measure_id + 'v' + version for measure_id, version in latest_versions.items()]
+    while url:
+        try:
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()
+            bundle = response.json()
 
-def get_described_value_set_ids(tag_name, tag_value):
-    credentials = f"apikey:{API_KEY}".encode('utf-8')
-    base64_encoded_credentials = base64.b64encode(credentials).decode('utf-8')
-    headers = {
-        "Authorization": f"Basic {base64_encoded_credentials}",
-        "Accept": "application/xml"
-    }
-    response = requests.get(f"https://vsac.nlm.nih.gov/vsac/svs/RetrieveMultipleValueSets?tagName={tag_name}&tagValue={tag_value}", headers=headers)
-    root = ET.fromstring(response.text)
-    value_set_ids = [value_set.get('ID') for value_set in root.findall('.//ns0:DescribedValueSet', namespaces={'ns0': 'urn:ihe:iti:svs:2008'})]
-    return value_set_ids
+            # Extract OIDs from this page
+            for entry in bundle.get('entry', []):
+                oid = entry.get('resource', {}).get('id')
+                if oid:
+                    all_oids.append(oid)
 
-# Function to process each tag value using multithreading
-def process_tag_values(tag_name, tag_values_list):
-    described_value_set_ids = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-        future_to_ids = {executor.submit(get_described_value_set_ids, tag_name, value): value for value in tag_values_list}
-        for future in tqdm(concurrent.futures.as_completed(future_to_ids), total=len(tag_values_list), desc=f"Processing tag values for {tag_name}"):
-            described_value_set_ids.extend(future.result())
-    return described_value_set_ids
+            # Find next page link
+            url = None
+            for link in bundle.get('link', []):
+                if link.get('relation') == 'next':
+                    url = link.get('url')
+                    break
+
+            tqdm.write(f"Retrieved {len(all_oids)} value sets so far...")
+
+        except requests.exceptions.RequestException as e:
+            tqdm.write(f"Error fetching value sets: {e}")
+            break
+
+    return all_oids
 
 def main():
-    tag_names = ['CMS eMeasure ID', 'eMeasure Identifier', 'NQF Number']
-    tag_values = {}
-    for tag_name in tqdm(tag_names, desc="Retrieving tag values"):
-        xml_response = get_tag_values(tag_name)
-        if xml_response:
-            tag_values[tag_name] = xml_response
-
-    described_value_set_ids = []
-    for tag_name, xml_content in tag_values.items():
-        tag_values_list = parse_xml_for_tag_values(xml_content)
-        if tag_name == 'CMS eMeasure ID':
-            tag_values_list = get_latest_version_cms_eMeasureID(tag_values_list)
-        ids = process_tag_values(tag_name, tag_values_list)
-        described_value_set_ids.extend(ids)
+    # Get all value set OIDs
+    print("Retrieving all value set IDs from VSAC...")
+    described_value_set_ids = get_all_value_set_ids()
+    print(f"Found {len(described_value_set_ids)} value sets to download")
 
     processed_oids = set()  # To keep track of processed OIDs and avoid infinite loops
 
@@ -155,33 +132,33 @@ def main():
             concept_codes = concept.get('concept', [])
             for code in concept_codes:
                 data.append({
-                    "valueSetName": response_json["name"],
-                    "code": code["code"],
-                    "display": code["display"],
+                    "valueSetName": response_json.get("name", ""),
+                    "code": code.get("code", ""),
+                    "display": code.get("display", ""),
                     "system": system_name,
-                    "status": response_json["status"],
-                    "version": response_json["version"],
-                    "lastUpdated": response_json["meta"]["lastUpdated"],
-                    "oid": current_oid if current_oid else response_json["id"],
+                    "status": response_json.get("status", ""),
+                    "version": response_json.get("version", ""),
+                    "lastUpdated": response_json.get("meta", {}).get("lastUpdated", ""),
+                    "oid": current_oid if current_oid else response_json.get("id", ""),
                     "parent_oid": parent_oid if parent_oid else None
                 })
 
             # Handle the 'descendantOf' filter for value sets that only provide references instead of codes
             filters = response_json.get('compose', {}).get('include', [{}])[0].get('filter', [])
             for filter_ in filters:
-                if filter_["op"] == "descendantOf":
-                    descendants = umls_fetcher.get_descendants(filter_["system"], filter_["value"])
+                if filter_.get("op") == "descendantOf":
+                    descendants = umls_fetcher.get_descendants(filter_.get("system", ""), filter_.get("value", ""))
                     for descendant_code in descendants:
                         data.append({
-                            "valueSetName": response_json["name"],
+                            "valueSetName": response_json.get("name", ""),
                             "code": descendant_code,
                             "display": "",  # Display is empty because the UMLS API doesn't return it
-                            "system": filter_["system"],
-                            "status": response_json["status"],
-                            "oid": current_oid if current_oid else response_json["id"],
+                            "system": filter_.get("system", ""),
+                            "status": response_json.get("status", ""),
+                            "oid": current_oid if current_oid else response_json.get("id", ""),
                             "parent_oid": parent_oid if parent_oid else None,
-                            "version": response_json["version"],
-                            "lastUpdated": response_json["meta"]["lastUpdated"]
+                            "version": response_json.get("version", ""),
+                            "lastUpdated": response_json.get("meta", {}).get("lastUpdated", "")
                         })
 
             # If the value set references other value sets, retrieve those as well
