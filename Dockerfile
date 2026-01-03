@@ -6,9 +6,11 @@ WORKDIR /container
 # Switch to root to install system packages
 USER root
 
-# Install system dependencies
+# Install system dependencies including Node.js
 RUN apt-get update && apt-get install -y \
     curl \
+    nodejs \
+    npm \
     && rm -rf /var/lib/apt/lists/*
 
 # Upgrade pip and install Python packages
@@ -39,7 +41,7 @@ RUN conda install -y -c conda-forge \
     conda update -y pandas && \
     conda clean --all -f -y
 
-# Switch back to notebook user for user-level installations
+# Switch back to notebook user
 USER $NB_UID
 
 # Install uv (provides uvx command)
@@ -48,8 +50,8 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 # Add uv to PATH
 ENV PATH="/home/${NB_USER}/.cargo/bin:${PATH}"
 
-# Install Claude Code CLI
+# Install Claude Code CLI as the notebook user
 RUN npm install -g @anthropic-ai/claude-code
 
-# Switch back to notebook user
-USER $NB_UID
+# Add npm global bin to PATH
+ENV PATH="/home/${NB_USER}/.npm-global/bin:${PATH}"
