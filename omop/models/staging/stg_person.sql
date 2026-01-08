@@ -1,21 +1,27 @@
-{% set header_list = [
-  ('institutional_header_current', 'raw', 'institutional'),
-  ('institutional_header_historical', 'raw', 'institutional'),
-  ('professional_header_current', 'raw', 'professional'),
-  ('professional_header_historical', 'raw', 'professional'),
-  ('pharmacy_header_current', 'raw', 'pharmacy'),
-  ('pharmacy_header_historical', 'raw', 'pharmacy')
-] %}
+-- Check if current or historical data exists (use institutional_header as representative)
+{% set has_current = check_table_exists('raw', 'institutional_header_current') %}
+{% set has_historical = check_table_exists('raw', 'institutional_header_historical') %}
+
+{% set header_list = [] %}
+{% if has_current %}
+  {% do header_list.append(('institutional_header_current', 'raw', 'institutional')) %}
+  {% do header_list.append(('professional_header_current', 'raw', 'professional')) %}
+  {% do header_list.append(('pharmacy_header_current', 'raw', 'pharmacy')) %}
+{% endif %}
+{% if has_historical %}
+  {% do header_list.append(('institutional_header_historical', 'raw', 'institutional')) %}
+  {% do header_list.append(('professional_header_historical', 'raw', 'professional')) %}
+  {% do header_list.append(('pharmacy_header_historical', 'raw', 'pharmacy')) %}
+{% endif %}
 
 {% set cte_queries = [] %}
 
 {% for table, schema, header_type in header_list %}
-  {% if check_table_exists(schema, table) %}
-    {% if header_type == 'institutional' %}
-      {% set query %}
+  {% if header_type == 'institutional' %}
+    {% set query %}
 {{ table }} as (
   select distinct
-    case 
+    case
       when patient_account_number is null or trim(patient_account_number) = '' then lpad(
         cast(
           (
@@ -77,12 +83,12 @@
     cast(null as integer) as ethnicity_source_concept_id
   from {{ source(schema, table) }}
 )
-      {% endset %}
-    {% elif header_type == 'professional' %}
-      {% set query %}
+    {% endset %}
+  {% elif header_type == 'professional' %}
+    {% set query %}
 {{ table }} as (
   select distinct
-    case 
+    case
       when patient_account_number is null or trim(patient_account_number) = '' then lpad(
         cast(
           (
@@ -144,12 +150,12 @@
     cast(null as integer) as ethnicity_source_concept_id
   from {{ source(schema, table) }}
 )
-      {% endset %}
-    {% elif header_type == 'pharmacy' %}
-      {% set query %}
+    {% endset %}
+  {% elif header_type == 'pharmacy' %}
+    {% set query %}
 {{ table }} as (
   select distinct
-    case 
+    case
       when patient_account_number is null or trim(patient_account_number) = '' then lpad(
         cast(
           (
@@ -211,29 +217,43 @@
     cast(null as integer) as ethnicity_source_concept_id
   from {{ source(schema, table) }}
 )
-      {% endset %}
-    {% endif %}
-    {% do cte_queries.append(query) %}
+    {% endset %}
   {% endif %}
+  {% do cte_queries.append(query) %}
 {% endfor %}
 
-{% set valid_tables = [] %}
-{% for table, schema, header_type in header_list %}
-  {% if check_table_exists(schema, table) %}
-    {% do valid_tables.append(table) %}
-  {% endif %}
-{% endfor %}
-
-{% if cte_queries | length > 0 %}
+{% if has_current or has_historical %}
 with {{ cte_queries | join(",\n") }}
-{% endif %}
 
 select *
 from (
-  {% for table in valid_tables %}
+  {% for table, schema, header_type in header_list %}
     select * from {{ table }}
     {% if not loop.last %}
       union
     {% endif %}
   {% endfor %}
 ) as final_result
+{% else %}
+-- No source tables available - return empty result set with OMOP person schema
+select
+    cast(null as varchar) as person_id,
+    cast(null as integer) as gender_concept_id,
+    cast(null as integer) as year_of_birth,
+    cast(null as integer) as month_of_birth,
+    cast(null as integer) as day_of_birth,
+    cast(null as timestamp) as birth_datetime,
+    cast(null as integer) as race_concept_id,
+    cast(null as integer) as ethnicity_concept_id,
+    cast(null as varchar) as location_id,
+    cast(null as integer) as provider_id,
+    cast(null as varchar) as care_site_id,
+    cast(null as varchar) as person_source_value,
+    cast(null as varchar) as gender_source_value,
+    cast(null as integer) as gender_source_concept_id,
+    cast(null as varchar) as race_source_value,
+    cast(null as integer) as race_source_concept_id,
+    cast(null as varchar) as ethnicity_source_value,
+    cast(null as integer) as ethnicity_source_concept_id
+where false
+{% endif %}

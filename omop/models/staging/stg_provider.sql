@@ -1,18 +1,11 @@
-{% set header_list = [
-  ('institutional_header_current', 'raw', 'institutional'),
-  ('institutional_header_historical', 'raw', 'institutional'),
-  ('professional_header_current', 'raw', 'professional'),
-  ('professional_header_historical', 'raw', 'professional'),
-  ('pharmacy_header_current', 'raw', 'pharmacy'),
-  ('pharmacy_header_historical', 'raw', 'pharmacy')
-] %}
+{% set has_current = check_table_exists('raw', 'institutional_header_current') %}
+{% set has_historical = check_table_exists('raw', 'institutional_header_historical') %}
 
 {% set cte_queries = [] %}
-{% for table, schema, htype in header_list %}
-  {% if check_table_exists(schema, table) %}
-    {% if htype == 'institutional' %}
-      {% set query %}
-{{ table }} as (
+
+{% if has_current %}
+  {% set query %}
+institutional_header_current as (
   select distinct
     rendering_bill_provider_last as raw_last_name,
     rendering_bill_provider_first as raw_first_name,
@@ -50,12 +43,9 @@
     cast(null as integer) as specialty_source_concept_id,
     cast(null as varchar) as gender_source_value,
     cast(null as integer) as gender_source_concept_id
-  from {{ source(schema, table) }}
-)
-      {% endset %}
-    {% elif htype == 'professional' %}
-      {% set query %}
-{{ table }} as (
+  from {{ source('raw', 'institutional_header_current') }}
+),
+professional_header_current as (
   select distinct
     -- Handle shifted columns when last_name='N' and NPI is invalid
     case when rendering_bill_provider_last = 'N'
@@ -117,12 +107,9 @@
     cast(null as integer) as specialty_source_concept_id,
     cast(null as varchar) as gender_source_value,
     cast(null as integer) as gender_source_concept_id
-  from {{ source(schema, table) }}
-)
-      {% endset %}
-    {% elif htype == 'pharmacy' %}
-      {% set query %}
-{{ table }} as (
+  from {{ source('raw', 'professional_header_current') }}
+),
+pharmacy_header_current as (
   select distinct
     rendering_bill_provider_last as raw_last_name,
     rendering_bill_provider_first as raw_first_name,
@@ -160,31 +147,177 @@
     cast(null as integer) as specialty_source_concept_id,
     cast(null as varchar) as gender_source_value,
     cast(null as integer) as gender_source_concept_id
-  from {{ source(schema, table) }}
+  from {{ source('raw', 'pharmacy_header_current') }}
 )
-      {% endset %}
-    {% endif %}
-    {% do cte_queries.append(query) %}
-  {% endif %}
-{% endfor %}
+  {% endset %}
+  {% do cte_queries.append(query) %}
+{% endif %}
 
-{% set valid_tables = [] %}
-{% for table, schema, htype in header_list %}
-  {% if check_table_exists(schema, table) %}
-    {% do valid_tables.append(table) %}
-  {% endif %}
-{% endfor %}
+{% if has_historical %}
+  {% set query %}
+institutional_header_historical as (
+  select distinct
+    rendering_bill_provider_last as raw_last_name,
+    rendering_bill_provider_first as raw_first_name,
+    rendering_bill_provider_state_1 as raw_state,
+    rendering_bill_provider_4 as raw_npi,
+    concat(
+      rendering_bill_provider_last,
+      case
+        when rendering_bill_provider_first is not null
+          then concat(', ', rendering_bill_provider_first)
+        else ''
+      end
+    ) as provider_name,
+    cast(null as varchar) as dea,
+    cast(null as integer) as specialty_concept_id,
+    cast(
+      hash(
+        concat_ws(
+          '||',
+          billing_provider_last_name,
+          facility_primary_address,
+          facility_city,
+          facility_state_code,
+          facility_postal_code,
+          facility_country_code
+        ),
+        'xxhash64'
+      ) % 1000000000
+    as varchar) as care_site_id,
+    cast(null as integer) as year_of_birth,
+    cast(null as integer) as gender_concept_id,
+    rendering_bill_provider_state_1 as provider_source_value,
+    cast(null as varchar) as specialty_source_value,
+    cast(null as integer) as specialty_source_concept_id,
+    cast(null as varchar) as gender_source_value,
+    cast(null as integer) as gender_source_concept_id
+  from {{ source('raw', 'institutional_header_historical') }}
+),
+professional_header_historical as (
+  select distinct
+    case when rendering_bill_provider_last = 'N'
+              AND NOT regexp_matches(coalesce(rendering_bill_provider_4, ''), '^[0-9]{10}$')
+         then rendering_bill_provider_first
+         else rendering_bill_provider_last end as raw_last_name,
+    case when rendering_bill_provider_last = 'N'
+              AND NOT regexp_matches(coalesce(rendering_bill_provider_4, ''), '^[0-9]{10}$')
+         then rendering_bill_provider_state_1
+         else rendering_bill_provider_first end as raw_first_name,
+    rendering_bill_provider_state_1 as raw_state,
+    rendering_bill_provider_4 as raw_npi,
+    concat(
+      case when rendering_bill_provider_last = 'N'
+                AND NOT regexp_matches(coalesce(rendering_bill_provider_4, ''), '^[0-9]{10}$')
+           then rendering_bill_provider_first
+           else rendering_bill_provider_last end,
+      case
+        when (case when rendering_bill_provider_last = 'N'
+                        AND NOT regexp_matches(coalesce(rendering_bill_provider_4, ''), '^[0-9]{10}$')
+                   then rendering_bill_provider_state_1
+                   else rendering_bill_provider_first end) is not null
+          then concat(', ',
+            case when rendering_bill_provider_last = 'N'
+                      AND NOT regexp_matches(coalesce(rendering_bill_provider_4, ''), '^[0-9]{10}$')
+                 then rendering_bill_provider_state_1
+                 else rendering_bill_provider_first end)
+        else ''
+      end
+    ) as provider_name,
+    cast(null as varchar) as dea,
+    {{ get_source_concept_ids(
+        "referring_provider_specialty",
+        domain_id='Provider',
+        vocabulary_id='NUCC',
+        required_value=0
+    ) }} as specialty_concept_id,
+    cast(
+      hash(
+        concat_ws(
+          '||',
+          billing_provider_last_name,
+          facility_primary_address,
+          facility_city,
+          facility_state_code,
+          facility_postal_code,
+          facility_country_code
+        ),
+        'xxhash64'
+      ) % 1000000000
+    as varchar) as care_site_id,
+    cast(null as integer) as year_of_birth,
+    cast(null as integer) as gender_concept_id,
+    rendering_bill_provider_state_1 as provider_source_value,
+    referring_provider_specialty as specialty_source_value,
+    cast(null as integer) as specialty_source_concept_id,
+    cast(null as varchar) as gender_source_value,
+    cast(null as integer) as gender_source_concept_id
+  from {{ source('raw', 'professional_header_historical') }}
+),
+pharmacy_header_historical as (
+  select distinct
+    rendering_bill_provider_last as raw_last_name,
+    rendering_bill_provider_first as raw_first_name,
+    rendering_bill_provider_state_1 as raw_state,
+    rendering_bill_provider_4 as raw_npi,
+    concat(
+      rendering_bill_provider_last,
+      case
+        when rendering_bill_provider_first is not null
+          then concat(', ', rendering_bill_provider_first)
+        else ''
+      end
+    ) as provider_name,
+    cast(null as varchar) as dea,
+    cast(null as integer) as specialty_concept_id,
+    cast(
+      hash(
+        concat_ws(
+          '||',
+          billing_provider_last_name,
+          billing_provider_fein,
+          billing_provider_primary_1,
+          billing_provider_city,
+          billing_provider_state_code,
+          billing_provider_postal_code
+        ),
+        'xxhash64'
+      ) % 1000000000
+    as varchar) as care_site_id,
+    cast(null as integer) as year_of_birth,
+    cast(null as integer) as gender_concept_id,
+    rendering_bill_provider_state_1 as provider_source_value,
+    cast(null as varchar) as specialty_source_value,
+    cast(null as integer) as specialty_source_concept_id,
+    cast(null as varchar) as gender_source_value,
+    cast(null as integer) as gender_source_concept_id
+  from {{ source('raw', 'pharmacy_header_historical') }}
+)
+  {% endset %}
+  {% do cte_queries.append(query) %}
+{% endif %}
 
-{% if cte_queries | length > 0 %}
+{% if has_current or has_historical %}
 with {{ cte_queries | join(",\n") }},
 -- Combine all raw provider data
 all_providers_raw as (
-  {% for table in valid_tables %}
-    select * from {{ table }}
-    {% if not loop.last %}
-      union all
-    {% endif %}
-  {% endfor %}
+  {% if has_current %}
+    select * from institutional_header_current
+    union all
+    select * from professional_header_current
+    union all
+    select * from pharmacy_header_current
+  {% endif %}
+  {% if has_current and has_historical %}
+    union all
+  {% endif %}
+  {% if has_historical %}
+    select * from institutional_header_historical
+    union all
+    select * from professional_header_historical
+    union all
+    select * from pharmacy_header_historical
+  {% endif %}
 ),
 -- Build a lookup of valid NPIs by provider name (last, first)
 -- This allows us to find the correct NPI for providers with bad NPI data
@@ -232,7 +365,23 @@ providers_with_npi as (
     on p.raw_last_name = npi_lookup.raw_last_name
     and coalesce(p.raw_first_name, '') = coalesce(npi_lookup.raw_first_name, '')
 )
-{% endif %}
-
 select *
 from providers_with_npi
+{% else %}
+-- No source tables available - return empty result set with OMOP provider schema
+select
+    cast(null as varchar) as provider_id,
+    cast(null as varchar) as provider_name,
+    cast(null as varchar) as npi,
+    cast(null as varchar) as dea,
+    cast(null as integer) as specialty_concept_id,
+    cast(null as varchar) as care_site_id,
+    cast(null as integer) as year_of_birth,
+    cast(null as integer) as gender_concept_id,
+    cast(null as varchar) as provider_source_value,
+    cast(null as varchar) as specialty_source_value,
+    cast(null as integer) as specialty_source_concept_id,
+    cast(null as varchar) as gender_source_value,
+    cast(null as integer) as gender_source_concept_id
+where false
+{% endif %}
