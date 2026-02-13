@@ -1,6 +1,9 @@
 {% set has_current = check_table_exists('raw', 'institutional_header_current') %}
 {% set has_historical = check_table_exists('raw', 'institutional_header_historical') %}
 
+{% set has_prof_current_specialty = check_column_exists('raw', 'professional_header_current', 'referring_provider_specialty') %}
+{% set has_prof_historical_specialty = check_column_exists('raw', 'professional_header_historical', 'referring_provider_specialty') %}
+
 {% set cte_queries = [] %}
 
 {% if has_current %}
@@ -79,12 +82,16 @@ professional_header_current as (
     ) as provider_name,
     cast(null as varchar) as dea,
     -- Map NUCC specialty codes to OMOP concepts
+    {% if has_prof_current_specialty %}
     {{ get_source_concept_ids(
         "referring_provider_specialty",
         domain_id='Provider',
         vocabulary_id='NUCC',
         required_value=0
     ) }} as specialty_concept_id,
+    {% else %}
+    cast(null as integer) as specialty_concept_id,
+    {% endif %}
     -- care_site_id hash must match stg_care_site
     cast(
       hash(
@@ -103,7 +110,11 @@ professional_header_current as (
     cast(null as integer) as year_of_birth,
     cast(null as integer) as gender_concept_id,
     rendering_bill_provider_state_1 as provider_source_value,
+    {% if has_prof_current_specialty %}
     referring_provider_specialty as specialty_source_value,
+    {% else %}
+    cast(null as varchar) as specialty_source_value,
+    {% endif %}
     cast(null as integer) as specialty_source_concept_id,
     cast(null as varchar) as gender_source_value,
     cast(null as integer) as gender_source_concept_id
@@ -225,12 +236,16 @@ professional_header_historical as (
       end
     ) as provider_name,
     cast(null as varchar) as dea,
+    {% if has_prof_historical_specialty %}
     {{ get_source_concept_ids(
         "referring_provider_specialty",
         domain_id='Provider',
         vocabulary_id='NUCC',
         required_value=0
     ) }} as specialty_concept_id,
+    {% else %}
+    cast(null as integer) as specialty_concept_id,
+    {% endif %}
     cast(
       hash(
         concat_ws(
@@ -248,7 +263,11 @@ professional_header_historical as (
     cast(null as integer) as year_of_birth,
     cast(null as integer) as gender_concept_id,
     rendering_bill_provider_state_1 as provider_source_value,
+    {% if has_prof_historical_specialty %}
     referring_provider_specialty as specialty_source_value,
+    {% else %}
+    cast(null as varchar) as specialty_source_value,
+    {% endif %}
     cast(null as integer) as specialty_source_concept_id,
     cast(null as varchar) as gender_source_value,
     cast(null as integer) as gender_source_concept_id
