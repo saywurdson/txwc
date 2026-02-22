@@ -21,29 +21,7 @@
     {% set query %}
 {{ table }} as (
   select distinct
-    case
-      when patient_account_number is null or trim(patient_account_number) = '' then lpad(
-        cast(
-          (
-            hash(
-              concat_ws(
-                '||',
-                coalesce(employee_mailing_city, ''),
-                coalesce(employee_mailing_state_code, ''),
-                coalesce(employee_mailing_postal_code, ''),
-                coalesce(employee_mailing_country, ''),
-                coalesce(cast(employee_date_of_birth as varchar), ''),
-                coalesce(employee_gender_code, '')
-              ),
-              'xxhash64'
-            ) % 1000000000
-          ) as varchar
-        ),
-        9,
-        '0'
-      )
-      else patient_account_number
-    end as person_id,
+    {{ derive_person_id() }} as person_id,
     case
       when employee_gender_code = 'M' then 8507  -- Male
       when employee_gender_code = 'F' then 8532  -- Female
@@ -88,29 +66,7 @@
     {% set query %}
 {{ table }} as (
   select distinct
-    case
-      when patient_account_number is null or trim(patient_account_number) = '' then lpad(
-        cast(
-          (
-            hash(
-              concat_ws(
-                '||',
-                coalesce(employee_mailing_city, ''),
-                coalesce(employee_mailing_state_code, ''),
-                coalesce(employee_mailing_postal_code, ''),
-                coalesce(employee_mailing_country, ''),
-                coalesce(cast(employee_date_of_birth as varchar), ''),
-                coalesce(employee_gender_code, '')
-              ),
-              'xxhash64'
-            ) % 1000000000
-          ) as varchar
-        ),
-        9,
-        '0'
-      )
-      else patient_account_number
-    end as person_id,
+    {{ derive_person_id() }} as person_id,
     case
       when employee_gender_code = 'M' then 8507  -- Male
       when employee_gender_code = 'F' then 8532  -- Female
@@ -155,29 +111,7 @@
     {% set query %}
 {{ table }} as (
   select distinct
-    case
-      when patient_account_number is null or trim(patient_account_number) = '' then lpad(
-        cast(
-          (
-            hash(
-              concat_ws(
-                '||',
-                coalesce(employee_mailing_city, ''),
-                coalesce(employee_mailing_state_code, ''),
-                coalesce(employee_mailing_postal_code, ''),
-                coalesce(employee_mailing_country, ''),
-                coalesce(cast(employee_date_of_birth as varchar), ''),
-                coalesce(employee_gender_code, '')
-              ),
-              'xxhash64'
-            ) % 1000000000
-          ) as varchar
-        ),
-        9,
-        '0'
-      )
-      else patient_account_number
-    end as person_id,
+    {{ derive_person_id() }} as person_id,
     case
       when employee_gender_code = 'M' then 8507  -- Male
       when employee_gender_code = 'F' then 8532  -- Female
@@ -223,21 +157,58 @@
 {% endfor %}
 
 {% if has_current or has_historical %}
-with {{ cte_queries | join(",\n") }}
+with {{ cte_queries | join(",\n") }},
 
-select *
-from (
+all_persons as (
   {% for table, schema, header_type in header_list %}
     select * from {{ table }}
     {% if not loop.last %}
-      union
+      union all
     {% endif %}
   {% endfor %}
-) as final_result
+),
+-- Deduplicate: keep one row per person_id, preferring the most complete record
+deduped as (
+  select *,
+    row_number() over (
+      partition by person_id
+      order by
+        -- Prefer records with a patient_account_number
+        case when person_source_value is not null then 0 else 1 end,
+        -- Prefer records with a date of birth
+        case when year_of_birth is not null then 0 else 1 end,
+        -- Prefer records with known gender
+        case when gender_concept_id != 0 then 0 else 1 end,
+        -- Prefer records with a location
+        case when location_id is not null then 0 else 1 end
+    ) as rn
+  from all_persons
+)
+select
+    person_id,
+    gender_concept_id,
+    year_of_birth,
+    month_of_birth,
+    day_of_birth,
+    birth_datetime,
+    race_concept_id,
+    ethnicity_concept_id,
+    location_id,
+    provider_id,
+    care_site_id,
+    person_source_value,
+    gender_source_value,
+    gender_source_concept_id,
+    race_source_value,
+    race_source_concept_id,
+    ethnicity_source_value,
+    ethnicity_source_concept_id
+from deduped
+where rn = 1
 {% else %}
 -- No source tables available - return empty result set with OMOP person schema
 select
-    cast(null as varchar) as person_id,
+    cast(null as integer) as person_id,
     cast(null as integer) as gender_concept_id,
     cast(null as integer) as year_of_birth,
     cast(null as integer) as month_of_birth,
@@ -245,9 +216,9 @@ select
     cast(null as timestamp) as birth_datetime,
     cast(null as integer) as race_concept_id,
     cast(null as integer) as ethnicity_concept_id,
-    cast(null as varchar) as location_id,
+    cast(null as integer) as location_id,
     cast(null as integer) as provider_id,
-    cast(null as varchar) as care_site_id,
+    cast(null as integer) as care_site_id,
     cast(null as varchar) as person_source_value,
     cast(null as varchar) as gender_source_value,
     cast(null as integer) as gender_source_concept_id,

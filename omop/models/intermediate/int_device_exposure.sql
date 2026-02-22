@@ -1,6 +1,6 @@
 select 
     cast(device_exposure_id as integer) as device_exposure_id,
-    cast(person_id as varchar) as person_id,
+    cast(person_id as integer) as person_id,
     cast(device_concept_id as varchar) as device_concept_id,
     cast(device_exposure_start_date as date) as device_exposure_start_date,
     cast(device_exposure_start_datetime as timestamp) as device_exposure_start_datetime,

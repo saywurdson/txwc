@@ -80,7 +80,7 @@ dose_eras_grouped as (
 )
 select
     cast(row_number() over (order by person_id, drug_concept_id, dose_era_start_date) as integer) as dose_era_id,
-    cast(person_id as varchar) as person_id,
+    cast(person_id as integer) as person_id,
     cast(drug_concept_id as integer) as drug_concept_id,
     cast(unit_concept_id as integer) as unit_concept_id,
     cast(dose_value as numeric) as dose_value,

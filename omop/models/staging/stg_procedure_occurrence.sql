@@ -62,22 +62,7 @@ final_ihc as (
   )
   select
     cast(hash(concat_ws('||', ihc.bill_id, ihc.row_id), 'xxhash64') % 1000000000 as varchar) as procedure_occurrence_id,
-    case
-      when ihc.patient_account_number is null or trim(ihc.patient_account_number) = '' then
-        lpad(
-          cast(hash(concat_ws('||',
-            coalesce(ihc.employee_mailing_city, ''),
-            coalesce(ihc.employee_mailing_state_code, ''),
-            coalesce(ihc.employee_mailing_postal_code, ''),
-            coalesce(ihc.employee_mailing_country, ''),
-            coalesce(cast(ihc.employee_date_of_birth as varchar), ''),
-            coalesce(ihc.employee_gender_code, '')
-          ), 'xxhash64') % 1000000000 as varchar),
-          9,
-          '0'
-        )
-      else ihc.patient_account_number
-    end as person_id,
+    {{ derive_person_id('ihc') }} as person_id,
     cast(null as integer) as procedure_concept_id,
     case
       when all_procedures.source_column = 'icd_9cm_or_icd_10cm_principal' then cast(ihc.principal_procedure_date as date)
@@ -127,22 +112,7 @@ final_ihc as (
 final_id as (
   select
     cast(hash(concat_ws('||', id.bill_id, id.row_id), 'xxhash64') % 1000000000 as varchar) as procedure_occurrence_id,
-    case
-      when ihc.patient_account_number is null or trim(ihc.patient_account_number) = '' then
-        lpad(
-          cast(hash(concat_ws('||',
-            coalesce(ihc.employee_mailing_city, ''),
-            coalesce(ihc.employee_mailing_state_code, ''),
-            coalesce(ihc.employee_mailing_postal_code, ''),
-            coalesce(ihc.employee_mailing_country, ''),
-            coalesce(cast(ihc.employee_date_of_birth as varchar), ''),
-            coalesce(ihc.employee_gender_code, '')
-          ), 'xxhash64') % 1000000000 as varchar),
-          9,
-          '0'
-        )
-      else ihc.patient_account_number
-    end as person_id,
+    {{ derive_person_id('ihc') }} as person_id,
     cast(null as integer) as procedure_concept_id,
     CASE WHEN id.service_line_from_date = 'N' THEN NULL
         ELSE cast(id.service_line_from_date as date) END as procedure_date,
@@ -171,7 +141,7 @@ final_id as (
     cast(hash(concat_ws('||', id.bill_id, id.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
     id.hcpcs_line_procedure_billed as procedure_source_value,
     cast(null as integer) as procedure_source_concept_id,
-    id.first_hcpcs_modifier_billed as modifier_source_value
+    concat_ws('|', id.first_hcpcs_modifier_billed, id.second_hcpcs_modifier_billed, id.third_hcpcs_modifier_billed) as modifier_source_value
   from {{ source('raw', 'institutional_detail_current') }} id
   join {{ source('raw', 'institutional_header_current') }} ihc
     on cast(id.bill_id as varchar) = cast(ihc.bill_id as varchar)
@@ -189,22 +159,7 @@ final_id as (
 final_pdc as (
   select
     cast(hash(concat_ws('||', prd.bill_id, prd.row_id), 'xxhash64') % 1000000000 as varchar) as procedure_occurrence_id,
-    case
-      when prhc.patient_account_number is null or trim(prhc.patient_account_number) = '' then
-        lpad(
-          cast(hash(concat_ws('||',
-            coalesce(prhc.employee_mailing_city, ''),
-            coalesce(prhc.employee_mailing_state_code, ''),
-            coalesce(prhc.employee_mailing_postal_code, ''),
-            coalesce(prhc.employee_mailing_country, ''),
-            coalesce(cast(prhc.employee_date_of_birth as varchar), ''),
-            coalesce(prhc.employee_gender_code, '')
-          ), 'xxhash64') % 1000000000 as varchar),
-          9,
-          '0'
-        )
-      else prhc.patient_account_number
-    end as person_id,
+    {{ derive_person_id('prhc') }} as person_id,
     cast(null as integer) as procedure_concept_id,
     cast(prd.service_line_from_date as date) as procedure_date,
     cast(prd.service_line_from_date as timestamp) as procedure_datetime,
@@ -231,7 +186,7 @@ final_pdc as (
     cast(hash(concat_ws('||', prd.bill_id, prd.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
     prd.hcpcs_line_procedure_billed as procedure_source_value,
     cast(null as integer) as procedure_source_concept_id,
-    prd.first_hcpcs_modifier_billed as modifier_source_value
+    concat_ws('|', prd.first_hcpcs_modifier_billed, prd.second_hcpcs_modifier_billed, prd.third_hcpcs_modifier_billed, prd.fourth_hcpcs_modifier_billed) as modifier_source_value
   from {{ source('raw', 'professional_detail_current') }} prd
   join {{ source('raw', 'professional_header_current') }} prhc
     on cast(prd.bill_id as varchar) = cast(prhc.bill_id as varchar)
@@ -301,22 +256,7 @@ final_ihh as (
   )
   select
     cast(hash(concat_ws('||', ihc.bill_id, ihc.row_id), 'xxhash64') % 1000000000 as varchar) as procedure_occurrence_id,
-    case
-      when ihc.patient_account_number is null or trim(ihc.patient_account_number) = '' then
-        lpad(
-          cast(hash(concat_ws('||',
-            coalesce(ihc.employee_mailing_city, ''),
-            coalesce(ihc.employee_mailing_state_code, ''),
-            coalesce(ihc.employee_mailing_postal_code, ''),
-            coalesce(ihc.employee_mailing_country, ''),
-            coalesce(cast(ihc.employee_date_of_birth as varchar), ''),
-            coalesce(ihc.employee_gender_code, '')
-          ), 'xxhash64') % 1000000000 as varchar),
-          9,
-          '0'
-        )
-      else ihc.patient_account_number
-    end as person_id,
+    {{ derive_person_id('ihc') }} as person_id,
     cast(null as integer) as procedure_concept_id,
     case
       when all_procedures.source_column = 'icd_9cm_or_icd_10cm_principal' then cast(ihc.principal_procedure_date as date)
@@ -366,22 +306,7 @@ final_ihh as (
 final_idh as (
   select
     cast(hash(concat_ws('||', id.bill_id, id.row_id), 'xxhash64') % 1000000000 as varchar) as procedure_occurrence_id,
-    case
-      when ihc.patient_account_number is null or trim(ihc.patient_account_number) = '' then
-        lpad(
-          cast(hash(concat_ws('||',
-            coalesce(ihc.employee_mailing_city, ''),
-            coalesce(ihc.employee_mailing_state_code, ''),
-            coalesce(ihc.employee_mailing_postal_code, ''),
-            coalesce(ihc.employee_mailing_country, ''),
-            coalesce(cast(ihc.employee_date_of_birth as varchar), ''),
-            coalesce(ihc.employee_gender_code, '')
-          ), 'xxhash64') % 1000000000 as varchar),
-          9,
-          '0'
-        )
-      else ihc.patient_account_number
-    end as person_id,
+    {{ derive_person_id('ihc') }} as person_id,
     cast(null as integer) as procedure_concept_id,
     CASE WHEN id.service_line_from_date = 'N' THEN NULL
         ELSE cast(id.service_line_from_date as date) END as procedure_date,
@@ -410,7 +335,7 @@ final_idh as (
     cast(hash(concat_ws('||', id.bill_id, id.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
     id.hcpcs_line_procedure_billed as procedure_source_value,
     cast(null as integer) as procedure_source_concept_id,
-    id.first_hcpcs_modifier_billed as modifier_source_value
+    concat_ws('|', id.first_hcpcs_modifier_billed, id.second_hcpcs_modifier_billed, id.third_hcpcs_modifier_billed) as modifier_source_value
   from {{ source('raw', 'institutional_detail_historical') }} id
   join {{ source('raw', 'institutional_header_historical') }} ihc
     on cast(id.bill_id as varchar) = cast(ihc.bill_id as varchar)
@@ -428,22 +353,7 @@ final_idh as (
 final_pdh as (
   select
     cast(hash(concat_ws('||', prd.bill_id, prd.row_id), 'xxhash64') % 1000000000 as varchar) as procedure_occurrence_id,
-    case
-      when prhc.patient_account_number is null or trim(prhc.patient_account_number) = '' then
-        lpad(
-          cast(hash(concat_ws('||',
-            coalesce(prhc.employee_mailing_city, ''),
-            coalesce(prhc.employee_mailing_state_code, ''),
-            coalesce(prhc.employee_mailing_postal_code, ''),
-            coalesce(prhc.employee_mailing_country, ''),
-            coalesce(cast(prhc.employee_date_of_birth as varchar), ''),
-            coalesce(prhc.employee_gender_code, '')
-          ), 'xxhash64') % 1000000000 as varchar),
-          9,
-          '0'
-        )
-      else prhc.patient_account_number
-    end as person_id,
+    {{ derive_person_id('prhc') }} as person_id,
     cast(null as integer) as procedure_concept_id,
     cast(prd.service_line_from_date as date) as procedure_date,
     cast(prd.service_line_from_date as timestamp) as procedure_datetime,
@@ -470,7 +380,7 @@ final_pdh as (
     cast(hash(concat_ws('||', prd.bill_id, prd.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
     prd.hcpcs_line_procedure_billed as procedure_source_value,
     cast(null as integer) as procedure_source_concept_id,
-    prd.first_hcpcs_modifier_billed as modifier_source_value
+    concat_ws('|', prd.first_hcpcs_modifier_billed, prd.second_hcpcs_modifier_billed, prd.third_hcpcs_modifier_billed, prd.fourth_hcpcs_modifier_billed) as modifier_source_value
   from {{ source('raw', 'professional_detail_historical') }} prd
   join {{ source('raw', 'professional_header_historical') }} prhc
     on cast(prd.bill_id as varchar) = cast(prhc.bill_id as varchar)
@@ -496,7 +406,7 @@ from (
 -- No source tables available - return empty result set with OMOP procedure_occurrence schema
 select
     cast(null as varchar) as procedure_occurrence_id,
-    cast(null as varchar) as person_id,
+    cast(null as integer) as person_id,
     cast(null as integer) as procedure_concept_id,
     cast(null as date) as procedure_date,
     cast(null as timestamp) as procedure_datetime,

@@ -20,27 +20,7 @@
             'xxhash64'
           ) % 1000000000
         as varchar) as device_exposure_id,
-        case
-          when header.patient_account_number is null or trim(header.patient_account_number) = ''
-            then lpad(
-              cast(
-                hash(
-                  concat_ws('||',
-                    coalesce(header.employee_mailing_city, ''),
-                    coalesce(header.employee_mailing_state_code, ''),
-                    coalesce(header.employee_mailing_postal_code, ''),
-                    coalesce(header.employee_mailing_country, ''),
-                    coalesce(cast(header.employee_date_of_birth as varchar), ''),
-                    coalesce(header.employee_gender_code, '')
-                  ),
-                  'xxhash64'
-                ) % 1000000000
-              as varchar),
-              9,
-              '0'
-            )
-          else header.patient_account_number
-        end as person_id,
+        {{ derive_person_id('header') }} as person_id,
         cast(null as integer) as device_concept_id,
         CASE WHEN detail.service_line_from_date = 'N' THEN NULL
             ELSE cast(detail.service_line_from_date as date) END as device_exposure_start_date,
@@ -99,27 +79,7 @@
             'xxhash64'
           ) % 1000000000
         as varchar) as device_exposure_id,
-        case
-          when header.patient_account_number is null or trim(header.patient_account_number) = ''
-            then lpad(
-              cast(
-                hash(
-                  concat_ws('||',
-                    coalesce(header.employee_mailing_city, ''),
-                    coalesce(header.employee_mailing_state_code, ''),
-                    coalesce(header.employee_mailing_postal_code, ''),
-                    coalesce(header.employee_mailing_country, ''),
-                    coalesce(cast(header.employee_date_of_birth as varchar), ''),
-                    coalesce(header.employee_gender_code, '')
-                  ),
-                  'xxhash64'
-                ) % 1000000000
-              as varchar),
-              9,
-              '0'
-            )
-          else header.patient_account_number
-        end as person_id,
+        {{ derive_person_id('header') }} as person_id,
         cast(null as integer) as device_concept_id,
         cast(detail.service_line_from_date as date) as device_exposure_start_date,
         cast(detail.service_line_from_date as timestamp) as device_exposure_start_datetime,
@@ -178,27 +138,7 @@
             'xxhash64'
           ) % 1000000000
         as varchar) as device_exposure_id,
-        case
-          when header.patient_account_number is null or trim(header.patient_account_number) = ''
-            then lpad(
-              cast(
-                hash(
-                  concat_ws('||',
-                    coalesce(header.employee_mailing_city, ''),
-                    coalesce(header.employee_mailing_state_code, ''),
-                    coalesce(header.employee_mailing_postal_code, ''),
-                    coalesce(header.employee_mailing_country, ''),
-                    coalesce(cast(header.employee_date_of_birth as varchar), ''),
-                    coalesce(header.employee_gender_code, '')
-                  ),
-                  'xxhash64'
-                ) % 1000000000
-              as varchar),
-              9,
-              '0'
-            )
-          else header.patient_account_number
-        end as person_id,
+        {{ derive_person_id('header') }} as person_id,
         cast(null as integer) as device_concept_id,
         CASE WHEN detail.service_line_from_date = 'N' THEN NULL
             ELSE cast(detail.service_line_from_date as date) END as device_exposure_start_date,
@@ -257,27 +197,7 @@
             'xxhash64'
           ) % 1000000000
         as varchar) as device_exposure_id,
-        case
-          when header.patient_account_number is null or trim(header.patient_account_number) = ''
-            then lpad(
-              cast(
-                hash(
-                  concat_ws('||',
-                    coalesce(header.employee_mailing_city, ''),
-                    coalesce(header.employee_mailing_state_code, ''),
-                    coalesce(header.employee_mailing_postal_code, ''),
-                    coalesce(header.employee_mailing_country, ''),
-                    coalesce(cast(header.employee_date_of_birth as varchar), ''),
-                    coalesce(header.employee_gender_code, '')
-                  ),
-                  'xxhash64'
-                ) % 1000000000
-              as varchar),
-              9,
-              '0'
-            )
-          else header.patient_account_number
-        end as person_id,
+        {{ derive_person_id('header') }} as person_id,
         cast(null as integer) as device_concept_id,
         cast(detail.service_line_from_date as date) as device_exposure_start_date,
         cast(detail.service_line_from_date as timestamp) as device_exposure_start_datetime,
@@ -346,7 +266,7 @@ from (
 -- No source tables available - return empty result set with OMOP device_exposure schema
 select
     cast(null as varchar) as device_exposure_id,
-    cast(null as varchar) as person_id,
+    cast(null as integer) as person_id,
     cast(null as integer) as device_concept_id,
     cast(null as date) as device_exposure_start_date,
     cast(null as timestamp) as device_exposure_start_datetime,

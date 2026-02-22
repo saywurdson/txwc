@@ -1,6 +1,6 @@
 select
     cast(procedure_occurrence_id as integer) as procedure_occurrence_id,
-    cast(person_id as varchar) as person_id,
+    cast(person_id as integer) as person_id,
     cast(procedure_concept_id as varchar) as procedure_concept_id,
     cast(procedure_date as date) as procedure_date,
     cast(procedure_datetime as timestamp) as procedure_datetime,

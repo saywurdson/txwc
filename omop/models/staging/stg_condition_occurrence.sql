@@ -83,24 +83,7 @@
     )
     select
       cast(hash(concat_ws('||', base.row_id, base.bill_id), 'xxhash64') % 1000000000 as varchar) as condition_occurrence_id,
-      case
-        when base.patient_account_number is null or trim(base.patient_account_number) = ''
-        then lpad(
-          cast(
-            hash(concat_ws('||',
-              coalesce(base.employee_mailing_city, ''),
-              coalesce(base.employee_mailing_state_code, ''),
-              coalesce(base.employee_mailing_postal_code, ''),
-              coalesce(base.employee_mailing_country, ''),
-              coalesce(cast(base.employee_date_of_birth as varchar), ''),
-              coalesce(base.employee_gender_code, '')
-            ), 'xxhash64') % 1000000000 as varchar
-          ),
-          9,
-          '0'
-        )
-        else base.patient_account_number
-      end as person_id,
+      {{ derive_person_id('base') }} as person_id,
       cast(null as integer) as condition_concept_id,
       cast(base.reporting_period_start_date as date) as condition_start_date,
       cast(base.reporting_period_start_date as timestamp) as condition_start_datetime,
@@ -174,24 +157,7 @@
     )
     select
       cast(hash(concat_ws('||', base.row_id, base.bill_id), 'xxhash64') % 1000000000 as varchar) as condition_occurrence_id,
-      case
-        when base.patient_account_number is null or trim(base.patient_account_number) = ''
-        then lpad(
-          cast(
-            hash(concat_ws('||',
-              coalesce(base.employee_mailing_city, ''),
-              coalesce(base.employee_mailing_state_code, ''),
-              coalesce(base.employee_mailing_postal_code, ''),
-              coalesce(base.employee_mailing_country, ''),
-              coalesce(cast(base.employee_date_of_birth as varchar), ''),
-              coalesce(base.employee_gender_code, '')
-            ), 'xxhash64') % 1000000000 as varchar
-          ),
-          9,
-          '0'
-        )
-        else base.patient_account_number
-      end as person_id,
+      {{ derive_person_id('base') }} as person_id,
       cast(null as integer) as condition_concept_id,
       cast(base.reporting_period_start_date as date) as condition_start_date,
       cast(base.reporting_period_start_date as timestamp) as condition_start_datetime,
@@ -260,24 +226,7 @@
     )
     select
       cast(hash(concat_ws('||', base.row_id, base.bill_id), 'xxhash64') % 1000000000 as varchar) as condition_occurrence_id,
-      case
-        when base.patient_account_number is null or trim(base.patient_account_number) = ''
-        then lpad(
-          cast(
-            hash(concat_ws('||',
-              coalesce(base.employee_mailing_city, ''),
-              coalesce(base.employee_mailing_state_code, ''),
-              coalesce(base.employee_mailing_postal_code, ''),
-              coalesce(base.employee_mailing_country, ''),
-              coalesce(cast(base.employee_date_of_birth as varchar), ''),
-              coalesce(base.employee_gender_code, '')
-            ), 'xxhash64') % 1000000000 as varchar
-          ),
-          9,
-          '0'
-        )
-        else base.patient_account_number
-      end as person_id,
+      {{ derive_person_id('base') }} as person_id,
       cast(null as integer) as condition_concept_id,
       cast(base.reporting_period_start_date as date) as condition_start_date,
       cast(base.reporting_period_start_date as timestamp) as condition_start_datetime,
@@ -384,24 +333,7 @@
     )
     select
       cast(hash(concat_ws('||', base.row_id, base.bill_id), 'xxhash64') % 1000000000 as varchar) as condition_occurrence_id,
-      case
-        when base.patient_account_number is null or trim(base.patient_account_number) = ''
-        then lpad(
-          cast(
-            hash(concat_ws('||',
-              coalesce(base.employee_mailing_city, ''),
-              coalesce(base.employee_mailing_state_code, ''),
-              coalesce(base.employee_mailing_postal_code, ''),
-              coalesce(base.employee_mailing_country, ''),
-              coalesce(cast(base.employee_date_of_birth as varchar), ''),
-              coalesce(base.employee_gender_code, '')
-            ), 'xxhash64') % 1000000000 as varchar
-          ),
-          9,
-          '0'
-        )
-        else base.patient_account_number
-      end as person_id,
+      {{ derive_person_id('base') }} as person_id,
       cast(null as integer) as condition_concept_id,
       cast(base.reporting_period_start_date as date) as condition_start_date,
       cast(base.reporting_period_start_date as timestamp) as condition_start_datetime,
@@ -475,24 +407,7 @@
     )
     select
       cast(hash(concat_ws('||', base.row_id, base.bill_id), 'xxhash64') % 1000000000 as varchar) as condition_occurrence_id,
-      case
-        when base.patient_account_number is null or trim(base.patient_account_number) = ''
-        then lpad(
-          cast(
-            hash(concat_ws('||',
-              coalesce(base.employee_mailing_city, ''),
-              coalesce(base.employee_mailing_state_code, ''),
-              coalesce(base.employee_mailing_postal_code, ''),
-              coalesce(base.employee_mailing_country, ''),
-              coalesce(cast(base.employee_date_of_birth as varchar), ''),
-              coalesce(base.employee_gender_code, '')
-            ), 'xxhash64') % 1000000000 as varchar
-          ),
-          9,
-          '0'
-        )
-        else base.patient_account_number
-      end as person_id,
+      {{ derive_person_id('base') }} as person_id,
       cast(null as integer) as condition_concept_id,
       cast(base.reporting_period_start_date as date) as condition_start_date,
       cast(base.reporting_period_start_date as timestamp) as condition_start_datetime,
@@ -561,24 +476,7 @@
     )
     select
       cast(hash(concat_ws('||', base.row_id, base.bill_id), 'xxhash64') % 1000000000 as varchar) as condition_occurrence_id,
-      case
-        when base.patient_account_number is null or trim(base.patient_account_number) = ''
-        then lpad(
-          cast(
-            hash(concat_ws('||',
-              coalesce(base.employee_mailing_city, ''),
-              coalesce(base.employee_mailing_state_code, ''),
-              coalesce(base.employee_mailing_postal_code, ''),
-              coalesce(base.employee_mailing_country, ''),
-              coalesce(cast(base.employee_date_of_birth as varchar), ''),
-              coalesce(base.employee_gender_code, '')
-            ), 'xxhash64') % 1000000000 as varchar
-          ),
-          9,
-          '0'
-        )
-        else base.patient_account_number
-      end as person_id,
+      {{ derive_person_id('base') }} as person_id,
       cast(null as integer) as condition_concept_id,
       cast(base.reporting_period_start_date as date) as condition_start_date,
       cast(base.reporting_period_start_date as timestamp) as condition_start_datetime,
@@ -629,7 +527,7 @@ from (
 -- No source tables available - return empty result set with OMOP condition_occurrence schema
 select
     cast(null as varchar) as condition_occurrence_id,
-    cast(null as varchar) as person_id,
+    cast(null as integer) as person_id,
     cast(null as integer) as condition_concept_id,
     cast(null as date) as condition_start_date,
     cast(null as timestamp) as condition_start_datetime,

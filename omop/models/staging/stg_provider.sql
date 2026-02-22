@@ -1,5 +1,8 @@
 {% set has_current = check_table_exists('raw', 'institutional_header_current') %}
 {% set has_historical = check_table_exists('raw', 'institutional_header_historical') %}
+{% set has_inst_detail_current = check_table_exists('raw', 'institutional_detail_current') %}
+{% set has_prof_detail_current = check_table_exists('raw', 'professional_detail_current') %}
+{% set has_pharm_detail_current = check_table_exists('raw', 'pharmacy_detail_current') %}
 
 {% set has_prof_current_specialty = check_column_exists('raw', 'professional_header_current', 'referring_provider_specialty') %}
 {% set has_prof_historical_specialty = check_column_exists('raw', 'professional_header_historical', 'referring_provider_specialty') %}
@@ -159,7 +162,218 @@ pharmacy_header_current as (
     cast(null as varchar) as gender_source_value,
     cast(null as integer) as gender_source_concept_id
   from {{ source('raw', 'pharmacy_header_current') }}
+),
+-- Referring providers from all current headers
+referring_inst_current as (
+  select distinct
+    referring_provider_last_name as raw_last_name,
+    referring_provider_first as raw_first_name,
+    referring_provider_state as raw_state,
+    referring_provider_national as raw_npi,
+    concat(
+      referring_provider_last_name,
+      case when referring_provider_first is not null
+        then concat(', ', referring_provider_first) else '' end
+    ) as provider_name,
+    cast(null as varchar) as dea,
+    cast(null as integer) as specialty_concept_id,
+    cast(null as varchar) as care_site_id,
+    cast(null as integer) as year_of_birth,
+    cast(null as integer) as gender_concept_id,
+    referring_provider_state as provider_source_value,
+    cast(null as varchar) as specialty_source_value,
+    cast(null as integer) as specialty_source_concept_id,
+    cast(null as varchar) as gender_source_value,
+    cast(null as integer) as gender_source_concept_id
+  from {{ source('raw', 'institutional_header_current') }}
+  where referring_provider_last_name is not null
+),
+referring_prof_current as (
+  select distinct
+    referring_provider_last_name as raw_last_name,
+    referring_provider_first as raw_first_name,
+    referring_provider_state as raw_state,
+    referring_provider_national as raw_npi,
+    concat(
+      referring_provider_last_name,
+      case when referring_provider_first is not null
+        then concat(', ', referring_provider_first) else '' end
+    ) as provider_name,
+    cast(null as varchar) as dea,
+    cast(null as integer) as specialty_concept_id,
+    cast(null as varchar) as care_site_id,
+    cast(null as integer) as year_of_birth,
+    cast(null as integer) as gender_concept_id,
+    referring_provider_state as provider_source_value,
+    cast(null as varchar) as specialty_source_value,
+    cast(null as integer) as specialty_source_concept_id,
+    cast(null as varchar) as gender_source_value,
+    cast(null as integer) as gender_source_concept_id
+  from {{ source('raw', 'professional_header_current') }}
+  where referring_provider_last_name is not null
+),
+referring_pharm_current as (
+  select distinct
+    referring_provider_last_name as raw_last_name,
+    referring_provider_first as raw_first_name,
+    referring_provider_state as raw_state,
+    referring_provider_national as raw_npi,
+    concat(
+      referring_provider_last_name,
+      case when referring_provider_first is not null
+        then concat(', ', referring_provider_first) else '' end
+    ) as provider_name,
+    cast(null as varchar) as dea,
+    cast(null as integer) as specialty_concept_id,
+    cast(null as varchar) as care_site_id,
+    cast(null as integer) as year_of_birth,
+    cast(null as integer) as gender_concept_id,
+    referring_provider_state as provider_source_value,
+    cast(null as varchar) as specialty_source_value,
+    cast(null as integer) as specialty_source_concept_id,
+    cast(null as varchar) as gender_source_value,
+    cast(null as integer) as gender_source_concept_id
+  from {{ source('raw', 'pharmacy_header_current') }}
+  where referring_provider_last_name is not null
 )
+-- Billing providers from all current headers
+,billing_inst_current as (
+  select distinct
+    billing_provider_last_name as raw_last_name,
+    billing_provider_first_name as raw_first_name,
+    billing_provider_state_code as raw_state,
+    billing_provider_national as raw_npi,
+    concat(
+      billing_provider_last_name,
+      case when billing_provider_first_name is not null
+        then concat(', ', billing_provider_first_name) else '' end
+    ) as provider_name,
+    cast(null as varchar) as dea,
+    cast(null as integer) as specialty_concept_id,
+    cast(null as varchar) as care_site_id,
+    cast(null as integer) as year_of_birth,
+    cast(null as integer) as gender_concept_id,
+    billing_provider_state_code as provider_source_value,
+    cast(null as varchar) as specialty_source_value,
+    cast(null as integer) as specialty_source_concept_id,
+    cast(null as varchar) as gender_source_value,
+    cast(null as integer) as gender_source_concept_id
+  from {{ source('raw', 'institutional_header_current') }}
+  where billing_provider_national is not null
+)
+,billing_prof_current as (
+  select distinct
+    billing_provider_last_name as raw_last_name,
+    billing_provider_first_name as raw_first_name,
+    billing_provider_state_code as raw_state,
+    billing_provider_national as raw_npi,
+    concat(
+      billing_provider_last_name,
+      case when billing_provider_first_name is not null
+        then concat(', ', billing_provider_first_name) else '' end
+    ) as provider_name,
+    cast(null as varchar) as dea,
+    cast(null as integer) as specialty_concept_id,
+    cast(null as varchar) as care_site_id,
+    cast(null as integer) as year_of_birth,
+    cast(null as integer) as gender_concept_id,
+    billing_provider_state_code as provider_source_value,
+    cast(null as varchar) as specialty_source_value,
+    cast(null as integer) as specialty_source_concept_id,
+    cast(null as varchar) as gender_source_value,
+    cast(null as integer) as gender_source_concept_id
+  from {{ source('raw', 'professional_header_current') }}
+  where billing_provider_national is not null
+)
+,billing_pharm_current as (
+  select distinct
+    billing_provider_last_name as raw_last_name,
+    cast(null as varchar) as raw_first_name,
+    billing_provider_state_code as raw_state,
+    billing_provider_national as raw_npi,
+    billing_provider_last_name as provider_name,
+    cast(null as varchar) as dea,
+    cast(null as integer) as specialty_concept_id,
+    cast(null as varchar) as care_site_id,
+    cast(null as integer) as year_of_birth,
+    cast(null as integer) as gender_concept_id,
+    billing_provider_state_code as provider_source_value,
+    cast(null as varchar) as specialty_source_value,
+    cast(null as integer) as specialty_source_concept_id,
+    cast(null as varchar) as gender_source_value,
+    cast(null as integer) as gender_source_concept_id
+  from {{ source('raw', 'pharmacy_header_current') }}
+  where billing_provider_national is not null
+)
+{% if has_inst_detail_current %}
+,rendering_line_inst_current as (
+  select distinct
+    cast(null as varchar) as raw_last_name,
+    cast(null as varchar) as raw_first_name,
+    cast(null as varchar) as raw_state,
+    rendering_line_provider as raw_npi,
+    cast(null as varchar) as provider_name,
+    cast(null as varchar) as dea,
+    cast(null as integer) as specialty_concept_id,
+    cast(null as varchar) as care_site_id,
+    cast(null as integer) as year_of_birth,
+    cast(null as integer) as gender_concept_id,
+    rendering_line_provider as provider_source_value,
+    cast(null as varchar) as specialty_source_value,
+    cast(null as integer) as specialty_source_concept_id,
+    cast(null as varchar) as gender_source_value,
+    cast(null as integer) as gender_source_concept_id
+  from {{ source('raw', 'institutional_detail_current') }}
+  where rendering_line_provider is not null
+    and regexp_matches(rendering_line_provider, '^[0-9]{10}$')
+)
+{% endif %}
+{% if has_prof_detail_current %}
+,rendering_line_prof_current as (
+  select distinct
+    cast(null as varchar) as raw_last_name,
+    cast(null as varchar) as raw_first_name,
+    cast(null as varchar) as raw_state,
+    rendering_line_provider as raw_npi,
+    cast(null as varchar) as provider_name,
+    cast(null as varchar) as dea,
+    cast(null as integer) as specialty_concept_id,
+    cast(null as varchar) as care_site_id,
+    cast(null as integer) as year_of_birth,
+    cast(null as integer) as gender_concept_id,
+    rendering_line_provider as provider_source_value,
+    cast(null as varchar) as specialty_source_value,
+    cast(null as integer) as specialty_source_concept_id,
+    cast(null as varchar) as gender_source_value,
+    cast(null as integer) as gender_source_concept_id
+  from {{ source('raw', 'professional_detail_current') }}
+  where rendering_line_provider is not null
+    and regexp_matches(rendering_line_provider, '^[0-9]{10}$')
+)
+{% endif %}
+{% if has_pharm_detail_current %}
+,rendering_line_pharm_current as (
+  select distinct
+    cast(null as varchar) as raw_last_name,
+    cast(null as varchar) as raw_first_name,
+    cast(null as varchar) as raw_state,
+    rendering_line_provider as raw_npi,
+    cast(null as varchar) as provider_name,
+    cast(null as varchar) as dea,
+    cast(null as integer) as specialty_concept_id,
+    cast(null as varchar) as care_site_id,
+    cast(null as integer) as year_of_birth,
+    cast(null as integer) as gender_concept_id,
+    rendering_line_provider as provider_source_value,
+    cast(null as varchar) as specialty_source_value,
+    cast(null as integer) as specialty_source_concept_id,
+    cast(null as varchar) as gender_source_value,
+    cast(null as integer) as gender_source_concept_id
+  from {{ source('raw', 'pharmacy_detail_current') }}
+  where rendering_line_provider is not null
+    and regexp_matches(rendering_line_provider, '^[0-9]{10}$')
+)
+{% endif %}
   {% endset %}
   {% do cte_queries.append(query) %}
 {% endif %}
@@ -311,6 +525,79 @@ pharmacy_header_historical as (
     cast(null as varchar) as gender_source_value,
     cast(null as integer) as gender_source_concept_id
   from {{ source('raw', 'pharmacy_header_historical') }}
+),
+-- Referring providers from all historical headers
+referring_inst_historical as (
+  select distinct
+    referring_provider_last_name as raw_last_name,
+    referring_provider_first as raw_first_name,
+    referring_provider_state as raw_state,
+    referring_provider_national as raw_npi,
+    concat(
+      referring_provider_last_name,
+      case when referring_provider_first is not null
+        then concat(', ', referring_provider_first) else '' end
+    ) as provider_name,
+    cast(null as varchar) as dea,
+    cast(null as integer) as specialty_concept_id,
+    cast(null as varchar) as care_site_id,
+    cast(null as integer) as year_of_birth,
+    cast(null as integer) as gender_concept_id,
+    referring_provider_state as provider_source_value,
+    cast(null as varchar) as specialty_source_value,
+    cast(null as integer) as specialty_source_concept_id,
+    cast(null as varchar) as gender_source_value,
+    cast(null as integer) as gender_source_concept_id
+  from {{ source('raw', 'institutional_header_historical') }}
+  where referring_provider_last_name is not null
+),
+referring_prof_historical as (
+  select distinct
+    referring_provider_last_name as raw_last_name,
+    referring_provider_first as raw_first_name,
+    referring_provider_state as raw_state,
+    referring_provider_national as raw_npi,
+    concat(
+      referring_provider_last_name,
+      case when referring_provider_first is not null
+        then concat(', ', referring_provider_first) else '' end
+    ) as provider_name,
+    cast(null as varchar) as dea,
+    cast(null as integer) as specialty_concept_id,
+    cast(null as varchar) as care_site_id,
+    cast(null as integer) as year_of_birth,
+    cast(null as integer) as gender_concept_id,
+    referring_provider_state as provider_source_value,
+    cast(null as varchar) as specialty_source_value,
+    cast(null as integer) as specialty_source_concept_id,
+    cast(null as varchar) as gender_source_value,
+    cast(null as integer) as gender_source_concept_id
+  from {{ source('raw', 'professional_header_historical') }}
+  where referring_provider_last_name is not null
+),
+referring_pharm_historical as (
+  select distinct
+    referring_provider_last_name as raw_last_name,
+    referring_provider_first as raw_first_name,
+    referring_provider_state as raw_state,
+    referring_provider_national as raw_npi,
+    concat(
+      referring_provider_last_name,
+      case when referring_provider_first is not null
+        then concat(', ', referring_provider_first) else '' end
+    ) as provider_name,
+    cast(null as varchar) as dea,
+    cast(null as integer) as specialty_concept_id,
+    cast(null as varchar) as care_site_id,
+    cast(null as integer) as year_of_birth,
+    cast(null as integer) as gender_concept_id,
+    referring_provider_state as provider_source_value,
+    cast(null as varchar) as specialty_source_value,
+    cast(null as integer) as specialty_source_concept_id,
+    cast(null as varchar) as gender_source_value,
+    cast(null as integer) as gender_source_concept_id
+  from {{ source('raw', 'pharmacy_header_historical') }}
+  where referring_provider_last_name is not null
 )
   {% endset %}
   {% do cte_queries.append(query) %}
@@ -318,7 +605,7 @@ pharmacy_header_historical as (
 
 {% if has_current or has_historical %}
 with {{ cte_queries | join(",\n") }},
--- Combine all raw provider data
+-- Combine all raw provider data (rendering + referring)
 all_providers_raw as (
   {% if has_current %}
     select * from institutional_header_current
@@ -326,6 +613,30 @@ all_providers_raw as (
     select * from professional_header_current
     union all
     select * from pharmacy_header_current
+    union all
+    select * from referring_inst_current
+    union all
+    select * from referring_prof_current
+    union all
+    select * from referring_pharm_current
+    union all
+    select * from billing_inst_current
+    union all
+    select * from billing_prof_current
+    union all
+    select * from billing_pharm_current
+    {% if has_inst_detail_current %}
+    union all
+    select * from rendering_line_inst_current
+    {% endif %}
+    {% if has_prof_detail_current %}
+    union all
+    select * from rendering_line_prof_current
+    {% endif %}
+    {% if has_pharm_detail_current %}
+    union all
+    select * from rendering_line_pharm_current
+    {% endif %}
   {% endif %}
   {% if has_current and has_historical %}
     union all
@@ -336,6 +647,12 @@ all_providers_raw as (
     select * from professional_header_historical
     union all
     select * from pharmacy_header_historical
+    union all
+    select * from referring_inst_historical
+    union all
+    select * from referring_prof_historical
+    union all
+    select * from referring_pharm_historical
   {% endif %}
 ),
 -- Build a lookup of valid NPIs by provider name (last, first)

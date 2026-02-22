@@ -22,23 +22,7 @@
   institutional_detail_current as (
     select
       cast(hash(concat_ws('||', d.bill_id, d.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
-      case
-        when h.patient_account_number is null or trim(h.patient_account_number) = '' then lpad(
-          cast(
-            hash(concat_ws('||',
-              coalesce(h.employee_mailing_city, ''),
-              coalesce(h.employee_mailing_state_code, ''),
-              coalesce(h.employee_mailing_postal_code, ''),
-              coalesce(h.employee_mailing_country, ''),
-              coalesce(cast(h.employee_date_of_birth as varchar), ''),
-              coalesce(h.employee_gender_code, '')
-            ), 'xxhash64') % 1000000000 as varchar
-          ),
-          9,
-          '0'
-        )
-        else h.patient_account_number
-      end as person_id,
+      {{ derive_person_id('h') }} as person_id,
       {{ visit_detail_concept_mapping['institutional'] }} as visit_detail_concept_id,
       CASE WHEN d.service_line_from_date = 'N' THEN NULL
           ELSE try_cast(d.service_line_from_date as date) END as visit_detail_start_date,
@@ -86,23 +70,7 @@
   professional_detail_current as (
     select
       cast(hash(concat_ws('||', d.bill_id, d.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
-      case
-        when h.patient_account_number is null or trim(h.patient_account_number) = '' then lpad(
-          cast(
-            hash(concat_ws('||',
-              coalesce(h.employee_mailing_city, ''),
-              coalesce(h.employee_mailing_state_code, ''),
-              coalesce(h.employee_mailing_postal_code, ''),
-              coalesce(h.employee_mailing_country, ''),
-              coalesce(cast(h.employee_date_of_birth as varchar), ''),
-              coalesce(h.employee_gender_code, '')
-            ), 'xxhash64') % 1000000000 as varchar
-          ),
-          9,
-          '0'
-        )
-        else h.patient_account_number
-      end as person_id,
+      {{ derive_person_id('h') }} as person_id,
       {{ visit_detail_concept_mapping['professional'] }} as visit_detail_concept_id,
       try_cast(d.service_line_from_date as date) as visit_detail_start_date,
       try_cast(d.service_line_from_date as timestamp) as visit_detail_start_datetime,
@@ -149,23 +117,7 @@
   pharmacy_detail_current as (
     select
       cast(hash(concat_ws('||', d.bill_id, d.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
-      case
-        when h.patient_account_number is null or trim(h.patient_account_number) = '' then lpad(
-          cast(
-            hash(concat_ws('||',
-              coalesce(h.employee_mailing_city, ''),
-              coalesce(h.employee_mailing_state_code, ''),
-              coalesce(h.employee_mailing_postal_code, ''),
-              coalesce(h.employee_mailing_country, ''),
-              coalesce(cast(h.employee_date_of_birth as varchar), ''),
-              coalesce(h.employee_gender_code, '')
-            ), 'xxhash64') % 1000000000 as varchar
-          ),
-          9,
-          '0'
-        )
-        else h.patient_account_number
-      end as person_id,
+      {{ derive_person_id('h') }} as person_id,
       {{ visit_detail_concept_mapping['pharmacy'] }} as visit_detail_concept_id,
       coalesce(try_cast(d.service_line_from_date as date), try_cast(d.prescription_line_date as date)) as visit_detail_start_date,
       coalesce(try_cast(d.service_line_from_date as timestamp), try_cast(d.prescription_line_date as timestamp)) as visit_detail_start_datetime,
@@ -214,23 +166,7 @@
   institutional_detail_historical as (
     select
       cast(hash(concat_ws('||', d.bill_id, d.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
-      case
-        when h.patient_account_number is null or trim(h.patient_account_number) = '' then lpad(
-          cast(
-            hash(concat_ws('||',
-              coalesce(h.employee_mailing_city, ''),
-              coalesce(h.employee_mailing_state_code, ''),
-              coalesce(h.employee_mailing_postal_code, ''),
-              coalesce(h.employee_mailing_country, ''),
-              coalesce(cast(h.employee_date_of_birth as varchar), ''),
-              coalesce(h.employee_gender_code, '')
-            ), 'xxhash64') % 1000000000 as varchar
-          ),
-          9,
-          '0'
-        )
-        else h.patient_account_number
-      end as person_id,
+      {{ derive_person_id('h') }} as person_id,
       {{ visit_detail_concept_mapping['institutional'] }} as visit_detail_concept_id,
       CASE WHEN d.service_line_from_date = 'N' THEN NULL
           ELSE try_cast(d.service_line_from_date as date) END as visit_detail_start_date,
@@ -278,23 +214,7 @@
   professional_detail_historical as (
     select
       cast(hash(concat_ws('||', d.bill_id, d.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
-      case
-        when h.patient_account_number is null or trim(h.patient_account_number) = '' then lpad(
-          cast(
-            hash(concat_ws('||',
-              coalesce(h.employee_mailing_city, ''),
-              coalesce(h.employee_mailing_state_code, ''),
-              coalesce(h.employee_mailing_postal_code, ''),
-              coalesce(h.employee_mailing_country, ''),
-              coalesce(cast(h.employee_date_of_birth as varchar), ''),
-              coalesce(h.employee_gender_code, '')
-            ), 'xxhash64') % 1000000000 as varchar
-          ),
-          9,
-          '0'
-        )
-        else h.patient_account_number
-      end as person_id,
+      {{ derive_person_id('h') }} as person_id,
       {{ visit_detail_concept_mapping['professional'] }} as visit_detail_concept_id,
       try_cast(d.service_line_from_date as date) as visit_detail_start_date,
       try_cast(d.service_line_from_date as timestamp) as visit_detail_start_datetime,
@@ -341,23 +261,7 @@
   pharmacy_detail_historical as (
     select
       cast(hash(concat_ws('||', d.bill_id, d.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
-      case
-        when h.patient_account_number is null or trim(h.patient_account_number) = '' then lpad(
-          cast(
-            hash(concat_ws('||',
-              coalesce(h.employee_mailing_city, ''),
-              coalesce(h.employee_mailing_state_code, ''),
-              coalesce(h.employee_mailing_postal_code, ''),
-              coalesce(h.employee_mailing_country, ''),
-              coalesce(cast(h.employee_date_of_birth as varchar), ''),
-              coalesce(h.employee_gender_code, '')
-            ), 'xxhash64') % 1000000000 as varchar
-          ),
-          9,
-          '0'
-        )
-        else h.patient_account_number
-      end as person_id,
+      {{ derive_person_id('h') }} as person_id,
       {{ visit_detail_concept_mapping['pharmacy'] }} as visit_detail_concept_id,
       coalesce(try_cast(d.service_line_from_date as date), try_cast(d.prescription_line_date as date)) as visit_detail_start_date,
       coalesce(try_cast(d.service_line_from_date as timestamp), try_cast(d.prescription_line_date as timestamp)) as visit_detail_start_datetime,
@@ -423,7 +327,7 @@ from (
 -- No source tables available - return empty result set with OMOP visit_detail schema
 select
     cast(null as varchar) as visit_detail_id,
-    cast(null as varchar) as person_id,
+    cast(null as integer) as person_id,
     cast(null as integer) as visit_detail_concept_id,
     cast(null as date) as visit_detail_start_date,
     cast(null as timestamp) as visit_detail_start_datetime,

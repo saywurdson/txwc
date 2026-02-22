@@ -1,6 +1,6 @@
 select
     cast(visit_occurrence_id as integer) as visit_occurrence_id,
-    cast(person_id as varchar) as person_id,
+    cast(person_id as integer) as person_id,
     cast(visit_concept_id as varchar) as visit_concept_id,
     cast(visit_start_date as date) as visit_start_date,
     cast(visit_start_datetime as timestamp) as visit_start_datetime,

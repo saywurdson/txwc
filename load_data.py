@@ -1,15 +1,14 @@
 import os
 import requests
-import math
 import time
 import argparse
 import logging
 import duckdb
 import shutil
 import json
-from datetime import datetime, timedelta
+import random
+from datetime import datetime
 from dotenv import load_dotenv
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm import tqdm
 
 load_dotenv()
@@ -224,9 +223,11 @@ def fetch_batch_incremental(dataset_identifier, name, time_period,
     return None, None
 
 def fetch_data(dataset_identifier, name, time_period,
-               tracker, limit_per_page=3000, max_pages=None, max_workers=None):
+               tracker, limit_per_page=3000, max_pages=None):
     """
-    Smart fetch that does full refresh for current, incremental for historical
+    Smart fetch that does full refresh for current, incremental for historical.
+    Uses serial ID-based pagination (each batch depends on the last_id of the
+    previous batch, so batches within a dataset cannot be parallelized).
     """
     session = create_session()
     
@@ -268,20 +269,6 @@ def fetch_data(dataset_identifier, name, time_period,
         if total_records > max_records:
             logging.info(f"Limiting to {max_pages} pages ({max_records:,} records)")
             total_records = max_records
-    
-    # Adaptive worker count - practical sweet spot (3-4 workers)
-    if max_workers is None:  # Auto-scale if not specified
-        if total_records > 500000:
-            max_workers = 3  # Large datasets: 3 workers
-            logging.info(f"Using {max_workers} workers for large dataset")
-        elif total_records > 100000:
-            max_workers = 3  # Medium: 3 workers
-            logging.info(f"Using {max_workers} workers for medium dataset")
-        else:
-            max_workers = 4  # Small datasets: 4 workers (safe since less data)
-            logging.info(f"Using {max_workers} workers for small dataset")
-    else:
-        logging.info(f"Using user-specified {max_workers} workers")
     
     rate_limiter = AdaptiveRateLimiter()
     files = []
@@ -334,61 +321,99 @@ def fetch_data(dataset_identifier, name, time_period,
     
     return files, last_id, total_synced
 
-def process_datasets(datasets, conn, limit_per_page=3000, max_pages=None, max_workers=None):
-    """Process datasets with smart update strategy"""
+def process_datasets(datasets, conn, limit_per_page=3000, max_pages=None):
+    """Process datasets with smart update strategy.
+
+    Datasets are fetched serially to stay within Socrata API rate limits
+    (shared per app token). Within each dataset, ID-based pagination is
+    inherently sequential.
+    """
     dataset_files = {}
     tracker = UpdateTracker(conn)
-    
+
     # Separate current and historical datasets
     current_datasets = {k: v for k, v in datasets.items() if v[1] == 'current'}
     historical_datasets = {k: v for k, v in datasets.items() if v[1] == 'historical'}
-    
+
     # Process current tables (full refresh)
     if current_datasets:
         logging.info("=" * 60)
         logging.info("PROCESSING CURRENT TABLES (Full Refresh)")
         logging.info("=" * 60)
-        
-        for ds_id, (name, period) in tqdm(current_datasets.items(), 
+
+        for ds_id, (name, period) in tqdm(current_datasets.items(),
                                          desc="Current tables"):
             jsons, last_id, total = fetch_data(
-                ds_id, name, period, tracker, limit_per_page, max_pages, max_workers
+                ds_id, name, period, tracker, limit_per_page, max_pages
             )
             if jsons:
                 dataset_files[f"{name}_{period}"] = jsons
-    
+
     # Process historical tables (incremental update)
     if historical_datasets:
         logging.info("=" * 60)
         logging.info("PROCESSING HISTORICAL TABLES (Incremental Update)")
         logging.info("=" * 60)
-        
-        for ds_id, (name, period) in tqdm(historical_datasets.items(), 
+
+        for ds_id, (name, period) in tqdm(historical_datasets.items(),
                                          desc="Historical tables"):
             jsons, last_id, total = fetch_data(
-                ds_id, name, period, tracker, limit_per_page, max_pages, max_workers
+                ds_id, name, period, tracker, limit_per_page, max_pages
             )
             if jsons:
                 dataset_files[f"{name}_{period}"] = jsons
-    
+
     return dataset_files
 
-def load_to_database(conn, selected_datasets, dataset_files):
+def ensure_full_schema(conn, ds_id, tbl, session):
+    """Fetch the full column list from Socrata metadata and add any missing columns."""
+    try:
+        url = f"https://data.texas.gov/api/views/{ds_id}/columns.json"
+        resp = session.get(url, timeout=30)
+        resp.raise_for_status()
+        meta_cols = resp.json()
+
+        # Socrata field names (lowercase, underscored) — skip internal columns
+        api_columns = set()
+        for col in meta_cols:
+            fn = col.get('fieldName', '')
+            if fn.startswith(':'):
+                continue
+            api_columns.add(fn)
+
+        # Columns already in the DuckDB table
+        existing = {r[0] for r in conn.execute(
+            f"SELECT column_name FROM information_schema.columns "
+            f"WHERE table_schema='raw' AND table_name='{tbl}'"
+        ).fetchall()}
+
+        missing = api_columns - existing
+        if missing:
+            for col_name in sorted(missing):
+                conn.execute(f'ALTER TABLE raw.{tbl} ADD COLUMN "{col_name}" VARCHAR;')
+            logging.info(f"  Added {len(missing)} missing columns to raw.{tbl}: "
+                         f"{', '.join(sorted(missing))}")
+    except Exception as e:
+        logging.warning(f"Could not pad schema for raw.{tbl}: {e}")
+
+
+def load_to_database(conn, selected_datasets, dataset_files, force_replace=False):
     """Load data into database with appropriate strategy"""
-    
-    for ds_id, (name, period) in tqdm(selected_datasets.items(), 
+    session = create_session()
+
+    for ds_id, (name, period) in tqdm(selected_datasets.items(),
                                      desc="Loading into database"):
         tbl = f"{name}_{period}"
         json_files = dataset_files.get(tbl, [])
         if not json_files:
             continue
-        
+
         json_dir = os.path.dirname(json_files[0])
         glob_name = f"{name}_{period}_*.json"
         json_path_glob = os.path.join(json_dir, glob_name)
-        
-        # For CURRENT tables: DROP and RECREATE
-        if period == 'current':
+
+        # For CURRENT tables (or force_replace): DROP and RECREATE
+        if period == 'current' or force_replace:
             logging.info(f"Dropping and recreating current table: raw.{tbl}")
             conn.execute(f"DROP TABLE IF EXISTS raw.{tbl};")
             
@@ -400,17 +425,18 @@ def load_to_database(conn, selected_datasets, dataset_files):
                     CAST(":updated_at" AS VARCHAR) AS updated_at,
                     CAST(":version" AS VARCHAR) AS version,
                     * EXCLUDE(":id", ":created_at", ":updated_at", ":version")
-                FROM read_json_auto('{json_path_glob}', 
-                                    auto_detect=True, 
-                                    sample_size=-1, 
-                                    maximum_depth=-1, 
+                FROM read_json_auto('{json_path_glob}',
+                                    auto_detect=True,
+                                    sample_size=20,
+                                    maximum_depth=-1,
                                     union_by_name=True);
             """)
-            
+
             row_count = conn.execute(f"SELECT COUNT(*) FROM raw.{tbl}").fetchone()[0]
             logging.info(f"  Loaded {row_count:,} records into raw.{tbl}")
-        
-        # For HISTORICAL tables: Handle schema evolution
+            ensure_full_schema(conn, ds_id, tbl, session)
+
+        # For HISTORICAL tables: Handle schema evolution (sample_size=-1 scans all files for full schema)
         else:
             logging.info(f"Incrementally updating historical table: raw.{tbl}")
             
@@ -438,6 +464,7 @@ def load_to_database(conn, selected_datasets, dataset_files):
                 """)
                 new_count = conn.execute(f"SELECT COUNT(*) FROM raw.{tbl}").fetchone()[0]
                 logging.info(f"  Created table with {new_count:,} records")
+                ensure_full_schema(conn, ds_id, tbl, session)
             else:
                 # Get existing count
                 existing_count = conn.execute(f"SELECT COUNT(*) FROM raw.{tbl}").fetchone()[0]
@@ -503,6 +530,7 @@ def load_to_database(conn, selected_datasets, dataset_files):
                 new_count = conn.execute(f"SELECT COUNT(*) FROM raw.{tbl}").fetchone()[0]
                 added = new_count - existing_count
                 logging.info(f"  Added {added:,} new records to raw.{tbl} (total: {new_count:,})")
+                ensure_full_schema(conn, ds_id, tbl, session)
 
 def generate_summary_report(conn):
     """Generate a summary report of the database status"""
@@ -538,25 +566,28 @@ def generate_summary_report(conn):
                 logging.info(f"  {table_name}: {count:,} records ({date_info[0]} to {date_info[1]})")
             else:
                 logging.info(f"  {table_name}: {count:,} records")
-        except:
+        except Exception:
             logging.info(f"  {table_name}: {count:,} records")
     
     logging.info(f"\nTotal records across all tables: {total_records:,}")
     
-    # Show sync status
-    logging.info("\nSync Status:")
-    sync_status = conn.execute("""
-        SELECT 
-            table_name,
-            sync_method,
-            last_sync_time,
-            total_records_synced
-        FROM metadata.sync_status
-        ORDER BY last_sync_time DESC
-    """).fetchall()
-    
-    for status in sync_status:
-        logging.info(f"  {status[0]}: {status[1]} sync at {status[2]} ({status[3]:,} total records)")
+    # Show sync status (may not exist in sampled mode)
+    try:
+        logging.info("\nSync Status:")
+        sync_status = conn.execute("""
+            SELECT
+                table_name,
+                sync_method,
+                last_sync_time,
+                total_records_synced
+            FROM metadata.sync_status
+            ORDER BY last_sync_time DESC
+        """).fetchall()
+
+        for status in sync_status:
+            logging.info(f"  {status[0]}: {status[1]} sync at {status[2]} ({status[3]:,} total records)")
+    except duckdb.CatalogException:
+        pass
 
 def filter_datasets(all_datasets, ds_type='all', time_period='all'):
     """Filter datasets by type and time period"""
@@ -568,6 +599,355 @@ def filter_datasets(all_datasets, ds_type='all', time_period='all'):
             continue
         filtered[ds_id] = (name, period)
     return filtered
+
+def build_dataset_index(datasets):
+    """Reorganize datasets dict into {claim_type: {period: {role: ds_id}}}
+
+    Example output:
+        {'professional': {'current': {'header': 'pvi6-huub', 'detail': 'c7b4-gune'}, ...}}
+    """
+    index = {}
+    for ds_id, (name, period) in datasets.items():
+        # name is like "professional_header" or "pharmacy_detail"
+        parts = name.rsplit('_', 1)
+        if len(parts) != 2:
+            continue
+        claim_type, role = parts  # e.g. ("professional", "header")
+        index.setdefault(claim_type, {}).setdefault(period, {})[role] = ds_id
+    return index
+
+
+def build_where_in(column, values, batch_size=400):
+    """Split values into batched WHERE IN clauses.
+
+    Returns a list of SoQL $where strings like:
+        "patient_account_number IN ('A','B','C')"
+    Each clause contains at most *batch_size* values to stay under URL limits.
+    """
+    clauses = []
+    values = list(values)
+    for i in range(0, len(values), batch_size):
+        batch = values[i:i + batch_size]
+        escaped = [v.replace("'", "''") for v in batch]
+        in_list = ",".join(f"'{v}'" for v in escaped)
+        clauses.append(f"{column} IN ({in_list})")
+    return clauses
+
+
+def discover_patients(datasets, session, rate_limiter):
+    """Discover patient_account_numbers from all header datasets.
+
+    Uses SoQL aggregation to get distinct patients (non-null only) from each
+    header table in the selected datasets. Returns a set of patient_account_numbers.
+    """
+    index = build_dataset_index(datasets)
+    all_patients = set()
+
+    for claim_type, periods in index.items():
+        for period, roles in periods.items():
+            ds_id = roles.get('header')
+            if not ds_id:
+                continue
+
+            url = f"https://data.texas.gov/resource/{ds_id}.json"
+            params = {
+                "$select": "patient_account_number",
+                "$group": "patient_account_number",
+                "$where": "patient_account_number IS NOT NULL",
+                "$limit": 50000,
+            }
+
+            rate_limiter.wait()
+            start = time.time()
+            try:
+                resp = session.get(url, params=params, timeout=60)
+                resp.raise_for_status()
+                rate_limiter.record_response(time.time() - start, resp.status_code)
+                rows = resp.json()
+                pans = {r['patient_account_number'] for r in rows
+                        if r.get('patient_account_number')}
+                logging.info(f"  {claim_type} {period} header: {len(pans):,} distinct patients")
+                all_patients.update(pans)
+            except Exception as e:
+                logging.warning(f"Failed to discover patients from {ds_id}: {e}")
+
+    return all_patients
+
+
+def discover_complex_patients(datasets, session, rate_limiter):
+    """Discover patients with bill counts per claim type for complexity scoring.
+
+    Queries all header tables in the selected datasets (non-null patients only).
+    Returns dict: {patient_account_number: {claim_type: bill_count, ...}}
+    """
+    index = build_dataset_index(datasets)
+    patient_scores = {}  # pan -> {claim_type: count}
+
+    for claim_type, periods in index.items():
+        for period, roles in periods.items():
+            ds_id = roles.get('header')
+            if not ds_id:
+                continue
+
+            url = f"https://data.texas.gov/resource/{ds_id}.json"
+            params = {
+                "$select": "patient_account_number, count(*) as bill_count",
+                "$group": "patient_account_number",
+                "$where": "patient_account_number IS NOT NULL",
+                "$order": "bill_count DESC",
+                "$limit": 50000,
+            }
+
+            rate_limiter.wait()
+            start = time.time()
+            try:
+                resp = session.get(url, params=params, timeout=60)
+                resp.raise_for_status()
+                rate_limiter.record_response(time.time() - start, resp.status_code)
+                rows = resp.json()
+                for r in rows:
+                    pan = r.get('patient_account_number')
+                    if not pan:
+                        continue
+                    count = int(r.get('bill_count', 0))
+                    patient_scores.setdefault(pan, {})
+                    patient_scores[pan][claim_type] = (
+                        patient_scores[pan].get(claim_type, 0) + count
+                    )
+                logging.info(f"  {claim_type} {period} header: {len(rows):,} patients with counts")
+            except Exception as e:
+                logging.warning(f"Failed to discover complex patients from {ds_id}: {e}")
+
+    return patient_scores
+
+
+def select_patients(all_patients, n):
+    """Randomly sample N patients from the pool."""
+    pool = list(all_patients)
+    if len(pool) <= n:
+        logging.info(f"Patient pool ({len(pool)}) <= requested sample ({n}), using all")
+        return set(pool)
+    selected = set(random.sample(pool, n))
+    logging.info(f"Randomly selected {len(selected)} patients from pool of {len(pool):,}")
+    return selected
+
+
+def select_complex_patients(patient_scores, n):
+    """Select top N patients by complexity score.
+
+    Score = total_bill_count * number_of_distinct_claim_types
+    """
+    scored = []
+    for pan, type_counts in patient_scores.items():
+        total_bills = sum(type_counts.values())
+        num_types = len(type_counts)
+        score = total_bills * num_types
+        scored.append((score, total_bills, num_types, pan))
+
+    scored.sort(reverse=True)
+    selected = {pan for _, _, _, pan in scored[:n]}
+
+    if scored[:n]:
+        top = scored[0]
+        bottom = scored[min(n - 1, len(scored) - 1)]
+        logging.info(
+            f"Selected {len(selected)} complex patients "
+            f"(top score: {top[0]}, bills={top[1]}, types={top[2]}; "
+            f"cutoff score: {bottom[0]}, bills={bottom[1]}, types={bottom[2]})"
+        )
+    return selected
+
+
+def fetch_filtered(ds_id, name, period, where_clause, session, rate_limiter,
+                   limit_per_page=3000):
+    """Fetch all records from a dataset matching a $where clause.
+
+    Uses offset-based pagination. Returns list of saved JSON file paths.
+    """
+    url = f"https://data.texas.gov/resource/{ds_id}.json"
+    files = []
+    offset = 0
+    batch_num = 0
+
+    while True:
+        params = {
+            "$where": where_clause,
+            "$limit": limit_per_page,
+            "$offset": offset,
+            "$select": ":*, *",
+            "$order": ":id",
+        }
+
+        rate_limiter.wait()
+        start = time.time()
+        retries = 0
+        max_retries = 5
+        data = None
+
+        while retries <= max_retries:
+            try:
+                resp = session.get(url, params=params, timeout=60)
+                resp.raise_for_status()
+                rate_limiter.record_response(time.time() - start, resp.status_code)
+                data = resp.json()
+                break
+            except requests.exceptions.RequestException as e:
+                retries += 1
+                if retries > max_retries:
+                    logging.error(f"Max retries for {ds_id} batch {batch_num}: {e}")
+                    return files
+                sleep_time = 1 * (2 ** retries)
+                logging.warning(f"Retry {retries} for {ds_id} batch {batch_num}: {e}")
+                time.sleep(sleep_time)
+
+        if not data:
+            break
+
+        dataset_dir = os.path.join(BASE_DIR, ds_id)
+        os.makedirs(dataset_dir, exist_ok=True)
+        file_name = f"{name}_{period}_batch{batch_num:06d}.json"
+        file_path = os.path.join(dataset_dir, file_name)
+
+        with open(file_path, 'w', encoding='utf-8') as f:
+            json.dump(data, f)
+
+        files.append(file_path)
+        batch_num += 1
+        offset += limit_per_page
+
+        if len(data) < limit_per_page:
+            break
+
+    return files
+
+
+def process_datasets_sampled(datasets, conn, n_patients, complex_mode=False,
+                              page_size=3000):
+    """Orchestrator for patient-cohort sampling mode.
+
+    1. Discover patients from header tables
+    2. Select N patients (random or complex)
+    3. Fetch headers filtered by patient_account_number
+    4. Extract bill_ids from fetched headers
+    5. Fetch details filtered by bill_id
+    6. Load all into DuckDB
+    """
+    session = create_session()
+    rate_limiter = AdaptiveRateLimiter()
+    index = build_dataset_index(datasets)
+
+    # --- Step 1 & 2: Discover and select patients ---
+    logging.info("=" * 60)
+    if complex_mode:
+        logging.info(f"DISCOVERING COMPLEX PATIENTS (target: {n_patients})")
+    else:
+        logging.info(f"DISCOVERING PATIENTS (target: {n_patients})")
+    logging.info("=" * 60)
+
+    if complex_mode:
+        patient_scores = discover_complex_patients(datasets, session, rate_limiter)
+        selected_pans = select_complex_patients(patient_scores, n_patients)
+    else:
+        all_patients = discover_patients(datasets, session, rate_limiter)
+        selected_pans = select_patients(all_patients, n_patients)
+
+    if not selected_pans:
+        logging.error("No patients discovered — nothing to fetch.")
+        return {}
+
+    logging.info(f"Selected {len(selected_pans)} patients for cohort")
+
+    # --- Step 3: Fetch headers filtered by patient_account_number ---
+    logging.info("=" * 60)
+    logging.info("FETCHING HEADER RECORDS FOR SELECTED PATIENTS")
+    logging.info("=" * 60)
+
+    dataset_files = {}
+    all_bill_ids = set()
+    pan_clauses = build_where_in("patient_account_number", selected_pans)
+
+    for claim_type, periods in index.items():
+        for period, roles in periods.items():
+            ds_id = roles.get('header')
+            if not ds_id:
+                continue
+
+            name = f"{claim_type}_header"
+            tbl = f"{name}_{period}"
+            logging.info(f"Fetching {tbl} ({len(pan_clauses)} batches)...")
+
+            all_files = []
+            for clause in pan_clauses:
+                batch_files = fetch_filtered(
+                    ds_id, name, period, clause, session, rate_limiter, page_size
+                )
+                all_files.extend(batch_files)
+
+            if all_files:
+                dataset_files[tbl] = all_files
+                # Extract bill_ids from fetched header JSON files
+                for fp in all_files:
+                    with open(fp, 'r') as f:
+                        records = json.load(f)
+                    for rec in records:
+                        bid = rec.get('bill_id')
+                        if bid:
+                            all_bill_ids.add(bid)
+
+                logging.info(f"  {tbl}: {len(all_files)} files fetched")
+
+    logging.info(f"Extracted {len(all_bill_ids):,} bill_ids from headers")
+
+    # --- Step 4: Fetch details filtered by bill_id ---
+    if all_bill_ids:
+        logging.info("=" * 60)
+        logging.info("FETCHING DETAIL RECORDS FOR MATCHING BILL_IDS")
+        logging.info("=" * 60)
+
+        bid_clauses = build_where_in("bill_id", all_bill_ids)
+
+        for claim_type, periods in index.items():
+            for period, roles in periods.items():
+                ds_id = roles.get('detail')
+                if not ds_id:
+                    continue
+
+                name = f"{claim_type}_detail"
+                tbl = f"{name}_{period}"
+                logging.info(f"Fetching {tbl} ({len(bid_clauses)} batches)...")
+
+                all_files = []
+                for clause in bid_clauses:
+                    batch_files = fetch_filtered(
+                        ds_id, name, period, clause, session, rate_limiter, page_size
+                    )
+                    all_files.extend(batch_files)
+
+                if all_files:
+                    dataset_files[tbl] = all_files
+                    logging.info(f"  {tbl}: {len(all_files)} files fetched")
+
+    # --- Step 5: Drop stale raw tables and load into DuckDB ---
+    # Remove any raw tables from previous runs that aren't part of this load.
+    # This prevents dbt from querying leftover tables with incompatible schemas.
+    expected_tables = {f"{name}_{period}" for _, (name, period) in datasets.items()}
+    existing_tables = {r[0] for r in conn.execute(
+        "SELECT table_name FROM information_schema.tables WHERE table_schema = 'raw'"
+    ).fetchall()}
+    stale = existing_tables - expected_tables
+    if stale:
+        for tbl in sorted(stale):
+            conn.execute(f"DROP TABLE IF EXISTS raw.{tbl};")
+        logging.info(f"Dropped {len(stale)} stale raw tables: {', '.join(sorted(stale))}")
+
+    logging.info("=" * 60)
+    logging.info("LOADING SAMPLED DATA INTO DATABASE")
+    logging.info("=" * 60)
+
+    load_to_database(conn, datasets, dataset_files, force_replace=True)
+
+    return dataset_files
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -584,12 +964,14 @@ def main():
                         help='Records per page (default: 3000)')
     parser.add_argument('--max_pages', type=int, default=None,
                         help='Maximum pages to fetch per dataset')
-    parser.add_argument('--max_workers', type=int, default=None,
-                        help='Maximum concurrent workers (default: auto-scales 3-4)')
     parser.add_argument('--force_full', action='store_true',
                         help='Force full refresh for all tables (ignore incremental)')
     parser.add_argument('--report_only', action='store_true',
                         help='Only show database report without downloading')
+    parser.add_argument('--sample_patients', type=int, default=None,
+                        help='Fetch only N complete patients (all headers + details)')
+    parser.add_argument('--complex', action='store_true',
+                        help='With --sample_patients, pick patients with most claims across types')
 
     args = parser.parse_args()
     
@@ -631,38 +1013,61 @@ def main():
         time_period=args.time_period
     )
 
+    # --- Patient-cohort sampling mode ---
+    if args.sample_patients:
+        logging.info(f"PATIENT-COHORT SAMPLING MODE: {args.sample_patients} patients"
+                     f"{' (complex)' if args.complex else ''}")
+        logging.info(f"Datasets: {len(selected_datasets)}")
+
+        dataset_files = process_datasets_sampled(
+            selected_datasets, conn,
+            n_patients=args.sample_patients,
+            complex_mode=args.complex,
+            page_size=args.page_size,
+        )
+
+        generate_summary_report(conn)
+
+        if os.path.exists(BASE_DIR):
+            shutil.rmtree(BASE_DIR)
+            logging.info(f"Cleaned up temporary files in {BASE_DIR}")
+
+        conn.close()
+        logging.info("Patient-cohort sampling completed successfully!")
+        return
+
+    # --- Standard full/incremental mode ---
     if args.force_full:
         logging.warning("Force full refresh enabled - all tables will be completely refreshed")
         # Clear sync status to force full refresh
         tracker = UpdateTracker(conn)
         conn.execute("DELETE FROM metadata.sync_status")
-    
+
     logging.info(f"Starting optimized update of {len(selected_datasets)} datasets")
     logging.info(f"Strategy: Current tables (full refresh), Historical tables (incremental)")
     logging.info(f"Page size: {args.page_size} records")
     if args.max_pages:
         logging.info(f"Max pages per dataset: {args.max_pages}")
-    
+
     # Download with smart strategy
     dataset_files = process_datasets(
         selected_datasets,
         conn,
         limit_per_page=args.page_size,
-        max_pages=args.max_pages,
-        max_workers=args.max_workers
+        max_pages=args.max_pages
     )
-    
+
     # Load into database with appropriate strategy
     load_to_database(conn, selected_datasets, dataset_files)
-    
+
     # Generate summary report
     generate_summary_report(conn)
-    
+
     # Cleanup temporary files
     if os.path.exists(BASE_DIR):
         shutil.rmtree(BASE_DIR)
         logging.info(f"Cleaned up temporary files in {BASE_DIR}")
-    
+
     conn.close()
     logging.info("Optimized data fetch completed successfully!")
 

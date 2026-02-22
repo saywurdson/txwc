@@ -1,6 +1,6 @@
 select
     cast(condition_occurrence_id as integer) as condition_occurrence_id,
-    cast(person_id as varchar) as person_id,
+    cast(person_id as integer) as person_id,
     cast(condition_concept_id as varchar) as condition_concept_id,
     cast(condition_start_date as date) as condition_start_date,
     cast(condition_start_datetime as timestamp) as condition_start_datetime,

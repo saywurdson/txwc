@@ -44,7 +44,7 @@ institutional_header_current as (
       , 'xxhash64'
       ) % 1000000000
     as varchar) as location_id,
-    cast(null as varchar) as care_site_source_value,
+    facility_national_provider as care_site_source_value,
     cast(null as varchar) as place_of_service_source_value
   from {{ source('raw', 'institutional_header_current') }}
 ),
@@ -80,7 +80,7 @@ professional_header_current as (
       , 'xxhash64'
       ) % 1000000000
     as varchar) as location_id,
-    cast(null as varchar) as care_site_source_value,
+    facility_national_provider as care_site_source_value,
     cast(place_of_service_bill_code as varchar) as place_of_service_source_value
   from {{ source('raw', 'professional_header_current') }}
 ),
@@ -116,7 +116,7 @@ pharmacy_header_current as (
       , 'xxhash64'
       ) % 1000000000
     as varchar) as location_id,
-    cast(null as varchar) as care_site_source_value,
+    facility_national_provider as care_site_source_value,
     cast(place_of_service_bill_code as varchar) as place_of_service_source_value
   from {{ source('raw', 'pharmacy_header_current') }}
 )
@@ -162,7 +162,7 @@ institutional_header_historical as (
       , 'xxhash64'
       ) % 1000000000
     as varchar) as location_id,
-    cast(null as varchar) as care_site_source_value,
+    facility_national_provider as care_site_source_value,
     cast(null as varchar) as place_of_service_source_value
   from {{ source('raw', 'institutional_header_historical') }}
 ),
@@ -198,7 +198,7 @@ professional_header_historical as (
       , 'xxhash64'
       ) % 1000000000
     as varchar) as location_id,
-    cast(null as varchar) as care_site_source_value,
+    facility_national_provider as care_site_source_value,
     cast(place_of_service_bill_code as varchar) as place_of_service_source_value
   from {{ source('raw', 'professional_header_historical') }}
 ),
@@ -234,7 +234,7 @@ pharmacy_header_historical as (
       , 'xxhash64'
       ) % 1000000000
     as varchar) as location_id,
-    cast(null as varchar) as care_site_source_value,
+    facility_national_provider as care_site_source_value,
     cast(place_of_service_bill_code as varchar) as place_of_service_source_value
   from {{ source('raw', 'pharmacy_header_historical') }}
 )
@@ -272,7 +272,7 @@ select
     cast(null as varchar) as care_site_name,
     cast(null as integer) as place_of_service_concept_id,
     cast(null as varchar) as location_id,
-    cast(null as varchar) as care_site_source_value,
+    facility_national_provider as care_site_source_value,
     cast(null as varchar) as place_of_service_source_value
 where false
 {% endif %}

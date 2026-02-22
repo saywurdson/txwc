@@ -1,6 +1,6 @@
 select 
     cast(measurement_id as integer) as measurement_id,
-    cast(person_id as varchar) as person_id,
+    cast(person_id as integer) as person_id,
     cast(measurement_concept_id as varchar) as measurement_concept_id,
     cast(measurement_date as date) as measurement_date,
     cast(measurement_datetime as timestamp) as measurement_datetime,

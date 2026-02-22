@@ -16,23 +16,7 @@
   pharmacy_detail_current as (
     select
       cast(hash(concat_ws('||', pdc.bill_id, pdc.row_id), 'xxhash64') % 1000000000 as varchar) as drug_exposure_id,
-      case
-        when phc.patient_account_number is null or trim(phc.patient_account_number) = '' then lpad(
-          cast(
-            hash(concat_ws('||',
-              coalesce(phc.employee_mailing_city, ''),
-              coalesce(phc.employee_mailing_state_code, ''),
-              coalesce(phc.employee_mailing_postal_code, ''),
-              coalesce(phc.employee_mailing_country, ''),
-              coalesce(cast(phc.employee_date_of_birth as varchar), ''),
-              coalesce(phc.employee_gender_code, '')
-            ), 'xxhash64') % 1000000000 as varchar
-          ),
-          9,
-          '0'
-        )
-        else phc.patient_account_number
-      end as person_id,
+      {{ derive_person_id('phc') }} as person_id,
       cast(null as integer) as drug_concept_id,
       coalesce(try_cast(pdc.service_line_from_date as date), try_cast(pdc.prescription_line_date as date)) as drug_exposure_start_date,
       coalesce(try_cast(pdc.service_line_from_date as timestamp), try_cast(pdc.prescription_line_date as timestamp)) as drug_exposure_start_datetime,
@@ -79,23 +63,7 @@
   institutional_detail_current as (
     select
       cast(hash(concat_ws('||', idc.bill_id, idc.row_id), 'xxhash64') % 1000000000 as varchar) as drug_exposure_id,
-      case
-        when ihc.patient_account_number is null or trim(ihc.patient_account_number) = '' then lpad(
-          cast(
-            hash(concat_ws('||',
-              coalesce(ihc.employee_mailing_city, ''),
-              coalesce(ihc.employee_mailing_state_code, ''),
-              coalesce(ihc.employee_mailing_postal_code, ''),
-              coalesce(ihc.employee_mailing_country, ''),
-              coalesce(cast(ihc.employee_date_of_birth as varchar), ''),
-              coalesce(ihc.employee_gender_code, '')
-            ), 'xxhash64') % 1000000000 as varchar
-          ),
-          9,
-          '0'
-        )
-        else ihc.patient_account_number
-      end as person_id,
+      {{ derive_person_id('ihc') }} as person_id,
       cast(null as integer) as drug_concept_id,
       CASE WHEN idc.service_line_from_date = 'N' THEN NULL
           ELSE try_cast(idc.service_line_from_date as date) END as drug_exposure_start_date,
@@ -161,23 +129,7 @@
   professional_detail_current as (
     select
       cast(hash(concat_ws('||', prdc.bill_id, prdc.row_id), 'xxhash64') % 1000000000 as varchar) as drug_exposure_id,
-      case
-        when prhc.patient_account_number is null or trim(prhc.patient_account_number) = '' then lpad(
-          cast(
-            hash(concat_ws('||',
-              coalesce(prhc.employee_mailing_city, ''),
-              coalesce(prhc.employee_mailing_state_code, ''),
-              coalesce(prhc.employee_mailing_postal_code, ''),
-              coalesce(prhc.employee_mailing_country, ''),
-              coalesce(cast(prhc.employee_date_of_birth as varchar), ''),
-              coalesce(prhc.employee_gender_code, '')
-            ), 'xxhash64') % 1000000000 as varchar
-          ),
-          9,
-          '0'
-        )
-        else prhc.patient_account_number
-      end as person_id,
+      {{ derive_person_id('prhc') }} as person_id,
       cast(null as integer) as drug_concept_id,
       try_cast(prdc.service_line_from_date as date) as drug_exposure_start_date,
       try_cast(prdc.service_line_from_date as timestamp) as drug_exposure_start_datetime,
@@ -242,23 +194,7 @@
   pharmacy_detail_historical as (
     select
       cast(hash(concat_ws('||', pdc.bill_id, pdc.row_id), 'xxhash64') % 1000000000 as varchar) as drug_exposure_id,
-      case
-        when phc.patient_account_number is null or trim(phc.patient_account_number) = '' then lpad(
-          cast(
-            hash(concat_ws('||',
-              coalesce(phc.employee_mailing_city, ''),
-              coalesce(phc.employee_mailing_state_code, ''),
-              coalesce(phc.employee_mailing_postal_code, ''),
-              coalesce(phc.employee_mailing_country, ''),
-              coalesce(cast(phc.employee_date_of_birth as varchar), ''),
-              coalesce(phc.employee_gender_code, '')
-            ), 'xxhash64') % 1000000000 as varchar
-          ),
-          9,
-          '0'
-        )
-        else phc.patient_account_number
-      end as person_id,
+      {{ derive_person_id('phc') }} as person_id,
       cast(null as integer) as drug_concept_id,
       coalesce(try_cast(pdc.service_line_from_date as date), try_cast(pdc.prescription_line_date as date)) as drug_exposure_start_date,
       coalesce(try_cast(pdc.service_line_from_date as timestamp), try_cast(pdc.prescription_line_date as timestamp)) as drug_exposure_start_datetime,
@@ -305,23 +241,7 @@
   institutional_detail_historical as (
     select
       cast(hash(concat_ws('||', idc.bill_id, idc.row_id), 'xxhash64') % 1000000000 as varchar) as drug_exposure_id,
-      case
-        when ihc.patient_account_number is null or trim(ihc.patient_account_number) = '' then lpad(
-          cast(
-            hash(concat_ws('||',
-              coalesce(ihc.employee_mailing_city, ''),
-              coalesce(ihc.employee_mailing_state_code, ''),
-              coalesce(ihc.employee_mailing_postal_code, ''),
-              coalesce(ihc.employee_mailing_country, ''),
-              coalesce(cast(ihc.employee_date_of_birth as varchar), ''),
-              coalesce(ihc.employee_gender_code, '')
-            ), 'xxhash64') % 1000000000 as varchar
-          ),
-          9,
-          '0'
-        )
-        else ihc.patient_account_number
-      end as person_id,
+      {{ derive_person_id('ihc') }} as person_id,
       cast(null as integer) as drug_concept_id,
       CASE WHEN idc.service_line_from_date = 'N' THEN NULL
           ELSE try_cast(idc.service_line_from_date as date) END as drug_exposure_start_date,
@@ -387,23 +307,7 @@
   professional_detail_historical as (
     select
       cast(hash(concat_ws('||', prdc.bill_id, prdc.row_id), 'xxhash64') % 1000000000 as varchar) as drug_exposure_id,
-      case
-        when prhc.patient_account_number is null or trim(prhc.patient_account_number) = '' then lpad(
-          cast(
-            hash(concat_ws('||',
-              coalesce(prhc.employee_mailing_city, ''),
-              coalesce(prhc.employee_mailing_state_code, ''),
-              coalesce(prhc.employee_mailing_postal_code, ''),
-              coalesce(prhc.employee_mailing_country, ''),
-              coalesce(cast(prhc.employee_date_of_birth as varchar), ''),
-              coalesce(prhc.employee_gender_code, '')
-            ), 'xxhash64') % 1000000000 as varchar
-          ),
-          9,
-          '0'
-        )
-        else prhc.patient_account_number
-      end as person_id,
+      {{ derive_person_id('prhc') }} as person_id,
       cast(null as integer) as drug_concept_id,
       try_cast(prdc.service_line_from_date as date) as drug_exposure_start_date,
       try_cast(prdc.service_line_from_date as timestamp) as drug_exposure_start_datetime,
@@ -485,7 +389,7 @@ from (
 -- No source tables available - return empty result set with OMOP drug_exposure schema
 select
     cast(null as varchar) as drug_exposure_id,
-    cast(null as varchar) as person_id,
+    cast(null as integer) as person_id,
     cast(null as integer) as drug_concept_id,
     cast(null as date) as drug_exposure_start_date,
     cast(null as timestamp) as drug_exposure_start_datetime,

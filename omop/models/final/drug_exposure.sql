@@ -14,13 +14,13 @@ with drug_with_concept as (
 select
     row_number() over (order by drug_exposure_id) as drug_exposure_id,
     person_id,
-    cast(derived_drug_concept_id as varchar) as drug_concept_id,
+    cast(derived_drug_concept_id as integer) as drug_concept_id,
     drug_exposure_start_date,
     drug_exposure_start_datetime,
     drug_exposure_end_date,
     drug_exposure_end_datetime,
     verbatim_end_date,
-    drug_type_concept_id,
+    cast(drug_type_concept_id as integer) as drug_type_concept_id,
     stop_reason,
     refills,
     quantity,
@@ -32,9 +32,9 @@ select
     visit_occurrence_id,
     visit_detail_id,
     drug_source_value,
-    drug_source_concept_id,
+    cast(drug_source_concept_id as integer) as drug_source_concept_id,
     -- Derive route source value (dose form name) from drug concept
-    {{ get_route_source_value("derived_drug_concept_id") }} as route_source_value,
+    cast({{ get_route_source_value("derived_drug_concept_id") }} as varchar) as route_source_value,
     -- Derive dose unit from drug_strength table
-    {{ get_dose_unit_source_value("derived_drug_concept_id") }} as dose_unit_source_value
+    cast({{ get_dose_unit_source_value("derived_drug_concept_id") }} as varchar) as dose_unit_source_value
 from drug_with_concept

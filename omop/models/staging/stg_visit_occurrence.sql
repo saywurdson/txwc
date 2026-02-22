@@ -10,29 +10,41 @@
 institutional_header_current as (
   select distinct
       cast(bill_id as varchar) as visit_occurrence_id,
-      case
-          when patient_account_number is null or trim(patient_account_number) = '' then
-              lpad(
-                cast(
-                  (hash(concat_ws('||',
-                      coalesce(employee_mailing_city, ''),
-                      coalesce(employee_mailing_state_code, ''),
-                      coalesce(employee_mailing_postal_code, ''),
-                      coalesce(employee_mailing_country, ''),
-                      coalesce(cast(employee_date_of_birth as varchar), ''),
-                      coalesce(employee_gender_code, '')
-                  ), 'xxhash64') % 1000000000) as varchar
-                ),
-                9,
-                '0'
-              )
-          else patient_account_number
-      end as person_id,
+      {{ derive_person_id() }} as person_id,
       8717 as visit_concept_id,
-      cast(reporting_period_start_date as date) as visit_start_date,
-      cast(reporting_period_start_date as timestamp) as visit_start_datetime,
-      cast(reporting_period_end_date as date) as visit_end_date,
-      cast(reporting_period_end_date as timestamp) as visit_end_datetime,
+      -- Use admission_date when available (more accurate than reporting_period for institutional)
+      coalesce(cast(admission_date as date), cast(reporting_period_start_date as date)) as visit_start_date,
+      -- Build datetime from admission_date + admission_hour using try_strptime
+      case
+        when admission_date is not null and admission_hour is not null then
+          cast(cast(admission_date as date) as timestamp) +
+          extract(hour from coalesce(
+            try_strptime(trim(admission_hour), '%I:%M:%S %p'),
+            try_strptime(trim(admission_hour), '%I:%M %p')
+          ))::integer * interval '1 hour' +
+          extract(minute from coalesce(
+            try_strptime(trim(admission_hour), '%I:%M:%S %p'),
+            try_strptime(trim(admission_hour), '%I:%M %p')
+          ))::integer * interval '1 minute'
+        when admission_date is not null then cast(admission_date as timestamp)
+        else cast(reporting_period_start_date as timestamp)
+      end as visit_start_datetime,
+      -- Use discharge_date when available
+      coalesce(cast(discharge_date as date), cast(reporting_period_end_date as date)) as visit_end_date,
+      case
+        when discharge_date is not null and discharge_hour is not null then
+          cast(cast(discharge_date as date) as timestamp) +
+          extract(hour from coalesce(
+            try_strptime(trim(discharge_hour), '%I:%M:%S %p'),
+            try_strptime(trim(discharge_hour), '%I:%M %p')
+          ))::integer * interval '1 hour' +
+          extract(minute from coalesce(
+            try_strptime(trim(discharge_hour), '%I:%M:%S %p'),
+            try_strptime(trim(discharge_hour), '%I:%M %p')
+          ))::integer * interval '1 minute'
+        when discharge_date is not null then cast(discharge_date as timestamp)
+        else cast(reporting_period_end_date as timestamp)
+      end as visit_end_datetime,
       32855 as visit_type_concept_id,
       cast(
         hash(concat_ws('||', rendering_bill_provider_last,
@@ -68,24 +80,7 @@ institutional_header_current as (
 professional_header_current as (
   select distinct
       cast(bill_id as varchar) as visit_occurrence_id,
-      case
-          when patient_account_number is null or trim(patient_account_number) = '' then
-              lpad(
-                cast(
-                  (hash(concat_ws('||',
-                      coalesce(employee_mailing_city, ''),
-                      coalesce(employee_mailing_state_code, ''),
-                      coalesce(employee_mailing_postal_code, ''),
-                      coalesce(employee_mailing_country, ''),
-                      coalesce(cast(employee_date_of_birth as varchar), ''),
-                      coalesce(employee_gender_code, '')
-                  ), 'xxhash64') % 1000000000) as varchar
-                ),
-                9,
-                '0'
-              )
-          else patient_account_number
-      end as person_id,
+      {{ derive_person_id() }} as person_id,
       8716 as visit_concept_id,
       cast(reporting_period_start_date as date) as visit_start_date,
       cast(reporting_period_start_date as timestamp) as visit_start_datetime,
@@ -118,24 +113,7 @@ professional_header_current as (
 pharmacy_header_current as (
   select distinct
       cast(bill_id as varchar) as visit_occurrence_id,
-      case
-          when patient_account_number is null or trim(patient_account_number) = '' then
-              lpad(
-                cast(
-                  (hash(concat_ws('||',
-                      coalesce(employee_mailing_city, ''),
-                      coalesce(employee_mailing_state_code, ''),
-                      coalesce(employee_mailing_postal_code, ''),
-                      coalesce(employee_mailing_country, ''),
-                      coalesce(cast(employee_date_of_birth as varchar), ''),
-                      coalesce(employee_gender_code, '')
-                  ), 'xxhash64') % 1000000000) as varchar
-                ),
-                9,
-                '0'
-              )
-          else patient_account_number
-      end as person_id,
+      {{ derive_person_id() }} as person_id,
       38004338 as visit_concept_id,
       cast(reporting_period_start_date as date) as visit_start_date,
       cast(reporting_period_start_date as timestamp) as visit_start_datetime,
@@ -170,29 +148,39 @@ pharmacy_header_current as (
 institutional_header_historical as (
   select distinct
       cast(bill_id as varchar) as visit_occurrence_id,
-      case
-          when patient_account_number is null or trim(patient_account_number) = '' then
-              lpad(
-                cast(
-                  (hash(concat_ws('||',
-                      coalesce(employee_mailing_city, ''),
-                      coalesce(employee_mailing_state_code, ''),
-                      coalesce(employee_mailing_postal_code, ''),
-                      coalesce(employee_mailing_country, ''),
-                      coalesce(cast(employee_date_of_birth as varchar), ''),
-                      coalesce(employee_gender_code, '')
-                  ), 'xxhash64') % 1000000000) as varchar
-                ),
-                9,
-                '0'
-              )
-          else patient_account_number
-      end as person_id,
+      {{ derive_person_id() }} as person_id,
       8717 as visit_concept_id,
-      cast(reporting_period_start_date as date) as visit_start_date,
-      cast(reporting_period_start_date as timestamp) as visit_start_datetime,
-      cast(reporting_period_end_date as date) as visit_end_date,
-      cast(reporting_period_end_date as timestamp) as visit_end_datetime,
+      -- Use admission_date when available (more accurate than reporting_period for institutional)
+      coalesce(cast(admission_date as date), cast(reporting_period_start_date as date)) as visit_start_date,
+      case
+        when admission_date is not null and admission_hour is not null then
+          cast(cast(admission_date as date) as timestamp) +
+          extract(hour from coalesce(
+            try_strptime(trim(admission_hour), '%I:%M:%S %p'),
+            try_strptime(trim(admission_hour), '%I:%M %p')
+          ))::integer * interval '1 hour' +
+          extract(minute from coalesce(
+            try_strptime(trim(admission_hour), '%I:%M:%S %p'),
+            try_strptime(trim(admission_hour), '%I:%M %p')
+          ))::integer * interval '1 minute'
+        when admission_date is not null then cast(admission_date as timestamp)
+        else cast(reporting_period_start_date as timestamp)
+      end as visit_start_datetime,
+      coalesce(cast(discharge_date as date), cast(reporting_period_end_date as date)) as visit_end_date,
+      case
+        when discharge_date is not null and discharge_hour is not null then
+          cast(cast(discharge_date as date) as timestamp) +
+          extract(hour from coalesce(
+            try_strptime(trim(discharge_hour), '%I:%M:%S %p'),
+            try_strptime(trim(discharge_hour), '%I:%M %p')
+          ))::integer * interval '1 hour' +
+          extract(minute from coalesce(
+            try_strptime(trim(discharge_hour), '%I:%M:%S %p'),
+            try_strptime(trim(discharge_hour), '%I:%M %p')
+          ))::integer * interval '1 minute'
+        when discharge_date is not null then cast(discharge_date as timestamp)
+        else cast(reporting_period_end_date as timestamp)
+      end as visit_end_datetime,
       32855 as visit_type_concept_id,
       cast(
         hash(concat_ws('||', rendering_bill_provider_last,
@@ -228,24 +216,7 @@ institutional_header_historical as (
 professional_header_historical as (
   select distinct
       cast(bill_id as varchar) as visit_occurrence_id,
-      case
-          when patient_account_number is null or trim(patient_account_number) = '' then
-              lpad(
-                cast(
-                  (hash(concat_ws('||',
-                      coalesce(employee_mailing_city, ''),
-                      coalesce(employee_mailing_state_code, ''),
-                      coalesce(employee_mailing_postal_code, ''),
-                      coalesce(employee_mailing_country, ''),
-                      coalesce(cast(employee_date_of_birth as varchar), ''),
-                      coalesce(employee_gender_code, '')
-                  ), 'xxhash64') % 1000000000) as varchar
-                ),
-                9,
-                '0'
-              )
-          else patient_account_number
-      end as person_id,
+      {{ derive_person_id() }} as person_id,
       8716 as visit_concept_id,
       cast(reporting_period_start_date as date) as visit_start_date,
       cast(reporting_period_start_date as timestamp) as visit_start_datetime,
@@ -278,24 +249,7 @@ professional_header_historical as (
 pharmacy_header_historical as (
   select distinct
       cast(bill_id as varchar) as visit_occurrence_id,
-      case
-          when patient_account_number is null or trim(patient_account_number) = '' then
-              lpad(
-                cast(
-                  (hash(concat_ws('||',
-                      coalesce(employee_mailing_city, ''),
-                      coalesce(employee_mailing_state_code, ''),
-                      coalesce(employee_mailing_postal_code, ''),
-                      coalesce(employee_mailing_country, ''),
-                      coalesce(cast(employee_date_of_birth as varchar), ''),
-                      coalesce(employee_gender_code, '')
-                  ), 'xxhash64') % 1000000000) as varchar
-                ),
-                9,
-                '0'
-              )
-          else patient_account_number
-      end as person_id,
+      {{ derive_person_id() }} as person_id,
       38004338 as visit_concept_id,
       cast(reporting_period_start_date as date) as visit_start_date,
       cast(reporting_period_start_date as timestamp) as visit_start_datetime,
@@ -337,7 +291,7 @@ from (
 -- No source tables available - return empty result set with OMOP visit_occurrence schema
 select
     cast(null as varchar) as visit_occurrence_id,
-    cast(null as varchar) as person_id,
+    cast(null as integer) as person_id,
     cast(null as integer) as visit_concept_id,
     cast(null as date) as visit_start_date,
     cast(null as timestamp) as visit_start_datetime,

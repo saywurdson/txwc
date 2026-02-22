@@ -521,13 +521,13 @@ models:
             - unique
             - not_null
         - name: cost_event_id
-          data_type: varchar
-        - name: cost_domain_id
           data_type: integer
+        - name: cost_domain_id
+          data_type: varchar
         - name: cost_type_concept_id
-          data_type: varchar
+          data_type: integer
         - name: currency_concept_id
-          data_type: varchar
+          data_type: integer
         - name: total_charge
           data_type: float
         - name: total_cost
@@ -555,11 +555,11 @@ models:
         - name: amount_allowed
           data_type: float
         - name: revenue_code_concept_id
-          data_type: varchar
+          data_type: integer
         - name: revenue_code_source_value
           data_type: varchar
         - name: drg_concept_id
-          data_type: varchar
+          data_type: integer
         - name: drg_source_value
           data_type: varchar
 
@@ -577,7 +577,7 @@ models:
           tests:
             - not_null
         - name: drug_concept_id
-          data_type: varchar
+          data_type: integer
           tests:
             - not_null
         - name: drug_exposure_start_date
@@ -593,7 +593,7 @@ models:
         - name: verbatim_end_date
           data_type: date
         - name: drug_type_concept_id
-          data_type: varchar
+          data_type: integer
           tests:
             - not_null
         - name: stop_reason
@@ -607,7 +607,7 @@ models:
         - name: sig
           data_type: varchar
         - name: route_concept_id
-          data_type: varchar
+          data_type: integer
         - name: lot_number
           data_type: varchar
         - name: provider_id
@@ -619,8 +619,221 @@ models:
         - name: drug_source_value
           data_type: varchar
         - name: drug_source_concept_id
-          data_type: varchar
+          data_type: integer
         - name: route_source_value
-          data_type: integer
+          data_type: varchar
         - name: dose_unit_source_value
+          data_type: varchar
+
+  - name: payer_plan_period
+    config:
+      schema: omop
+      columns:
+        - name: payer_plan_period_id
+          data_type: bigint
+          tests:
+            - unique
+            - not_null
+        - name: person_id
+          data_type: varchar
+          tests:
+            - not_null
+        - name: payer_plan_period_start_date
+          data_type: date
+          tests:
+            - not_null
+        - name: payer_plan_period_end_date
+          data_type: date
+          tests:
+            - not_null
+        - name: payer_concept_id
           data_type: integer
+        - name: payer_source_value
+          data_type: varchar
+        - name: payer_source_concept_id
+          data_type: integer
+        - name: plan_concept_id
+          data_type: integer
+        - name: plan_source_value
+          data_type: varchar
+        - name: plan_source_concept_id
+          data_type: integer
+        - name: sponsor_concept_id
+          data_type: integer
+        - name: sponsor_source_value
+          data_type: varchar
+        - name: sponsor_source_concept_id
+          data_type: integer
+        - name: family_source_value
+          data_type: varchar
+        - name: stop_reason_concept_id
+          data_type: integer
+        - name: stop_reason_source_value
+          data_type: varchar
+        - name: stop_reason_source_concept_id
+          data_type: integer
+
+  - name: observation_period
+    config:
+      schema: omop
+      columns:
+        - name: observation_period_id
+          data_type: integer
+          tests:
+            - unique
+            - not_null
+        - name: person_id
+          data_type: varchar
+          tests:
+            - not_null
+        - name: observation_period_start_date
+          data_type: date
+          tests:
+            - not_null
+        - name: observation_period_end_date
+          data_type: date
+          tests:
+            - not_null
+        - name: period_type_concept_id
+          data_type: integer
+
+  - name: specimen
+    config:
+      schema: omop
+      columns:
+        - name: specimen_id
+          data_type: integer
+          tests:
+            - unique
+            - not_null
+        - name: person_id
+          data_type: varchar
+          tests:
+            - not_null
+        - name: specimen_concept_id
+          data_type: integer
+        - name: specimen_type_concept_id
+          data_type: integer
+        - name: specimen_date
+          data_type: date
+        - name: specimen_datetime
+          data_type: timestamp
+        - name: quantity
+          data_type: decimal
+        - name: unit_concept_id
+          data_type: integer
+        - name: anatomic_site_concept_id
+          data_type: integer
+        - name: disease_status_concept_id
+          data_type: integer
+        - name: specimen_source_id
+          data_type: varchar
+        - name: specimen_source_value
+          data_type: varchar
+        - name: unit_source_value
+          data_type: varchar
+        - name: anatomic_site_source_value
+          data_type: varchar
+        - name: disease_status_source_value
+          data_type: varchar
+
+  - name: visit_detail
+    config:
+      schema: omop
+      columns:
+        - name: visit_detail_id
+          data_type: integer
+          tests:
+            - unique
+            - not_null
+        - name: person_id
+          data_type: varchar
+          tests:
+            - not_null
+        - name: visit_detail_concept_id
+          data_type: integer
+          tests:
+            - not_null
+        - name: visit_detail_start_date
+          data_type: date
+          tests:
+            - not_null
+        - name: visit_detail_start_datetime
+          data_type: timestamp
+        - name: visit_detail_end_date
+          data_type: date
+        - name: visit_detail_end_datetime
+          data_type: timestamp
+        - name: visit_detail_type_concept_id
+          data_type: integer
+          tests:
+            - not_null
+        - name: provider_id
+          data_type: integer
+        - name: care_site_id
+          data_type: integer
+        - name: visit_occurrence_id
+          data_type: integer
+        - name: visit_detail_source_value
+          data_type: varchar
+        - name: visit_detail_source_concept_id
+          data_type: integer
+        - name: admitted_from_concept_id
+          data_type: integer
+        - name: admitted_from_source_value
+          data_type: varchar
+        - name: discharged_to_concept_id
+          data_type: integer
+        - name: discharged_to_source_value
+          data_type: varchar
+        - name: preceding_visit_detail_id
+          data_type: integer
+        - name: parent_visit_detail_id
+          data_type: integer
+
+  - name: death
+    config:
+      schema: omop
+      columns:
+        - name: person_id
+          data_type: integer
+        - name: death_date
+          data_type: date
+        - name: death_datetime
+          data_type: timestamp
+        - name: death_type_concept_id
+          data_type: integer
+        - name: cause_concept_id
+          data_type: integer
+        - name: cause_source_value
+          data_type: varchar
+        - name: cause_source_concept_id
+          data_type: integer
+
+  - name: dose_era
+    config:
+      schema: omop
+      columns:
+        - name: dose_era_id
+          data_type: integer
+          tests:
+            - unique
+            - not_null
+        - name: person_id
+          data_type: varchar
+          tests:
+            - not_null
+        - name: drug_concept_id
+          data_type: integer
+        - name: unit_concept_id
+          data_type: integer
+        - name: dose_value
+          data_type: decimal
+        - name: dose_era_start_date
+          data_type: date
+          tests:
+            - not_null
+        - name: dose_era_end_date
+          data_type: date
+          tests:
+            - not_null
