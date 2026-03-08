@@ -4,5 +4,5 @@ omop:
     dev:
       type: duckdb
       threads: 4
-      path: "/workspaces/txwc/tx_workers_comp.db"
+      path: "{{ env_var('TXWC_DB_PATH', '../tx_workers_comp.db') }}"
       schema: omop

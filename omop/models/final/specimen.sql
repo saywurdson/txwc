@@ -48,7 +48,7 @@ ranked_specimens as (
 )
 select
     cast(row_number() over (order by measurement_id) as integer) as specimen_id,
-    cast(person_id as varchar) as person_id,
+    cast(person_id as integer) as person_id,
     cast(specimen_concept_id as integer) as specimen_concept_id,
     cast(32856 as integer) as specimen_type_concept_id,  -- Lab derived
     cast(specimen_date as date) as specimen_date,

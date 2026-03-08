@@ -1,9 +1,39 @@
-*.DS_Store
-*.pyc
+# Data files
 *.csv
 *.csv.gz
 *.db
 *.ndjson
 *.json
-*.log
+*.wal
+json_data/
+
+# Environment
 *.env
+
+# Python
+*.pyc
+__pycache__/
+*.egg-info/
+.venv/
+venv/
+
+# dbt
+omop/target/
+omop/dbt_packages/
+omop/logs/
+omop/.user.yml
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+*.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/

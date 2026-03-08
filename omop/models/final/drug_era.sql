@@ -199,16 +199,16 @@ ctedrugeraends as (
 final as (
     select
         cast(row_number() over (order by person_id) as integer) as drug_era_id,
-        cast(person_id as varchar) as person_id,
-        cast(drug_concept_id as varchar) as drug_concept_id,
+        person_id,
+        cast(drug_concept_id as integer) as drug_concept_id,
         cast(min(drug_sub_exposure_start_date) as date) as drug_era_start_date,
         cast(drug_era_end_date as date) as drug_era_end_date,
         cast(sum(drug_exposure_count) as integer) as drug_exposure_count,
         cast(datediff('day', min(drug_sub_exposure_start_date), drug_era_end_date) - sum(days_exposed) as integer) as gap_days
     from ctedrugeraends
-    group by 
-        person_id, 
-        drug_concept_id, 
+    group by
+        person_id,
+        drug_concept_id,
         drug_era_end_date
 )
 select * from final

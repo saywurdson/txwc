@@ -7,7 +7,7 @@ import duckdb
 import os
 from dotenv import load_dotenv
 
-load_dotenv('/workspaces/txwc/.env')
+load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env'))
 API_KEY = os.getenv('API_KEY')
 
 # Constants
@@ -190,7 +190,11 @@ def main():
     result_df = result_df.drop_duplicates(subset=['valueSetName', 'code', 'display'])
 
     # Connect to DuckDB database and create table in the specified schema
-    conn = duckdb.connect('/workspaces/txwc/tx_workers_comp.db')
+    db_path = os.environ.get(
+        'TXWC_DB_PATH',
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tx_workers_comp.db')
+    )
+    conn = duckdb.connect(db_path)
     conn.execute("CREATE SCHEMA IF NOT EXISTS reference_data")
     conn.register('temp_df', result_df)
     conn.execute("CREATE OR REPLACE TABLE reference_data.vsac AS SELECT * FROM temp_df")

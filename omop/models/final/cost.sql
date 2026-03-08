@@ -1,9 +1,9 @@
 select
     row_number() over (order by cost_id) as cost_id,
-    cost_event_id,
+    cast(cost_event_id as integer) as cost_event_id,
     cost_domain_id,
-    cost_type_concept_id,
-    currency_concept_id,
+    cast(cost_type_concept_id as integer) as cost_type_concept_id,
+    cast(currency_concept_id as integer) as currency_concept_id,
     total_charge,
     total_cost,
     total_paid,
@@ -17,8 +17,8 @@ select
     paid_dispensing_fee,
     payer_plan_period_id,
     amount_allowed,
-    revenue_code_concept_id,
+    cast(revenue_code_concept_id as integer) as revenue_code_concept_id,
     revenue_code_source_value,
-    drg_concept_id,
+    cast(drg_concept_id as integer) as drg_concept_id,
     drg_source_value
 from {{ ref('int_cost') }}

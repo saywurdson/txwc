@@ -9,13 +9,13 @@ select
          vocabulary_id=['NUCC'],
          vocabulary_target=['NUCC', 'Medicare Specialty'],
          required_value=0
-    ) }} as varchar) as specialty_concept_id,
+    ) }} as integer) as specialty_concept_id,
     care_site_id,
     year_of_birth,
-    gender_concept_id,
+    cast(gender_concept_id as integer) as gender_concept_id,
     provider_source_value,
     specialty_source_value,
-    specialty_source_concept_id,
-    gender_source_value,
-    gender_source_concept_id
+    cast(specialty_source_concept_id as integer) as specialty_source_concept_id,
+    cast(gender_source_value as varchar) as gender_source_value,
+    cast(gender_source_concept_id as integer) as gender_source_concept_id
 from {{ ref('int_provider') }}

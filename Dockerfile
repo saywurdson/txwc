@@ -27,7 +27,9 @@ RUN python -m pip install --upgrade pip && \
         paramiko \
         python-dotenv \
         pyarrow==11.0.0 \
-        mcp-server-motherduck
+        mcp-server-motherduck \
+        streamlit \
+        plotly
 
 # Install conda packages
 RUN conda install -y -c conda-forge \

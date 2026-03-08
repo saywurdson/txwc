@@ -1,111 +1,61 @@
-{% set exists_i_current = check_table_exists('raw', 'institutional_header_current') %}
-{% set exists_id_current = check_table_exists('raw', 'institutional_detail_current') %}
-{% set exists_i_historical = check_table_exists('raw', 'institutional_header_historical') %}
-{% set exists_id_historical = check_table_exists('raw', 'institutional_detail_historical') %}
-{% set exists_pr_current = check_table_exists('raw', 'professional_header_current') %}
-{% set exists_prd_current = check_table_exists('raw', 'professional_detail_current') %}
-{% set exists_pr_historical = check_table_exists('raw', 'professional_header_historical') %}
-{% set exists_prd_historical = check_table_exists('raw', 'professional_detail_historical') %}
-{% set exists_ph_current = check_table_exists('raw', 'pharmacy_header_current') %}
-{% set exists_phd_current = check_table_exists('raw', 'pharmacy_detail_current') %}
-{% set exists_ph_historical = check_table_exists('raw', 'pharmacy_header_historical') %}
-{% set exists_phd_historical = check_table_exists('raw', 'pharmacy_detail_historical') %}
+{% set has_current = check_table_exists('raw', 'institutional_header_current') %}
+{% set has_historical = check_table_exists('raw', 'institutional_header_historical') %}
+
+{% set has_inst_detail_current = check_table_exists('raw', 'institutional_detail_current') %}
+{% set has_prof_detail_current = check_table_exists('raw', 'professional_detail_current') %}
+{% set has_pharm_detail_current = check_table_exists('raw', 'pharmacy_detail_current') %}
+{% set has_inst_detail_historical = check_table_exists('raw', 'institutional_detail_historical') %}
+{% set has_prof_detail_historical = check_table_exists('raw', 'professional_detail_historical') %}
+{% set has_pharm_detail_historical = check_table_exists('raw', 'pharmacy_detail_historical') %}
 
 {% set cte_definitions = [] %}
+{% set union_queries = [] %}
 
-{% if exists_i_current and exists_id_current %}
-  {% set query %}
-institutional_header_current as (
-  select distinct
-      cast(
-        hash(concat_ws('||', 
-          h.row_id, 
-          h.bill_id,
-          h.total_charge_per_bill), 'xxhash64') % 1000000000 as varchar
-      ) as cost_id,
-      cast(h.bill_id as integer) as cost_event_id,
-      'Visit' as cost_domain_id,
-      32855 as cost_type_concept_id,
-      44818668 as currency_concept_id,
-      TRY_CAST(h.total_charge_per_bill as float) as total_charge,
-      cast(null as float) as total_cost,
-      TRY_CAST(h.total_amount_paid_per_bill as float) as total_paid,
-      cast(null as float) as paid_by_payer,
-      cast(null as float) as paid_by_patient,
-      cast(null as float) as paid_patient_copay,
-      cast(null as float) as paid_patient_coinsurance,
-      cast(null as float) as paid_patient_deductible,
-      cast(null as float) as paid_by_primary,
-      cast(null as float) as paid_ingredient_cost,
-      cast(null as float) as paid_dispensing_fee,
-      cast(null as integer) as payer_plan_period_id,
-      cast(null as float) as amount_allowed,
-      cast(null as integer) as revenue_code_concept_id,
-      d.revenue_billed_code as revenue_code_source_value,
-      cast(null as integer) as drg_concept_id,
-      h.diagnosis_related_group_code as drg_source_value
-  from {{ source('raw', 'institutional_header_current') }} h
-  join {{ source('raw', 'institutional_detail_current') }} d on h.bill_id = d.bill_id
-)
-  {% endset %}
-  {% do cte_definitions.append(query) %}
-{% endif %}
+{# ===== BILL-LEVEL COSTS (header tables only) ===== #}
 
-{% if exists_i_historical and exists_id_historical %}
+{% if has_current %}
   {% set query %}
-institutional_header_historical as (
-  select distinct
+-- Bill-level costs from institutional header (no detail join to avoid duplication)
+institutional_bill_cost_current as (
+  select
       cast(
-        hash(concat_ws('||', 
-          h.row_id, 
-          h.bill_id,
-          h.total_charge_per_bill), 'xxhash64') % 1000000000 as varchar
-      ) as cost_id,
-      cast(h.bill_id as integer) as cost_event_id,
-      'Visit' as cost_domain_id,
-      32855 as cost_type_concept_id,
-      44818668 as currency_concept_id,
-      TRY_CAST(h.total_charge_per_bill as float) as total_charge,
-      cast(null as float) as total_cost,
-      TRY_CAST(h.total_amount_paid_per_bill as float) as total_paid,
-      cast(null as float) as paid_by_payer,
-      cast(null as float) as paid_by_patient,
-      cast(null as float) as paid_patient_copay,
-      cast(null as float) as paid_patient_coinsurance,
-      cast(null as float) as paid_patient_deductible,
-      cast(null as float) as paid_by_primary,
-      cast(null as float) as paid_ingredient_cost,
-      cast(null as float) as paid_dispensing_fee,
-      cast(null as integer) as payer_plan_period_id,
-      cast(null as float) as amount_allowed,
-      cast(null as integer) as revenue_code_concept_id,
-      d.revenue_billed_code as revenue_code_source_value,
-      cast(null as integer) as drg_concept_id,
-      h.diagnosis_related_group_code as drg_source_value
-  from {{ source('raw', 'institutional_header_historical') }} h
-  join {{ source('raw', 'institutional_detail_historical') }} d on h.bill_id = d.bill_id
-)
-  {% endset %}
-  {% do cte_definitions.append(query) %}
-{% endif %}
-
-{% if exists_pr_current %}
-  {% set query %}
-professional_header_current as (
-  select distinct
-      cast(
-        hash(concat_ws('||', 
-          row_id, 
-          bill_id,
-          total_charge_per_bill), 'xxhash64') % 1000000000 as varchar
+        hash(concat_ws('||', 'bill', bill_id, total_charge_per_bill), 'xxhash64') % 1000000000 as varchar
       ) as cost_id,
       cast(bill_id as integer) as cost_event_id,
-      'Procedure' as cost_domain_id,
+      'Visit' as cost_domain_id,
+      32855 as cost_type_concept_id,
+      44818668 as currency_concept_id,
+      TRY_CAST(total_charge_per_bill as float) as total_charge,
+      cast(null as float) as total_cost,
+      TRY_CAST(total_amount_paid_per_bill as float) as total_paid,
+      cast(null as float) as paid_by_payer,
+      cast(null as float) as paid_by_patient,
+      cast(null as float) as paid_patient_copay,
+      cast(null as float) as paid_patient_coinsurance,
+      cast(null as float) as paid_patient_deductible,
+      cast(null as float) as paid_by_primary,
+      cast(null as float) as paid_ingredient_cost,
+      cast(null as float) as paid_dispensing_fee,
+      cast(null as integer) as payer_plan_period_id,
+      cast(null as float) as amount_allowed,
+      cast(null as integer) as revenue_code_concept_id,
+      cast(null as varchar) as revenue_code_source_value,
+      cast(null as integer) as drg_concept_id,
+      diagnosis_related_group_code as drg_source_value
+  from {{ source('raw', 'institutional_header_current') }}
+),
+professional_bill_cost_current as (
+  select
+      cast(
+        hash(concat_ws('||', 'bill', bill_id, total_charge_per_bill), 'xxhash64') % 1000000000 as varchar
+      ) as cost_id,
+      cast(bill_id as integer) as cost_event_id,
+      'Visit' as cost_domain_id,
       32873 as cost_type_concept_id,
       44818668 as currency_concept_id,
-      cast(total_charge_per_bill as float) as total_charge,
+      TRY_CAST(total_charge_per_bill as float) as total_charge,
       cast(null as float) as total_cost,
-      cast(total_amount_paid_per_bill as float) as total_paid,
+      TRY_CAST(total_amount_paid_per_bill as float) as total_paid,
       cast(null as float) as paid_by_payer,
       cast(null as float) as paid_by_patient,
       cast(null as float) as paid_patient_copay,
@@ -121,65 +71,19 @@ professional_header_current as (
       cast(null as integer) as drg_concept_id,
       cast(null as varchar) as drg_source_value
   from {{ source('raw', 'professional_header_current') }}
-)
-  {% endset %}
-  {% do cte_definitions.append(query) %}
-{% endif %}
-
-{% if exists_pr_historical %}
-  {% set query %}
-professional_header_historical as (
-  select distinct
+),
+pharmacy_bill_cost_current as (
+  select
       cast(
-        hash(concat_ws('||', 
-          row_id, 
-          bill_id,
-          total_charge_per_bill), 'xxhash64') % 1000000000 as varchar
+        hash(concat_ws('||', 'bill', bill_id, total_charge_per_bill), 'xxhash64') % 1000000000 as varchar
       ) as cost_id,
       cast(bill_id as integer) as cost_event_id,
-      'Procedure' as cost_domain_id,
-      32873 as cost_type_concept_id,
-      44818668 as currency_concept_id,
-      cast(total_charge_per_bill as float) as total_charge,
-      cast(null as float) as total_cost,
-      cast(total_amount_paid_per_bill as float) as total_paid,
-      cast(null as float) as paid_by_payer,
-      cast(null as float) as paid_by_patient,
-      cast(null as float) as paid_patient_copay,
-      cast(null as float) as paid_patient_coinsurance,
-      cast(null as float) as paid_patient_deductible,
-      cast(null as float) as paid_by_primary,
-      cast(null as float) as paid_ingredient_cost,
-      cast(null as float) as paid_dispensing_fee,
-      cast(null as integer) as payer_plan_period_id,
-      cast(null as float) as amount_allowed,
-      cast(null as integer) as revenue_code_concept_id,
-      cast(null as varchar) as revenue_code_source_value,
-      cast(null as integer) as drg_concept_id,
-      cast(null as varchar) as drg_source_value
-  from {{ source('raw', 'professional_header_historical') }}
-)
-  {% endset %}
-  {% do cte_definitions.append(query) %}
-{% endif %}
-
-{% if exists_ph_current %}
-  {% set query %}
-pharmacy_header_current as (
-  select distinct
-      cast(
-        hash(concat_ws('||', 
-          row_id, 
-          bill_id,
-          total_charge_per_bill), 'xxhash64') % 1000000000 as varchar
-      ) as cost_id,
-      cast(bill_id as integer) as cost_event_id,
-      'Drug' as cost_domain_id,
+      'Visit' as cost_domain_id,
       32869 as cost_type_concept_id,
       44818668 as currency_concept_id,
-      cast(total_charge_per_bill as float) as total_charge,
+      TRY_CAST(total_charge_per_bill as float) as total_charge,
       cast(null as float) as total_cost,
-      cast(total_amount_paid_per_bill as float) as total_paid,
+      TRY_CAST(total_amount_paid_per_bill as float) as total_paid,
       cast(null as float) as paid_by_payer,
       cast(null as float) as paid_by_patient,
       cast(null as float) as paid_patient_copay,
@@ -198,25 +102,203 @@ pharmacy_header_current as (
 )
   {% endset %}
   {% do cte_definitions.append(query) %}
+  {% do union_queries.append('select * from institutional_bill_cost_current') %}
+  {% do union_queries.append('select * from professional_bill_cost_current') %}
+  {% do union_queries.append('select * from pharmacy_bill_cost_current') %}
 {% endif %}
 
-{% if exists_ph_historical %}
+{# ===== LINE-LEVEL COSTS (detail tables) ===== #}
+
+{% if has_inst_detail_current %}
   {% set query %}
-pharmacy_header_historical as (
-  select distinct
+-- Line-level costs from institutional detail
+institutional_line_cost_current as (
+  select
       cast(
-        hash(concat_ws('||', 
-          row_id, 
-          bill_id,
-          total_charge_per_bill), 'xxhash64') % 1000000000 as varchar
+        hash(concat_ws('||', 'line', bill_id, row_id), 'xxhash64') % 1000000000 as varchar
       ) as cost_id,
-      cast(bill_id as integer) as cost_event_id,
-      'Drug' as cost_domain_id,
+      -- Link to visit_detail_id (same hash used in stg_visit_detail)
+      cast(
+        hash(concat_ws('||', bill_id, row_id), 'xxhash64') % 1000000000 as integer
+      ) as cost_event_id,
+      'Visit Detail' as cost_domain_id,
+      32855 as cost_type_concept_id,
+      44818668 as currency_concept_id,
+      TRY_CAST(total_charge_per_line as float) as total_charge,
+      cast(null as float) as total_cost,
+      TRY_CAST(total_amount_paid_per_line as float) as total_paid,
+      cast(null as float) as paid_by_payer,
+      cast(null as float) as paid_by_patient,
+      cast(null as float) as paid_patient_copay,
+      cast(null as float) as paid_patient_coinsurance,
+      cast(null as float) as paid_patient_deductible,
+      cast(null as float) as paid_by_primary,
+      cast(null as float) as paid_ingredient_cost,
+      cast(null as float) as paid_dispensing_fee,
+      cast(null as integer) as payer_plan_period_id,
+      cast(null as float) as amount_allowed,
+      cast(null as integer) as revenue_code_concept_id,
+      revenue_billed_code as revenue_code_source_value,
+      cast(null as integer) as drg_concept_id,
+      cast(null as varchar) as drg_source_value
+  from {{ source('raw', 'institutional_detail_current') }}
+  where total_charge_per_line is not null or total_amount_paid_per_line is not null
+)
+  {% endset %}
+  {% do cte_definitions.append(query) %}
+  {% do union_queries.append('select * from institutional_line_cost_current') %}
+{% endif %}
+
+{% if has_prof_detail_current %}
+  {% set query %}
+-- Line-level costs from professional detail
+professional_line_cost_current as (
+  select
+      cast(
+        hash(concat_ws('||', 'line', bill_id, row_id), 'xxhash64') % 1000000000 as varchar
+      ) as cost_id,
+      cast(
+        hash(concat_ws('||', bill_id, row_id), 'xxhash64') % 1000000000 as integer
+      ) as cost_event_id,
+      'Visit Detail' as cost_domain_id,
+      32873 as cost_type_concept_id,
+      44818668 as currency_concept_id,
+      TRY_CAST(total_charge_per_line as float) as total_charge,
+      cast(null as float) as total_cost,
+      TRY_CAST(total_amount_paid_per_line as float) as total_paid,
+      cast(null as float) as paid_by_payer,
+      cast(null as float) as paid_by_patient,
+      cast(null as float) as paid_patient_copay,
+      cast(null as float) as paid_patient_coinsurance,
+      cast(null as float) as paid_patient_deductible,
+      cast(null as float) as paid_by_primary,
+      cast(null as float) as paid_ingredient_cost,
+      cast(null as float) as paid_dispensing_fee,
+      cast(null as integer) as payer_plan_period_id,
+      cast(null as float) as amount_allowed,
+      cast(null as integer) as revenue_code_concept_id,
+      cast(null as varchar) as revenue_code_source_value,
+      cast(null as integer) as drg_concept_id,
+      cast(null as varchar) as drg_source_value
+  from {{ source('raw', 'professional_detail_current') }}
+  where total_charge_per_line is not null or total_amount_paid_per_line is not null
+)
+  {% endset %}
+  {% do cte_definitions.append(query) %}
+  {% do union_queries.append('select * from professional_line_cost_current') %}
+{% endif %}
+
+{% if has_pharm_detail_current %}
+  {% set query %}
+-- Line-level costs from pharmacy detail with dispensing fee
+pharmacy_line_cost_current as (
+  select
+      cast(
+        hash(concat_ws('||', 'line', bill_id, row_id), 'xxhash64') % 1000000000 as varchar
+      ) as cost_id,
+      cast(
+        hash(concat_ws('||', bill_id, row_id), 'xxhash64') % 1000000000 as integer
+      ) as cost_event_id,
+      'Visit Detail' as cost_domain_id,
       32869 as cost_type_concept_id,
       44818668 as currency_concept_id,
-      cast(total_charge_per_bill as float) as total_charge,
+      TRY_CAST(drugs_supplies_billed_amount as float) as total_charge,
       cast(null as float) as total_cost,
-      cast(total_amount_paid_per_bill as float) as total_paid,
+      TRY_CAST(total_amount_paid_per_line as float) as total_paid,
+      cast(null as float) as paid_by_payer,
+      cast(null as float) as paid_by_patient,
+      cast(null as float) as paid_patient_copay,
+      cast(null as float) as paid_patient_coinsurance,
+      cast(null as float) as paid_patient_deductible,
+      cast(null as float) as paid_by_primary,
+      cast(null as float) as paid_ingredient_cost,
+      TRY_CAST(drugs_supplies_dispensing as float) as paid_dispensing_fee,
+      cast(null as integer) as payer_plan_period_id,
+      cast(null as float) as amount_allowed,
+      cast(null as integer) as revenue_code_concept_id,
+      cast(null as varchar) as revenue_code_source_value,
+      cast(null as integer) as drg_concept_id,
+      cast(null as varchar) as drg_source_value
+  from {{ source('raw', 'pharmacy_detail_current') }}
+  where drugs_supplies_billed_amount is not null or total_amount_paid_per_line is not null
+)
+  {% endset %}
+  {% do cte_definitions.append(query) %}
+  {% do union_queries.append('select * from pharmacy_line_cost_current') %}
+{% endif %}
+
+{# ===== HISTORICAL ===== #}
+
+{% if has_historical %}
+  {% set query %}
+institutional_bill_cost_historical as (
+  select
+      cast(
+        hash(concat_ws('||', 'bill', bill_id, total_charge_per_bill), 'xxhash64') % 1000000000 as varchar
+      ) as cost_id,
+      cast(bill_id as integer) as cost_event_id,
+      'Visit' as cost_domain_id,
+      32855 as cost_type_concept_id,
+      44818668 as currency_concept_id,
+      TRY_CAST(total_charge_per_bill as float) as total_charge,
+      cast(null as float) as total_cost,
+      TRY_CAST(total_amount_paid_per_bill as float) as total_paid,
+      cast(null as float) as paid_by_payer,
+      cast(null as float) as paid_by_patient,
+      cast(null as float) as paid_patient_copay,
+      cast(null as float) as paid_patient_coinsurance,
+      cast(null as float) as paid_patient_deductible,
+      cast(null as float) as paid_by_primary,
+      cast(null as float) as paid_ingredient_cost,
+      cast(null as float) as paid_dispensing_fee,
+      cast(null as integer) as payer_plan_period_id,
+      cast(null as float) as amount_allowed,
+      cast(null as integer) as revenue_code_concept_id,
+      cast(null as varchar) as revenue_code_source_value,
+      cast(null as integer) as drg_concept_id,
+      diagnosis_related_group_code as drg_source_value
+  from {{ source('raw', 'institutional_header_historical') }}
+),
+professional_bill_cost_historical as (
+  select
+      cast(
+        hash(concat_ws('||', 'bill', bill_id, total_charge_per_bill), 'xxhash64') % 1000000000 as varchar
+      ) as cost_id,
+      cast(bill_id as integer) as cost_event_id,
+      'Visit' as cost_domain_id,
+      32873 as cost_type_concept_id,
+      44818668 as currency_concept_id,
+      TRY_CAST(total_charge_per_bill as float) as total_charge,
+      cast(null as float) as total_cost,
+      TRY_CAST(total_amount_paid_per_bill as float) as total_paid,
+      cast(null as float) as paid_by_payer,
+      cast(null as float) as paid_by_patient,
+      cast(null as float) as paid_patient_copay,
+      cast(null as float) as paid_patient_coinsurance,
+      cast(null as float) as paid_patient_deductible,
+      cast(null as float) as paid_by_primary,
+      cast(null as float) as paid_ingredient_cost,
+      cast(null as float) as paid_dispensing_fee,
+      cast(null as integer) as payer_plan_period_id,
+      cast(null as float) as amount_allowed,
+      cast(null as integer) as revenue_code_concept_id,
+      cast(null as varchar) as revenue_code_source_value,
+      cast(null as integer) as drg_concept_id,
+      cast(null as varchar) as drg_source_value
+  from {{ source('raw', 'professional_header_historical') }}
+),
+pharmacy_bill_cost_historical as (
+  select
+      cast(
+        hash(concat_ws('||', 'bill', bill_id, total_charge_per_bill), 'xxhash64') % 1000000000 as varchar
+      ) as cost_id,
+      cast(bill_id as integer) as cost_event_id,
+      'Visit' as cost_domain_id,
+      32869 as cost_type_concept_id,
+      44818668 as currency_concept_id,
+      TRY_CAST(total_charge_per_bill as float) as total_charge,
+      cast(null as float) as total_cost,
+      TRY_CAST(total_amount_paid_per_bill as float) as total_paid,
       cast(null as float) as paid_by_payer,
       cast(null as float) as paid_by_patient,
       cast(null as float) as paid_patient_copay,
@@ -235,33 +317,157 @@ pharmacy_header_historical as (
 )
   {% endset %}
   {% do cte_definitions.append(query) %}
+  {% do union_queries.append('select * from institutional_bill_cost_historical') %}
+  {% do union_queries.append('select * from professional_bill_cost_historical') %}
+  {% do union_queries.append('select * from pharmacy_bill_cost_historical') %}
 {% endif %}
 
-{% set union_queries = [] %}
-{% if exists_i_current %}
-  {% do union_queries.append('select * from institutional_header_current') %}
-{% endif %}
-{% if exists_i_historical %}
-  {% do union_queries.append('select * from institutional_header_historical') %}
-{% endif %}
-{% if exists_pr_current %}
-  {% do union_queries.append('select * from professional_header_current') %}
-{% endif %}
-{% if exists_pr_historical %}
-  {% do union_queries.append('select * from professional_header_historical') %}
-{% endif %}
-{% if exists_ph_current %}
-  {% do union_queries.append('select * from pharmacy_header_current') %}
-{% endif %}
-{% if exists_ph_historical %}
-  {% do union_queries.append('select * from pharmacy_header_historical') %}
+{% if has_inst_detail_historical %}
+  {% set query %}
+institutional_line_cost_historical as (
+  select
+      cast(
+        hash(concat_ws('||', 'line', bill_id, row_id), 'xxhash64') % 1000000000 as varchar
+      ) as cost_id,
+      cast(
+        hash(concat_ws('||', bill_id, row_id), 'xxhash64') % 1000000000 as integer
+      ) as cost_event_id,
+      'Visit Detail' as cost_domain_id,
+      32855 as cost_type_concept_id,
+      44818668 as currency_concept_id,
+      TRY_CAST(total_charge_per_line as float) as total_charge,
+      cast(null as float) as total_cost,
+      TRY_CAST(total_amount_paid_per_line as float) as total_paid,
+      cast(null as float) as paid_by_payer,
+      cast(null as float) as paid_by_patient,
+      cast(null as float) as paid_patient_copay,
+      cast(null as float) as paid_patient_coinsurance,
+      cast(null as float) as paid_patient_deductible,
+      cast(null as float) as paid_by_primary,
+      cast(null as float) as paid_ingredient_cost,
+      cast(null as float) as paid_dispensing_fee,
+      cast(null as integer) as payer_plan_period_id,
+      cast(null as float) as amount_allowed,
+      cast(null as integer) as revenue_code_concept_id,
+      revenue_billed_code as revenue_code_source_value,
+      cast(null as integer) as drg_concept_id,
+      cast(null as varchar) as drg_source_value
+  from {{ source('raw', 'institutional_detail_historical') }}
+  where total_charge_per_line is not null or total_amount_paid_per_line is not null
+)
+  {% endset %}
+  {% do cte_definitions.append(query) %}
+  {% do union_queries.append('select * from institutional_line_cost_historical') %}
 {% endif %}
 
-{% if cte_definitions | length > 0 %}
+{% if has_prof_detail_historical %}
+  {% set query %}
+professional_line_cost_historical as (
+  select
+      cast(
+        hash(concat_ws('||', 'line', bill_id, row_id), 'xxhash64') % 1000000000 as varchar
+      ) as cost_id,
+      cast(
+        hash(concat_ws('||', bill_id, row_id), 'xxhash64') % 1000000000 as integer
+      ) as cost_event_id,
+      'Visit Detail' as cost_domain_id,
+      32873 as cost_type_concept_id,
+      44818668 as currency_concept_id,
+      TRY_CAST(total_charge_per_line as float) as total_charge,
+      cast(null as float) as total_cost,
+      TRY_CAST(total_amount_paid_per_line as float) as total_paid,
+      cast(null as float) as paid_by_payer,
+      cast(null as float) as paid_by_patient,
+      cast(null as float) as paid_patient_copay,
+      cast(null as float) as paid_patient_coinsurance,
+      cast(null as float) as paid_patient_deductible,
+      cast(null as float) as paid_by_primary,
+      cast(null as float) as paid_ingredient_cost,
+      cast(null as float) as paid_dispensing_fee,
+      cast(null as integer) as payer_plan_period_id,
+      cast(null as float) as amount_allowed,
+      cast(null as integer) as revenue_code_concept_id,
+      cast(null as varchar) as revenue_code_source_value,
+      cast(null as integer) as drg_concept_id,
+      cast(null as varchar) as drg_source_value
+  from {{ source('raw', 'professional_detail_historical') }}
+  where total_charge_per_line is not null or total_amount_paid_per_line is not null
+)
+  {% endset %}
+  {% do cte_definitions.append(query) %}
+  {% do union_queries.append('select * from professional_line_cost_historical') %}
+{% endif %}
+
+{% if has_pharm_detail_historical %}
+  {% set query %}
+pharmacy_line_cost_historical as (
+  select
+      cast(
+        hash(concat_ws('||', 'line', bill_id, row_id), 'xxhash64') % 1000000000 as varchar
+      ) as cost_id,
+      cast(
+        hash(concat_ws('||', bill_id, row_id), 'xxhash64') % 1000000000 as integer
+      ) as cost_event_id,
+      'Visit Detail' as cost_domain_id,
+      32869 as cost_type_concept_id,
+      44818668 as currency_concept_id,
+      TRY_CAST(drugs_supplies_billed_amount as float) as total_charge,
+      cast(null as float) as total_cost,
+      TRY_CAST(total_amount_paid_per_line as float) as total_paid,
+      cast(null as float) as paid_by_payer,
+      cast(null as float) as paid_by_patient,
+      cast(null as float) as paid_patient_copay,
+      cast(null as float) as paid_patient_coinsurance,
+      cast(null as float) as paid_patient_deductible,
+      cast(null as float) as paid_by_primary,
+      cast(null as float) as paid_ingredient_cost,
+      TRY_CAST(drugs_supplies_dispensing as float) as paid_dispensing_fee,
+      cast(null as integer) as payer_plan_period_id,
+      cast(null as float) as amount_allowed,
+      cast(null as integer) as revenue_code_concept_id,
+      cast(null as varchar) as revenue_code_source_value,
+      cast(null as integer) as drg_concept_id,
+      cast(null as varchar) as drg_source_value
+  from {{ source('raw', 'pharmacy_detail_historical') }}
+  where drugs_supplies_billed_amount is not null or total_amount_paid_per_line is not null
+)
+  {% endset %}
+  {% do cte_definitions.append(query) %}
+  {% do union_queries.append('select * from pharmacy_line_cost_historical') %}
+{% endif %}
+
+{% if union_queries | length > 0 %}
 with
   {{ cte_definitions | join(",\n") }}
-{% endif %}
+
 select *
 from (
-  {{ union_queries | join(" union ") }}
+  {{ union_queries | join("\n  union all\n  ") }}
 ) as final_result
+{% else %}
+-- No source tables available - return empty result set with OMOP cost schema
+select
+    cast(null as varchar) as cost_id,
+    cast(null as integer) as cost_event_id,
+    cast(null as varchar) as cost_domain_id,
+    cast(null as integer) as cost_type_concept_id,
+    cast(null as integer) as currency_concept_id,
+    cast(null as float) as total_charge,
+    cast(null as float) as total_cost,
+    cast(null as float) as total_paid,
+    cast(null as float) as paid_by_payer,
+    cast(null as float) as paid_by_patient,
+    cast(null as float) as paid_patient_copay,
+    cast(null as float) as paid_patient_coinsurance,
+    cast(null as float) as paid_patient_deductible,
+    cast(null as float) as paid_by_primary,
+    cast(null as float) as paid_ingredient_cost,
+    cast(null as float) as paid_dispensing_fee,
+    cast(null as integer) as payer_plan_period_id,
+    cast(null as float) as amount_allowed,
+    cast(null as integer) as revenue_code_concept_id,
+    cast(null as varchar) as revenue_code_source_value,
+    cast(null as integer) as drg_concept_id,
+    cast(null as varchar) as drg_source_value
+where false
+{% endif %}

@@ -1,6 +1,6 @@
 select 
     cast(drug_exposure_id as integer) as drug_exposure_id,
-    cast(person_id as varchar) as person_id,
+    cast(person_id as integer) as person_id,
     cast(drug_concept_id as varchar) as drug_concept_id,
     cast(drug_exposure_start_date as date) as drug_exposure_start_date,
     cast(drug_exposure_start_datetime as timestamp) as drug_exposure_start_datetime,

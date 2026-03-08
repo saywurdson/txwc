@@ -7,19 +7,19 @@ select
          vocabulary_id=['ICD9Proc', 'ICD10PCS', 'CPT4', 'HCPCS'],
          vocabulary_target='SNOMED',
          required_value=0
-    ) }} as varchar) as procedure_concept_id,
+    ) }} as integer) as procedure_concept_id,
     procedure_date,
     procedure_datetime,
     procedure_end_date,
     procedure_end_datetime,
-    procedure_type_concept_id,
-    modifier_concept_id,
+    cast(procedure_type_concept_id as integer) as procedure_type_concept_id,
+    cast(modifier_concept_id as integer) as modifier_concept_id,
     quantity,
     provider_id,
     visit_occurrence_id,
     visit_detail_id,
     procedure_source_value,
-    procedure_source_concept_id,
+    cast(procedure_source_concept_id as integer) as procedure_source_concept_id,
     modifier_source_value
 from {{ ref('int_procedure_occurrence') }}
 where procedure_date is not null

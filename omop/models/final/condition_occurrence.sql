@@ -7,19 +7,19 @@ select
          vocabulary_id=['ICD9CM', 'ICD10CM'],
          vocabulary_target='SNOMED',
          required_value=0
-    ) }} as varchar) as condition_concept_id,
+    ) }} as integer) as condition_concept_id,
     condition_start_date,
     condition_start_datetime,
     condition_end_date,
     condition_end_datetime,
-    condition_type_concept_id,
-    condition_status_concept_id,
+    cast(condition_type_concept_id as integer) as condition_type_concept_id,
+    cast(condition_status_concept_id as integer) as condition_status_concept_id,
     stop_reason,
     provider_id,
     visit_occurrence_id,
     visit_detail_id,
     condition_source_value,
-    condition_source_concept_id,
+    cast(condition_source_concept_id as integer) as condition_source_concept_id,
     condition_status_source_value
 from {{ ref('int_condition_occurrence') }}
 where condition_start_date is not null

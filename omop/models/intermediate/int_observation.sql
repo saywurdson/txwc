@@ -1,6 +1,6 @@
 select 
     cast(observation_id as integer) as observation_id,
-    cast(person_id as varchar) as person_id,
+    cast(person_id as integer) as person_id,
     cast(observation_concept_id as varchar) as observation_concept_id,
     cast(observation_date as date) as observation_date,
     cast(observation_datetime as timestamp) as observation_datetime,

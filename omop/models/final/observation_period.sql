@@ -68,7 +68,7 @@ person_observation_bounds as (
 )
 select
     cast(row_number() over (order by person_id) as integer) as observation_period_id,
-    cast(person_id as varchar) as person_id,
+    cast(person_id as integer) as person_id,
     cast(observation_period_start_date as date) as observation_period_start_date,
     cast(observation_period_end_date as date) as observation_period_end_date,
     cast(32855 as integer) as period_type_concept_id  -- Claim derived
