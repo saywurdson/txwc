@@ -3,10 +3,12 @@ import glob
 import os
 
 def load_seeds_to_omop():
-    conn = duckdb.connect('/workspaces/txwc/tx_workers_comp.db')
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    db_path = os.environ.get('TXWC_DB_PATH', os.path.join(base_dir, 'tx_workers_comp.db'))
+    conn = duckdb.connect(db_path)
     conn.execute("CREATE SCHEMA IF NOT EXISTS omop;")
-    
-    seeds_dir = '/workspaces/txwc/omop/seeds'
+
+    seeds_dir = os.path.join(base_dir, 'omop', 'seeds')
     csv_pattern = os.path.join(seeds_dir, '*.csv')
     
     # Process each CSV file

@@ -1,3 +1,4 @@
+import os
 from urllib.request import urlopen
 import pandas as pd
 import json
@@ -101,7 +102,11 @@ def main():
     logging.info(f"Processing complete. Total concepts: {total_concepts}, Processed: {processed_concepts}, Failed: {failed_count}")
 
     # Connect to DuckDB database and create table in the specified schema
-    conn = duckdb.connect('/workspaces/txwc/tx_workers_comp.db')
+    db_path = os.environ.get(
+        'TXWC_DB_PATH',
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tx_workers_comp.db')
+    )
+    conn = duckdb.connect(db_path)
     conn.execute("CREATE SCHEMA IF NOT EXISTS reference_data")
     conn.register('temp_df', full_df)
     conn.execute("CREATE OR REPLACE TABLE reference_data.rxclass AS SELECT * FROM temp_df")
