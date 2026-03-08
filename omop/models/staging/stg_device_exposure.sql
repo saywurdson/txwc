@@ -23,16 +23,16 @@
         {{ derive_person_id('header') }} as person_id,
         cast(null as integer) as device_concept_id,
         CASE WHEN detail.service_line_from_date = 'N' THEN NULL
-            ELSE cast(detail.service_line_from_date as date) END as device_exposure_start_date,
+            ELSE try_cast(detail.service_line_from_date as date) END as device_exposure_start_date,
         CASE WHEN detail.service_line_from_date = 'N' THEN NULL
-            ELSE cast(detail.service_line_from_date as timestamp) END as device_exposure_start_datetime,
+            ELSE try_cast(detail.service_line_from_date as timestamp) END as device_exposure_start_datetime,
         -- Fallback to visit end date (reporting_period_end_date) when service_line_to_date is null
         COALESCE(
-            CASE WHEN detail.service_line_to_date = 'N' THEN NULL ELSE cast(detail.service_line_to_date as date) END,
+            CASE WHEN detail.service_line_to_date = 'N' THEN NULL ELSE try_cast(detail.service_line_to_date as date) END,
             cast(header.reporting_period_end_date as date)
         ) as device_exposure_end_date,
         COALESCE(
-            CASE WHEN detail.service_line_to_date = 'N' THEN NULL ELSE cast(detail.service_line_to_date as timestamp) END,
+            CASE WHEN detail.service_line_to_date = 'N' THEN NULL ELSE try_cast(detail.service_line_to_date as timestamp) END,
             cast(header.reporting_period_end_date as timestamp)
         ) as device_exposure_end_datetime,
         {{ device_type_mapping['institutional'] }} as device_type_concept_id,
@@ -141,16 +141,16 @@
         {{ derive_person_id('header') }} as person_id,
         cast(null as integer) as device_concept_id,
         CASE WHEN detail.service_line_from_date = 'N' THEN NULL
-            ELSE cast(detail.service_line_from_date as date) END as device_exposure_start_date,
+            ELSE try_cast(detail.service_line_from_date as date) END as device_exposure_start_date,
         CASE WHEN detail.service_line_from_date = 'N' THEN NULL
-            ELSE cast(detail.service_line_from_date as timestamp) END as device_exposure_start_datetime,
+            ELSE try_cast(detail.service_line_from_date as timestamp) END as device_exposure_start_datetime,
         -- Fallback to visit end date (reporting_period_end_date) when service_line_to_date is null
         COALESCE(
-            CASE WHEN detail.service_line_to_date = 'N' THEN NULL ELSE cast(detail.service_line_to_date as date) END,
+            CASE WHEN detail.service_line_to_date = 'N' THEN NULL ELSE try_cast(detail.service_line_to_date as date) END,
             cast(header.reporting_period_end_date as date)
         ) as device_exposure_end_date,
         COALESCE(
-            CASE WHEN detail.service_line_to_date = 'N' THEN NULL ELSE cast(detail.service_line_to_date as timestamp) END,
+            CASE WHEN detail.service_line_to_date = 'N' THEN NULL ELSE try_cast(detail.service_line_to_date as timestamp) END,
             cast(header.reporting_period_end_date as timestamp)
         ) as device_exposure_end_datetime,
         {{ device_type_mapping['institutional'] }} as device_type_concept_id,

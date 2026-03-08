@@ -115,16 +115,16 @@ final_id as (
     {{ derive_person_id('ihc') }} as person_id,
     cast(null as integer) as procedure_concept_id,
     CASE WHEN id.service_line_from_date = 'N' THEN NULL
-        ELSE cast(id.service_line_from_date as date) END as procedure_date,
+        ELSE try_cast(id.service_line_from_date as date) END as procedure_date,
     CASE WHEN id.service_line_from_date = 'N' THEN NULL
-        ELSE cast(id.service_line_from_date as timestamp) END as procedure_datetime,
+        ELSE try_cast(id.service_line_from_date as timestamp) END as procedure_datetime,
     -- Fallback to visit end date (reporting_period_end_date) when service_line_to_date is null
     COALESCE(
-        CASE WHEN id.service_line_to_date = 'N' THEN NULL ELSE cast(id.service_line_to_date as date) END,
+        CASE WHEN id.service_line_to_date = 'N' THEN NULL ELSE try_cast(id.service_line_to_date as date) END,
         cast(ihc.reporting_period_end_date as date)
     ) as procedure_end_date,
     COALESCE(
-        CASE WHEN id.service_line_to_date = 'N' THEN NULL ELSE cast(id.service_line_to_date as timestamp) END,
+        CASE WHEN id.service_line_to_date = 'N' THEN NULL ELSE try_cast(id.service_line_to_date as timestamp) END,
         cast(ihc.reporting_period_end_date as timestamp)
     ) as procedure_end_datetime,
     32854 as procedure_type_concept_id,
@@ -309,16 +309,16 @@ final_idh as (
     {{ derive_person_id('ihc') }} as person_id,
     cast(null as integer) as procedure_concept_id,
     CASE WHEN id.service_line_from_date = 'N' THEN NULL
-        ELSE cast(id.service_line_from_date as date) END as procedure_date,
+        ELSE try_cast(id.service_line_from_date as date) END as procedure_date,
     CASE WHEN id.service_line_from_date = 'N' THEN NULL
-        ELSE cast(id.service_line_from_date as timestamp) END as procedure_datetime,
+        ELSE try_cast(id.service_line_from_date as timestamp) END as procedure_datetime,
     -- Fallback to visit end date (reporting_period_end_date) when service_line_to_date is null
     COALESCE(
-        CASE WHEN id.service_line_to_date = 'N' THEN NULL ELSE cast(id.service_line_to_date as date) END,
+        CASE WHEN id.service_line_to_date = 'N' THEN NULL ELSE try_cast(id.service_line_to_date as date) END,
         cast(ihc.reporting_period_end_date as date)
     ) as procedure_end_date,
     COALESCE(
-        CASE WHEN id.service_line_to_date = 'N' THEN NULL ELSE cast(id.service_line_to_date as timestamp) END,
+        CASE WHEN id.service_line_to_date = 'N' THEN NULL ELSE try_cast(id.service_line_to_date as timestamp) END,
         cast(ihc.reporting_period_end_date as timestamp)
     ) as procedure_end_datetime,
     32854 as procedure_type_concept_id,

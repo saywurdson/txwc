@@ -30,7 +30,7 @@ The [OMOP Common Data Model](https://ohdsi.github.io/CommonDataModel/) is a univ
 ```
 data.texas.gov (Socrata API)
     │
-    │  load_data.py ── Adaptive rate limiting, incremental sync,
+    │  load_data.py ── dlt pipeline with rate limiting,
     │                   patient-cohort sampling
     ▼
 ┌─────────────────────────────────────────────┐
@@ -147,7 +147,7 @@ streamlit run dashboard.py
 
 ```
 txwc/
-├── load_data.py           # Socrata API ingestion (adaptive rate limiting, incremental sync)
+├── load_data.py           # Socrata API ingestion via dlt pipeline
 ├── load_rxclass.py        # RxNav drug classification loader
 ├── load_vsac.py           # VSAC FHIR value set loader
 ├── load_vocab.py          # OMOP vocabulary CSV loader
@@ -176,10 +176,9 @@ txwc/
 
 ## Key Engineering Features
 
-- **Adaptive rate limiting** — Dynamically adjusts API request delays based on response times and 429 status codes
-- **Incremental sync** — Full refresh for current-period tables, ID-based cursor pagination for historical tables with persistent sync state
+- **dlt pipelines** — All loaders use [dlt](https://dlthub.com) for schema management, type handling, and idempotent loads into DuckDB
 - **Patient-cohort sampling** — Development mode that selects N patients (random or by complexity score) and fetches only their complete records across all claim types
-- **Schema evolution** — Automatically detects and handles column additions from the source API using `UNION ALL BY NAME`
+- **Full schema enforcement** — Post-load step queries Socrata metadata API to ensure all columns exist even when sampling small patient cohorts
 - **Concept mapping** — Custom dbt macros map ICD-9/10 → SNOMED, NDC → RxNorm, HCPCS/CPT → standard concepts via OMOP vocabulary lookups
 - **Hash-based patient identity** — Deterministic `person_id` derived from `xxhash64` of demographics for deduplication across claim types
 
@@ -190,6 +189,7 @@ txwc/
 | Category | Tools |
 |----------|-------|
 | **Language** | Python 3.11 |
+| **Data Loading** | dlt (dlthub.com) |
 | **Database** | DuckDB |
 | **Transformation** | dbt (dbt-duckdb) |
 | **Data Model** | OMOP CDM v5.4 |
