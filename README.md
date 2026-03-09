@@ -91,6 +91,7 @@ The dbt transformation layer maps raw billing data into these standardized clini
 - Docker
 - A Socrata app token ([register here](https://data.texas.gov/profile/edit/developer_settings))
 - (Optional) UMLS API key for VSAC/RxClass enrichment
+- (Required for OMOP) OMOP vocabulary files from [Athena](https://athena.ohdsi.org/) — see below
 
 ### Setup
 
@@ -125,6 +126,31 @@ python load_data.py --sample_patients 500 --complex
 # View database summary without downloading
 python load_data.py --report_only
 ```
+
+### Download OMOP Vocabularies
+
+The dbt models require standard vocabulary files to map billing codes (ICD-10, NDC, HCPCS/CPT) to OMOP concepts. These are not included in the repo due to licensing.
+
+1. Register at [Athena (athena.ohdsi.org)](https://athena.ohdsi.org/)
+2. Click **Download** and select at minimum these vocabularies:
+   - **SNOMED** — standard clinical concepts
+   - **ICD10CM** — diagnosis codes
+   - **ICD9CM** — legacy diagnosis codes
+   - **RxNorm** / **RxNorm Extension** — drug concepts
+   - **HCPCS** / **CPT4** — procedure codes (CPT4 requires a separate UMLS license)
+   - **NDC** — pharmacy drug codes
+   - **LOINC** — lab/observation codes
+3. Download and extract the zip file
+4. Copy the CSV files into `omop/seeds/`:
+   ```bash
+   cp /path/to/athena_download/*.csv omop/seeds/
+   ```
+5. Load into DuckDB:
+   ```bash
+   python load_vocab.py
+   ```
+
+The required files are: `CONCEPT.csv`, `CONCEPT_RELATIONSHIP.csv`, `CONCEPT_ANCESTOR.csv`, `DRUG_STRENGTH.csv`. The remaining files in the Athena download (`CONCEPT_SYNONYM`, `VOCABULARY`, `RELATIONSHIP`, `DOMAIN`, `CONCEPT_CLASS`) are not used by the dbt models but can be loaded for reference.
 
 ### Transform with dbt
 
