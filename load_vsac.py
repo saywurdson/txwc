@@ -1,35 +1,45 @@
-import requests
 import base64
+import logging
 import os
-from dotenv import load_dotenv
 from tqdm import tqdm
 import dlt
+from dlt.sources.helpers.requests import Session
 
-load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env'))
-API_KEY = os.getenv('API_KEY')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+try:
+    API_KEY = dlt.secrets["sources.vsac.api_key"]
+except KeyError:
+    API_KEY = ""
 
 BASE_URL_SVS = "https://cts.nlm.nih.gov/fhir"
 
 
-def _get_auth_headers():
-    """Build FHIR Basic auth headers from API_KEY."""
+def _create_session():
+    """Create a dlt Session with auth headers for VSAC FHIR API."""
     credentials = f"apikey:{API_KEY}".encode('utf-8')
     b64 = base64.b64encode(credentials).decode('utf-8')
-    return {
+    session = Session(timeout=30)
+    session.headers.update({
         "Authorization": f"Basic {b64}",
         "Accept": "application/fhir+json",
-    }
+    })
+    return session
 
 
-def get_all_value_set_ids():
+def _create_umls_session():
+    """Create a plain dlt Session for UMLS API calls."""
+    return Session(timeout=30)
+
+
+def get_all_value_set_ids(session):
     """Retrieve all value set OIDs from VSAC using FHIR API pagination."""
-    headers = _get_auth_headers()
     all_oids = []
     url = f"{BASE_URL_SVS}/ValueSet?_count=1000"
 
     while url:
         try:
-            response = requests.get(url, headers=headers)
+            response = session.get(url)
             response.raise_for_status()
             bundle = response.json()
 
@@ -46,7 +56,7 @@ def get_all_value_set_ids():
 
             tqdm.write(f"Retrieved {len(all_oids)} value sets so far...")
 
-        except requests.exceptions.RequestException as e:
+        except Exception as e:
             tqdm.write(f"Error fetching value sets: {e}")
             break
 
@@ -54,29 +64,30 @@ def get_all_value_set_ids():
 
 
 class UMLSFetcher:
-    def __init__(self, api_key):
+    def __init__(self, api_key, session):
         self.API_KEY = api_key
         self.SERVICE = "https://uts-ws.nlm.nih.gov"
+        self.session = session
         self.TICKET_GRANTING_TICKET = self.get_ticket_granting_ticket()
 
     def get_ticket_granting_ticket(self):
         params = {'apikey': self.API_KEY}
         headers = {"Content-type": "application/x-www-form-urlencoded", "Accept": "text/plain", "User-Agent": "python"}
-        response = requests.post("https://utslogin.nlm.nih.gov/cas/v1/api-key", headers=headers, data=params)
+        response = self.session.post("https://utslogin.nlm.nih.gov/cas/v1/api-key", headers=headers, data=params)
         response.raise_for_status()
         return response.url.split('/')[-1]
 
     def get_service_ticket(self):
         params = {'service': self.SERVICE}
         headers = {"Content-type": "application/x-www-form-urlencoded", "Accept": "text/plain", "User-Agent": "python"}
-        response = requests.post(f"https://utslogin.nlm.nih.gov/cas/v1/tickets/{self.TICKET_GRANTING_TICKET}", headers=headers, data=params)
+        response = self.session.post(f"https://utslogin.nlm.nih.gov/cas/v1/tickets/{self.TICKET_GRANTING_TICKET}", headers=headers, data=params)
         response.raise_for_status()
         return response.text
 
     def get_descendants(self, source, code):
         ticket = self.get_service_ticket()
         url = f"{self.SERVICE}/rest/content/current/source/{source}/{code}/descendants?ticket={ticket}"
-        response = requests.get(url, headers={"User-Agent": "python"})
+        response = self.session.get(url, headers={"User-Agent": "python"})
         if response.status_code != 200:
             tqdm.write(f"Error fetching descendants: {response.status_code} - {response.text}")
             return []
@@ -103,16 +114,27 @@ SYSTEM_MAP = {
     "urn:oid:2.16.840.1.113883.6.238": "CDC Race and Ethnicity",
 }
 
+_MAX_RECURSION_DEPTH = 10
 
-def retrieve_value_set(oid):
+
+def retrieve_value_set(oid, session):
     """Retrieve a single value set from VSAC by OID."""
-    headers = _get_auth_headers()
-    response = requests.get(f"{BASE_URL_SVS}/ValueSet/{oid}", headers=headers)
-    return response.json()
+    try:
+        response = session.get(f"{BASE_URL_SVS}/ValueSet/{oid}")
+        response.raise_for_status()
+        return response.json()
+    except Exception as e:
+        logging.warning(f"Failed to retrieve value set {oid}: {e}")
+        return {}
 
 
-def flatten_value_set(response_json, umls_fetcher, processed_oids, current_oid=None, parent_oid=None):
+def flatten_value_set(response_json, umls_fetcher, processed_oids, session,
+                      current_oid=None, parent_oid=None, depth=0):
     """Flatten a VSAC value set JSON into records, handling descendantOf filters and recursive references."""
+    if depth > _MAX_RECURSION_DEPTH:
+        logging.warning(f"Max recursion depth reached for OID {current_oid}")
+        return []
+
     data = []
     concepts = response_json.get('compose', {}).get('include', [])
     for concept in concepts:
@@ -131,8 +153,8 @@ def flatten_value_set(response_json, umls_fetcher, processed_oids, current_oid=N
                 "parent_oid": parent_oid if parent_oid else None,
             })
 
-        filters = response_json.get('compose', {}).get('include', [{}])[0].get('filter', [])
-        for filter_ in filters:
+        # Process filters for THIS concept's include entry (not just [0])
+        for filter_ in concept.get('filter', []):
             if filter_.get("op") == "descendantOf":
                 descendants = umls_fetcher.get_descendants(filter_.get("system", ""), filter_.get("value", ""))
                 for descendant_code in descendants:
@@ -153,10 +175,13 @@ def flatten_value_set(response_json, umls_fetcher, processed_oids, current_oid=N
             oid = ref_vs.split('/')[-1]
             if oid not in processed_oids:
                 processed_oids.add(oid)
-                data.extend(flatten_value_set(
-                    retrieve_value_set(oid), umls_fetcher, processed_oids,
-                    current_oid=oid, parent_oid=current_oid,
-                ))
+                ref_json = retrieve_value_set(oid, session)
+                if ref_json:
+                    data.extend(flatten_value_set(
+                        ref_json, umls_fetcher, processed_oids, session,
+                        current_oid=oid, parent_oid=current_oid,
+                        depth=depth + 1,
+                    ))
 
     return data
 
@@ -164,11 +189,14 @@ def flatten_value_set(response_json, umls_fetcher, processed_oids, current_oid=N
 @dlt.resource(write_disposition="replace", name="vsac")
 def vsac_resource():
     """Yield flattened, deduplicated VSAC value set records."""
+    session = _create_session()
+    umls_session = _create_umls_session()
+
     print("Retrieving all value set IDs from VSAC...")
-    value_set_ids = get_all_value_set_ids()
+    value_set_ids = get_all_value_set_ids(session)
     print(f"Found {len(value_set_ids)} value sets to download")
 
-    umls_fetcher = UMLSFetcher(API_KEY)
+    umls_fetcher = UMLSFetcher(API_KEY, umls_session)
     processed_oids = set()
     seen = set()
 
@@ -176,8 +204,13 @@ def vsac_resource():
         if oid in processed_oids:
             continue
         processed_oids.add(oid)
-        response_json = retrieve_value_set(oid)
-        records = flatten_value_set(response_json, umls_fetcher, processed_oids, current_oid=oid)
+        response_json = retrieve_value_set(oid, session)
+        if not response_json:
+            continue
+        records = flatten_value_set(
+            response_json, umls_fetcher, processed_oids, session,
+            current_oid=oid,
+        )
         for record in records:
             dedup_key = (record["valueSetName"], record["code"], record["display"])
             if dedup_key not in seen:
@@ -186,13 +219,9 @@ def vsac_resource():
 
 
 def main():
-    db_path = os.environ.get(
-        'TXWC_DB_PATH',
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tx_workers_comp.db'),
-    )
     pipeline = dlt.pipeline(
         pipeline_name="vsac",
-        destination=dlt.destinations.duckdb(db_path),
+        destination="duckdb",
         dataset_name="reference_data",
     )
     load_info = pipeline.run(vsac_resource())

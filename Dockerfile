@@ -23,11 +23,9 @@ RUN python -m pip install --upgrade pip && \
         dbt \
         dbt-duckdb \
         sodapy \
-        "dlt[duckdb]" \
+        "dlt[duckdb,workspace]" \
         paramiko \
         python-dotenv \
-        pyarrow==11.0.0 \
-        mcp-server-motherduck \
         streamlit \
         plotly
 

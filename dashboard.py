@@ -11,15 +11,22 @@ import duckdb
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
+import dlt
 
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
 
-DB_PATH = os.environ.get(
-    "TXWC_DB_PATH",
-    os.path.join(os.path.dirname(os.path.abspath(__file__)), "tx_workers_comp.db"),
-)
+def _get_db_path():
+    try:
+        db = dlt.config["destination.duckdb.credentials"]
+    except KeyError:
+        db = "tx_workers_comp.db"
+    if not os.path.isabs(db):
+        db = os.path.join(os.path.dirname(os.path.abspath(__file__)), db)
+    return db
+
+DB_PATH = _get_db_path()
 
 st.set_page_config(
     page_title="TX Workers' Comp Analytics",
@@ -38,9 +45,22 @@ def query(sql: str):
     return get_connection().execute(sql).fetchdf()
 
 
+def safe_query(sql: str):
+    """Run a SQL query, returning empty DataFrame on error."""
+    try:
+        return query(sql)
+    except Exception:
+        return pd.DataFrame()
+
+
+def explain(text: str):
+    """Show a plain-language explanation if the sidebar toggle is on."""
+    if st.session_state.get("show_explanations", False):
+        with st.expander("What does this mean?", expanded=True):
+            st.markdown(text)
+
+
 # Reusable CTE that unions all raw header tables with charge and paid amounts.
-# Every raw header table has: total_charge_per_bill, total_amount_paid_per_bill,
-# reporting_period_start_date.
 ALL_BILLS_CTE = """
     all_bills AS (
         SELECT TRY_CAST(total_charge_per_bill AS FLOAT) AS charge,
@@ -76,6 +96,16 @@ ALL_BILLS_CTE = """
     )
 """
 
+OPIOID_FILTER = """(c.concept_name ILIKE '%hydrocodone%'
+    OR c.concept_name ILIKE '%oxycodone%'
+    OR c.concept_name ILIKE '%morphine%'
+    OR c.concept_name ILIKE '%fentanyl%'
+    OR c.concept_name ILIKE '%tramadol%'
+    OR c.concept_name ILIKE '%codeine%'
+    OR c.concept_name ILIKE '%hydromorphone%'
+    OR c.concept_name ILIKE '%methadone%'
+    OR c.concept_name ILIKE '%buprenorphine%')"""
+
 
 # ---------------------------------------------------------------------------
 # Sidebar
@@ -83,12 +113,13 @@ ALL_BILLS_CTE = """
 
 st.sidebar.title("Filters")
 
-years = query("""
+_years_df = safe_query("""
     SELECT DISTINCT EXTRACT(YEAR FROM visit_start_date)::INT AS yr
     FROM omop.visit_occurrence
     WHERE visit_start_date IS NOT NULL
     ORDER BY yr
-""")["yr"].tolist()
+""")
+years = _years_df["yr"].tolist() if not _years_df.empty and "yr" in _years_df.columns else []
 
 if years:
     year_range = st.sidebar.slider(
@@ -101,6 +132,14 @@ else:
     year_range = (2003, 2026)
 
 yr_lo, yr_hi = year_range
+
+st.sidebar.divider()
+st.sidebar.checkbox(
+    "Show explanations",
+    value=False,
+    key="show_explanations",
+    help="Toggle plain-language explanations under each chart",
+)
 
 # ---------------------------------------------------------------------------
 # Header
@@ -116,13 +155,14 @@ st.caption(
 # Tabs
 # ---------------------------------------------------------------------------
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs(
-    ["Overview", "Injury Profile", "Condition Intelligence", "Cost & Payments", "Geography"]
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(
+    ["Overview", "Injury Profile", "Condition Intelligence",
+     "Cost & Payments", "Rx & Opioid Monitor", "Provider Analytics", "Geography"]
 )
 
 # ===========================  TAB 1: OVERVIEW  =============================
 with tab1:
-    kpis = query(f"""
+    kpis = safe_query(f"""
         SELECT
             (SELECT COUNT(*) FROM omop.person) AS patients,
             (SELECT COUNT(*) FROM omop.visit_occurrence
@@ -138,19 +178,28 @@ with tab1:
             ) AS carriers
     """)
 
-    c1, c2, c3, c4, c5, c6 = st.columns(6)
-    c1.metric("Patients", f"{kpis['patients'][0]:,}")
-    c2.metric("Visits", f"{kpis['visits'][0]:,}")
-    c3.metric("Diagnoses", f"{kpis['conditions'][0]:,}")
-    c4.metric("Providers", f"{kpis['providers'][0]:,}")
-    c5.metric("Facilities", f"{kpis['facilities'][0]:,}")
-    c6.metric("Carriers", f"{kpis['carriers'][0]:,}")
+    if not kpis.empty:
+        c1, c2, c3, c4, c5, c6 = st.columns(6)
+        c1.metric("Patients", f"{kpis['patients'][0]:,}")
+        c2.metric("Visits", f"{kpis['visits'][0]:,}")
+        c3.metric("Diagnoses", f"{kpis['conditions'][0]:,}")
+        c4.metric("Providers", f"{kpis['providers'][0]:,}")
+        c5.metric("Facilities", f"{kpis['facilities'][0]:,}")
+        c6.metric("Carriers", f"{kpis['carriers'][0]:,}")
+
+    explain(
+        "These are the top-level counts for the dataset. **Patients** is the number of unique injured workers. "
+        "**Visits** counts every medical encounter (doctor visit, hospital stay, pharmacy fill). "
+        "**Diagnoses** is how many diagnosis codes were recorded. **Providers** are the doctors and clinicians "
+        "who treated patients. **Facilities** are clinics, hospitals, and pharmacies. "
+        "**Carriers** are the insurance companies paying the workers' comp claims."
+    )
 
     st.divider()
     col_l, col_r = st.columns(2)
 
     with col_l:
-        visits_yr = query(f"""
+        visits_yr = safe_query(f"""
             SELECT EXTRACT(YEAR FROM visit_start_date)::INT AS year,
                    COUNT(*) AS visits
             FROM omop.visit_occurrence
@@ -158,16 +207,23 @@ with tab1:
               AND EXTRACT(YEAR FROM visit_start_date) BETWEEN {yr_lo} AND {yr_hi}
             GROUP BY 1 ORDER BY 1
         """)
-        fig = px.area(
-            visits_yr, x="year", y="visits",
-            title="Visit Volume by Year",
-            color_discrete_sequence=["#2196F3"],
+        if not visits_yr.empty:
+            fig = px.area(
+                visits_yr, x="year", y="visits",
+                title="Visit Volume by Year",
+                color_discrete_sequence=["#2196F3"],
+            )
+            fig.update_layout(xaxis_title="", yaxis_title="Visits")
+            st.plotly_chart(fig, use_container_width=True)
+
+        explain(
+            "This shows how many medical visits happened each year. Rising trends may reflect "
+            "more injuries being reported or more treatment per claim. Drops could mean fewer "
+            "workplace injuries, policy changes, or data lag in recent years."
         )
-        fig.update_layout(xaxis_title="", yaxis_title="Visits")
-        st.plotly_chart(fig, use_container_width=True)
 
     with col_r:
-        gender = query("""
+        gender = safe_query("""
             SELECT
                 CASE gender_source_value
                     WHEN 'M' THEN 'Male'
@@ -177,33 +233,41 @@ with tab1:
                 COUNT(*) AS count
             FROM omop.person GROUP BY 1 ORDER BY 2 DESC
         """)
-        fig = px.pie(
-            gender, names="gender", values="count",
-            title="Patient Gender Distribution",
-            color_discrete_map={"Male": "#2196F3", "Female": "#E91E63", "Unknown": "#9E9E9E"},
-            hole=0.4,
+        if not gender.empty:
+            fig = px.pie(
+                gender, names="gender", values="count",
+                title="Patient Gender Distribution",
+                color_discrete_map={"Male": "#2196F3", "Female": "#E91E63", "Unknown": "#9E9E9E"},
+                hole=0.4,
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
+        explain(
+            "Gender breakdown of injured workers in the dataset. Workers' compensation claims "
+            "skew male in industries like construction, manufacturing, and oil & gas, while "
+            "healthcare and retail injuries tend to be more balanced."
         )
-        st.plotly_chart(fig, use_container_width=True)
 
     col_l2, col_r2 = st.columns(2)
 
     with col_l2:
-        age = query("""
+        age = safe_query("""
             SELECT (year_of_birth / 10) * 10 AS decade, COUNT(*) AS patients
             FROM omop.person
             WHERE year_of_birth BETWEEN 1930 AND 2005
             GROUP BY 1 ORDER BY 1
         """)
-        fig = px.bar(
-            age, x="decade", y="patients",
-            title="Patients by Birth Decade",
-            color_discrete_sequence=["#26A69A"],
-        )
-        fig.update_layout(xaxis_title="Birth Decade", yaxis_title="Patients")
-        st.plotly_chart(fig, use_container_width=True)
+        if not age.empty:
+            fig = px.bar(
+                age, x="decade", y="patients",
+                title="Patients by Birth Decade",
+                color_discrete_sequence=["#26A69A"],
+            )
+            fig.update_layout(xaxis_title="Birth Decade", yaxis_title="Patients")
+            st.plotly_chart(fig, use_container_width=True)
 
     with col_r2:
-        repeat = query("""
+        repeat = safe_query("""
             SELECT
                 CASE
                     WHEN cnt = 1 THEN '1 visit'
@@ -217,32 +281,47 @@ with tab1:
             FROM (SELECT person_id, COUNT(*) AS cnt FROM omop.visit_occurrence GROUP BY 1)
             GROUP BY 1 ORDER BY sort_key
         """)
-        fig = px.bar(
-            repeat, x="visit_bucket", y="patients",
-            title="Patient Utilization (Visits per Patient)",
-            color_discrete_sequence=["#FF7043"],
+        if not repeat.empty:
+            fig = px.bar(
+                repeat, x="visit_bucket", y="patients",
+                title="Patient Utilization (Visits per Patient)",
+                color_discrete_sequence=["#FF7043"],
+            )
+            fig.update_layout(xaxis_title="Visits per Patient", yaxis_title="Patients")
+            st.plotly_chart(fig, use_container_width=True)
+
+        explain(
+            "This shows how many visits each patient had. Most workers' comp patients have only a few visits "
+            "(e.g., a sprain that heals). Patients with 20+ visits often have chronic conditions, "
+            "complex surgeries, or ongoing pain management — these are the high-cost claims that "
+            "drive the majority of workers' comp spending."
         )
-        fig.update_layout(xaxis_title="Visits per Patient", yaxis_title="Patients")
-        st.plotly_chart(fig, use_container_width=True)
 
     # Monthly seasonality
-    monthly = query(f"""
+    monthly = safe_query(f"""
         SELECT EXTRACT(MONTH FROM visit_start_date)::INT AS month, COUNT(*) AS visits
         FROM omop.visit_occurrence
         WHERE visit_start_date IS NOT NULL
           AND EXTRACT(YEAR FROM visit_start_date) BETWEEN {yr_lo} AND {yr_hi}
         GROUP BY 1 ORDER BY 1
     """)
-    month_names = {1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr", 5: "May", 6: "Jun",
-                   7: "Jul", 8: "Aug", 9: "Sep", 10: "Oct", 11: "Nov", 12: "Dec"}
-    monthly["month_name"] = monthly["month"].map(month_names)
-    fig = px.bar(
-        monthly, x="month_name", y="visits",
-        title="Seasonal Pattern: Visits by Month",
-        color_discrete_sequence=["#5C6BC0"],
-    )
-    fig.update_layout(xaxis_title="", yaxis_title="Visits")
-    st.plotly_chart(fig, use_container_width=True)
+    if not monthly.empty:
+        month_names = {1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr", 5: "May", 6: "Jun",
+                       7: "Jul", 8: "Aug", 9: "Sep", 10: "Oct", 11: "Nov", 12: "Dec"}
+        monthly["month_name"] = monthly["month"].map(month_names)
+        fig = px.bar(
+            monthly, x="month_name", y="visits",
+            title="Seasonal Pattern: Visits by Month",
+            color_discrete_sequence=["#5C6BC0"],
+        )
+        fig.update_layout(xaxis_title="", yaxis_title="Visits")
+        st.plotly_chart(fig, use_container_width=True)
+
+        explain(
+            "Seasonal patterns in workplace injuries. Peaks in certain months may correlate "
+            "with weather (heat-related injuries in summer), industry cycles (construction "
+            "season), or holiday periods. Dips in December often reflect reduced work activity."
+        )
 
 
 # ========================  TAB 2: INJURY PROFILE  ==========================
@@ -250,7 +329,7 @@ with tab2:
     st.subheader("Injury Body Region Analysis")
     st.caption("Diagnoses classified by anatomical region based on SNOMED concept names")
 
-    body = query(f"""
+    body = safe_query(f"""
         SELECT
             CASE
                 WHEN c.concept_name ILIKE '%lumbar%' OR c.concept_name ILIKE '%low back%'
@@ -307,29 +386,150 @@ with tab2:
             fig.update_layout(yaxis_title="", xaxis_title="Patients")
             st.plotly_chart(fig, use_container_width=True)
 
+        explain(
+            "These charts show which body parts are most commonly injured. **Low back** injuries "
+            "are typically the #1 workers' comp diagnosis — they're hard to disprove, often become "
+            "chronic, and are the most expensive to treat. **Shoulder** and **knee** injuries are "
+            "common in physical labor. The treemap shows total diagnoses (one patient can have multiple), "
+            "while the bar chart shows unique patients affected."
+        )
+
+    # Injury-to-Treatment Delay
+    st.subheader("Injury-to-First-Treatment Delay")
+    st.caption("Time from employee date of injury to first recorded medical visit")
+    delay = safe_query(f"""
+        WITH injury_dates AS (
+            SELECT person_id,
+                   TRY_CAST(value_as_string AS DATE) AS injury_date
+            FROM omop.observation
+            WHERE observation_source_value = 'employee_date_of_injury'
+              AND value_as_string IS NOT NULL
+        ),
+        first_visits AS (
+            SELECT person_id, MIN(visit_start_date) AS first_visit_date
+            FROM omop.visit_occurrence
+            WHERE EXTRACT(YEAR FROM visit_start_date) BETWEEN {yr_lo} AND {yr_hi}
+            GROUP BY 1
+        )
+        SELECT
+            CASE
+                WHEN days_to_first BETWEEN 0 AND 1 THEN '0-1 days'
+                WHEN days_to_first BETWEEN 2 AND 7 THEN '2-7 days'
+                WHEN days_to_first BETWEEN 8 AND 14 THEN '8-14 days'
+                WHEN days_to_first BETWEEN 15 AND 30 THEN '15-30 days'
+                WHEN days_to_first BETWEEN 31 AND 90 THEN '1-3 months'
+                WHEN days_to_first BETWEEN 91 AND 365 THEN '3-12 months'
+                ELSE '1+ year'
+            END AS delay_bucket,
+            COUNT(*) AS patients,
+            MIN(days_to_first) AS sort_key,
+            ROUND(AVG(days_to_first), 1) AS avg_days
+        FROM (
+            SELECT i.person_id,
+                   DATEDIFF('day', i.injury_date, f.first_visit_date) AS days_to_first
+            FROM injury_dates i
+            JOIN first_visits f ON i.person_id = f.person_id
+            WHERE i.injury_date IS NOT NULL
+              AND DATEDIFF('day', i.injury_date, f.first_visit_date) >= 0
+        ) sub
+        GROUP BY 1 ORDER BY sort_key
+    """)
+    if not delay.empty:
+        col_l, col_r = st.columns([2, 1])
+        with col_l:
+            fig = px.bar(
+                delay, x="delay_bucket", y="patients",
+                title="Patients by Time to First Treatment",
+                color="avg_days",
+                color_continuous_scale="YlOrRd",
+            )
+            fig.update_layout(xaxis_title="Delay from Injury", yaxis_title="Patients")
+            st.plotly_chart(fig, use_container_width=True)
+        with col_r:
+            total_pts = delay["patients"].sum()
+            within_7 = delay[delay["sort_key"] <= 7]["patients"].sum()
+            st.metric("Median Delay", f"{delay['avg_days'].median():.0f} days")
+            st.metric("Treated within 7 days", f"{within_7 / total_pts * 100:.0f}%" if total_pts > 0 else "N/A")
+
+    explain(
+        "This measures how long injured workers wait before seeing a doctor after their injury. "
+        "In workers' comp, **delayed treatment strongly correlates with worse outcomes** — longer "
+        "disability, higher total claim costs, and lower return-to-work rates. Ideally most patients "
+        "should be treated within 7 days. Large numbers in the 3-12 month bucket may indicate "
+        "access barriers, claim disputes, or injuries that weren't immediately reported."
+    )
+
+    # Treatment Episode Duration
+    st.subheader("Treatment Episode Duration")
+    st.caption("Total span from first to last visit per patient")
+    episodes = safe_query(f"""
+        WITH ep AS (
+            SELECT person_id,
+                   MIN(visit_start_date) AS first_visit,
+                   MAX(visit_start_date) AS last_visit,
+                   COUNT(*) AS visit_count,
+                   DATEDIFF('day', MIN(visit_start_date), MAX(visit_start_date)) AS episode_days
+            FROM omop.visit_occurrence
+            WHERE EXTRACT(YEAR FROM visit_start_date) BETWEEN {yr_lo} AND {yr_hi}
+            GROUP BY 1
+        )
+        SELECT
+            CASE
+                WHEN episode_days = 0 THEN 'Single visit'
+                WHEN episode_days BETWEEN 1 AND 30 THEN '< 1 month'
+                WHEN episode_days BETWEEN 31 AND 90 THEN '1-3 months'
+                WHEN episode_days BETWEEN 91 AND 180 THEN '3-6 months'
+                WHEN episode_days BETWEEN 181 AND 365 THEN '6-12 months'
+                ELSE '1+ year'
+            END AS episode_length,
+            COUNT(*) AS patients,
+            ROUND(AVG(visit_count), 1) AS avg_visits,
+            MIN(episode_days) AS sort_key
+        FROM ep
+        GROUP BY 1 ORDER BY sort_key
+    """)
+    if not episodes.empty:
+        fig = px.bar(
+            episodes, x="episode_length", y="patients",
+            title="Patients by Treatment Episode Length",
+            hover_data=["avg_visits"],
+            color_discrete_sequence=["#26A69A"],
+        )
+        fig.update_layout(xaxis_title="Episode Duration", yaxis_title="Patients")
+        st.plotly_chart(fig, use_container_width=True)
+
+        explain(
+            "How long each patient's treatment lasted from first to last visit. **Single visit** "
+            "patients had a quick evaluation and were done. **1+ year** episodes are the expensive, "
+            "complex claims — often involving surgery, chronic pain, or prolonged rehab. "
+            "Hover over bars to see average visits per episode. High visit counts in short episodes "
+            "suggest intensive treatment; low counts in long episodes suggest periodic check-ins."
+        )
+
     # Visit type breakdown
     st.subheader("Visit Type & Duration")
     col_l, col_r = st.columns(2)
 
     with col_l:
-        vtypes = query(f"""
+        vtypes = safe_query(f"""
             SELECT COALESCE(c.concept_name, 'Unknown') AS visit_type, COUNT(*) AS visits
             FROM omop.visit_occurrence vo
             LEFT JOIN omop.concept c ON vo.visit_concept_id = c.concept_id
             WHERE EXTRACT(YEAR FROM vo.visit_start_date) BETWEEN {yr_lo} AND {yr_hi}
             GROUP BY 1 ORDER BY 2 DESC LIMIT 8
         """)
-        fig = px.bar(
-            vtypes.sort_values("visits"),
-            y="visit_type", x="visits", orientation="h",
-            title="Visit Types",
-            color_discrete_sequence=["#42A5F5"],
-        )
-        fig.update_layout(yaxis_title="", xaxis_title="Visits")
-        st.plotly_chart(fig, use_container_width=True)
+        if not vtypes.empty:
+            fig = px.bar(
+                vtypes.sort_values("visits"),
+                y="visit_type", x="visits", orientation="h",
+                title="Visit Types",
+                color_discrete_sequence=["#42A5F5"],
+            )
+            fig.update_layout(yaxis_title="", xaxis_title="Visits")
+            st.plotly_chart(fig, use_container_width=True)
 
     with col_r:
-        duration = query(f"""
+        duration = safe_query(f"""
             SELECT
                 CASE
                     WHEN DATEDIFF('day', visit_start_date, visit_end_date) = 0 THEN 'Same day'
@@ -345,13 +545,81 @@ with tab2:
               AND EXTRACT(YEAR FROM visit_start_date) BETWEEN {yr_lo} AND {yr_hi}
             GROUP BY 1 ORDER BY sort_key
         """)
-        fig = px.bar(
-            duration, x="duration", y="visits",
-            title="Visit Duration Distribution",
-            color_discrete_sequence=["#26A69A"],
-        )
-        fig.update_layout(xaxis_title="Length of Stay", yaxis_title="Visits")
-        st.plotly_chart(fig, use_container_width=True)
+        if not duration.empty:
+            fig = px.bar(
+                duration, x="duration", y="visits",
+                title="Visit Duration Distribution",
+                color_discrete_sequence=["#26A69A"],
+            )
+            fig.update_layout(xaxis_title="Length of Stay", yaxis_title="Visits")
+            st.plotly_chart(fig, use_container_width=True)
+
+    # Treatment Pathway Sequencing
+    st.subheader("Treatment Pathway: PT vs Imaging vs Injection")
+    st.caption("For patients who received multiple treatment types, which came first?")
+    explain(
+        "Evidence-based workers' comp guidelines recommend **conservative treatment first**: "
+        "physical therapy (PT) before imaging (MRI, X-ray) or injections. If most patients "
+        "get imaging or injections *before* PT, it may indicate non-guideline-concordant care. "
+        "This matters because early imaging often leads to unnecessary surgeries, and early "
+        "injections can mask symptoms without addressing the underlying problem."
+    )
+    pathway = safe_query(f"""
+        WITH categorized AS (
+            SELECT po.person_id, po.procedure_date,
+                CASE
+                    WHEN c.concept_name ILIKE '%therapeutic%' OR c.concept_name ILIKE '%manual therapy%'
+                         OR c.concept_name ILIKE '%exercise%' OR c.concept_name ILIKE '%neuromuscular%'
+                         OR c.concept_name ILIKE '%work hardening%'
+                         THEN 'Physical Therapy'
+                    WHEN c.concept_name ILIKE '%radiologic%' OR c.concept_name ILIKE '%tomography%'
+                         OR c.concept_name ILIKE '%MRI%' OR c.concept_name ILIKE '%imaging%'
+                         OR c.concept_name ILIKE '%ultrasound%'
+                         THEN 'Imaging'
+                    WHEN c.concept_name ILIKE '%injection%' OR c.concept_name ILIKE '%block%'
+                         THEN 'Injection'
+                    ELSE NULL
+                END AS tx_cat
+            FROM omop.procedure_occurrence po
+            JOIN omop.concept c ON po.procedure_concept_id = c.concept_id
+            WHERE EXTRACT(YEAR FROM po.procedure_date) BETWEEN {yr_lo} AND {yr_hi}
+        ),
+        first_per_cat AS (
+            SELECT person_id, tx_cat, MIN(procedure_date) AS first_date
+            FROM categorized WHERE tx_cat IS NOT NULL
+            GROUP BY 1, 2
+        ),
+        pt AS (SELECT person_id, first_date FROM first_per_cat WHERE tx_cat='Physical Therapy'),
+        img AS (SELECT person_id, first_date FROM first_per_cat WHERE tx_cat='Imaging'),
+        inj AS (SELECT person_id, first_date FROM first_per_cat WHERE tx_cat='Injection')
+        SELECT 'Imaging vs PT' AS comparison,
+               COUNT(*) AS patients_with_both,
+               SUM(CASE WHEN img.first_date < pt.first_date THEN 1 ELSE 0 END) AS category_a_first,
+               SUM(CASE WHEN pt.first_date <= img.first_date THEN 1 ELSE 0 END) AS category_b_first
+        FROM pt JOIN img ON pt.person_id = img.person_id
+        UNION ALL
+        SELECT 'Injection vs PT',
+               COUNT(*),
+               SUM(CASE WHEN inj.first_date < pt.first_date THEN 1 ELSE 0 END),
+               SUM(CASE WHEN pt.first_date <= inj.first_date THEN 1 ELSE 0 END)
+        FROM pt JOIN inj ON pt.person_id = inj.person_id
+    """)
+    if not pathway.empty and pathway["patients_with_both"].sum() > 0:
+        pathway_display = []
+        for _, row in pathway.iterrows():
+            parts = row["comparison"].split(" vs ")
+            total = row["patients_with_both"]
+            if total > 0:
+                pathway_display.append({
+                    "Comparison": row["comparison"],
+                    f"{parts[0]} First": row["category_a_first"],
+                    f"{parts[1]} First": row["category_b_first"],
+                    "Total Patients": total,
+                })
+        if pathway_display:
+            st.dataframe(pd.DataFrame(pathway_display), use_container_width=True, hide_index=True)
+    else:
+        st.info("Not enough procedure data to analyze treatment pathways.")
 
 
 # ====================  TAB 3: CONDITION INTELLIGENCE  ======================
@@ -359,7 +627,7 @@ with tab3:
     col_l, col_r = st.columns(2)
 
     with col_l:
-        top_cond = query(f"""
+        top_cond = safe_query(f"""
             SELECT
                 co.condition_source_value AS code,
                 COALESCE(c.concept_name, co.condition_source_value) AS condition_name,
@@ -381,7 +649,7 @@ with tab3:
             st.plotly_chart(fig, use_container_width=True)
 
     with col_r:
-        icd_ver = query(f"""
+        icd_ver = safe_query(f"""
             SELECT
                 CASE
                     WHEN condition_source_value ~ '[A-Z]' THEN 'ICD-10'
@@ -401,9 +669,17 @@ with tab3:
             )
             st.plotly_chart(fig, use_container_width=True)
 
+    explain(
+        "**Left:** The most frequently recorded diagnosis codes. In workers' comp, you'll typically "
+        "see musculoskeletal conditions (back pain, sprains, radiculopathy) dominating. "
+        "**Right:** ICD-9 vs ICD-10 split. The US mandated ICD-10 in October 2015. Older claims "
+        "use ICD-9 codes (numeric like '724.2'), newer claims use ICD-10 (alphanumeric like 'M54.5'). "
+        "A mix of both is expected in historical data."
+    )
+
     # ICD transition timeline
     st.subheader("ICD-9 to ICD-10 Transition Timeline")
-    icd_timeline = query(f"""
+    icd_timeline = safe_query(f"""
         SELECT
             EXTRACT(YEAR FROM condition_start_date)::INT AS year,
             CASE
@@ -427,10 +703,17 @@ with tab3:
         fig.update_layout(xaxis_title="", yaxis_title="Diagnoses")
         st.plotly_chart(fig, use_container_width=True)
 
+        explain(
+            "This shows how the US healthcare system transitioned from ICD-9 to ICD-10 coding. "
+            "The red dashed line marks the October 2015 federal mandate. You should see ICD-9 "
+            "codes dropping to zero after 2015 and ICD-10 taking over. Any ICD-9 codes after "
+            "2015 may indicate data quality issues or late-filed claims."
+        )
+
     # Condition co-occurrence
     st.subheader("Condition Co-occurrence")
     st.caption("Most common diagnosis pairs seen in the same patient")
-    cooccur = query(f"""
+    cooccur = safe_query(f"""
         WITH person_conditions AS (
             SELECT DISTINCT co.person_id, c.concept_name
             FROM omop.condition_occurrence co
@@ -456,9 +739,16 @@ with tab3:
         fig.update_layout(yaxis_title="", xaxis_title="Shared Patients")
         st.plotly_chart(fig, use_container_width=True)
 
+        explain(
+            "This shows which diagnoses frequently appear together in the same patient. "
+            "Common pairs in workers' comp include **back pain + radiculopathy** (nerve pain "
+            "radiating from a spinal injury) and **sprain + disc disorder**. Co-occurring "
+            "conditions typically mean higher complexity, longer treatment, and more expensive claims."
+        )
+
     # Patient complexity
     st.subheader("Patient Complexity Distribution")
-    complexity = query("""
+    complexity = safe_query("""
         SELECT
             CASE
                 WHEN cnt = 1 THEN '1'
@@ -482,6 +772,13 @@ with tab3:
         fig.update_layout(xaxis_title="Distinct Diagnoses", yaxis_title="Patients")
         st.plotly_chart(fig, use_container_width=True)
 
+        explain(
+            "Patient complexity measured by how many different diagnoses each patient has. "
+            "Patients with just 1 diagnosis had a straightforward injury. Those with 6+ distinct "
+            "diagnoses have complex, multi-system injuries — these patients consume disproportionate "
+            "resources and are the hardest to return to work."
+        )
+
 
 # ======================  TAB 4: COST & PAYMENTS  ==========================
 with tab4:
@@ -489,7 +786,7 @@ with tab4:
         "Cost data sourced from raw billing headers (professional, institutional, pharmacy)."
     )
 
-    cost_summary = query(f"""
+    cost_summary = safe_query(f"""
         WITH {ALL_BILLS_CTE}
         SELECT
             COUNT(*) AS bills,
@@ -510,12 +807,19 @@ with tab4:
         c3.metric("Total Paid", f"${cost_summary['total_paid'][0]:,.0f}")
         c4.metric("Avg Charge/Bill", f"${cost_summary['avg_charge'][0]:,.0f}")
         c5.metric("Payment Rate", f"{cost_summary['payment_rate'][0]:.1f}%")
+
+        explain(
+            "**Total Charges** is what providers billed. **Total Paid** is what insurance actually paid — "
+            "these are always lower because Texas workers' comp has a **fee schedule** that caps what "
+            "providers can charge. The **Payment Rate** shows the ratio: a 40% rate means providers "
+            "received 40 cents per dollar billed. Low rates mean the fee schedule heavily discounts charges."
+        )
         st.divider()
 
     col_l, col_r = st.columns(2)
 
     with col_l:
-        charge_dist = query(f"""
+        charge_dist = safe_query(f"""
             WITH {ALL_BILLS_CTE}
             SELECT
                 CASE
@@ -544,7 +848,7 @@ with tab4:
             st.plotly_chart(fig, use_container_width=True)
 
     with col_r:
-        cost_by_type = query(f"""
+        cost_by_type = safe_query(f"""
             WITH {ALL_BILLS_CTE}
             SELECT claim_type,
                    COUNT(*) AS bills,
@@ -565,7 +869,7 @@ with tab4:
             st.plotly_chart(fig, use_container_width=True)
 
     # Charges vs Payments over time
-    cost_yr = query(f"""
+    cost_yr = safe_query(f"""
         WITH {ALL_BILLS_CTE}
         SELECT EXTRACT(YEAR FROM bill_date)::INT AS year,
                SUM(charge) AS total_charges,
@@ -588,8 +892,65 @@ with tab4:
         )
         st.plotly_chart(fig, use_container_width=True)
 
+    # Procedure Cost Efficiency
+    st.subheader("Procedure Cost Efficiency by Treatment Category")
+    st.caption("Average charges vs. payments by treatment category from OMOP cost table")
+    explain(
+        "This breaks down what different types of treatment cost and how much actually gets paid. "
+        "**Physical Therapy** often has the lowest payment rate because PT charges are heavily "
+        "discounted by the fee schedule. **Imaging** (MRI, X-ray) and **Injections** tend to have "
+        "higher payment rates. The gap between blue (charged) and green (paid) bars shows the "
+        "discount for each category. Large gaps may discourage providers from offering those services."
+    )
+    proc_cost = safe_query(f"""
+        SELECT
+            CASE
+                WHEN pc.concept_name ILIKE '%therapeutic%' OR pc.concept_name ILIKE '%manual therapy%'
+                     OR pc.concept_name ILIKE '%exercise%' OR pc.concept_name ILIKE '%work hardening%'
+                     OR pc.concept_name ILIKE '%neuromuscular%'
+                     THEN 'Physical Therapy / Rehab'
+                WHEN pc.concept_name ILIKE '%radiologic%' OR pc.concept_name ILIKE '%tomography%'
+                     OR pc.concept_name ILIKE '%MRI%' OR pc.concept_name ILIKE '%imaging%'
+                     OR pc.concept_name ILIKE '%ultrasound%'
+                     THEN 'Imaging / Radiology'
+                WHEN pc.concept_name ILIKE '%injection%' OR pc.concept_name ILIKE '%block%'
+                     THEN 'Injection / Block'
+                WHEN pc.concept_name ILIKE '%stimulation%' OR pc.concept_name ILIKE '%electro%'
+                     THEN 'Electrical Stimulation'
+                WHEN pc.concept_name ILIKE '%evaluation%' OR pc.concept_name ILIKE '%examination%'
+                     OR pc.concept_name ILIKE '%disability%'
+                     THEN 'Evaluation / Exam'
+                ELSE 'Other Procedures'
+            END AS proc_category,
+            COUNT(*) AS line_items,
+            ROUND(AVG(co.total_charge), 2) AS avg_charge,
+            ROUND(AVG(co.total_paid), 2) AS avg_paid,
+            ROUND(CASE WHEN SUM(co.total_charge) > 0
+                  THEN SUM(co.total_paid) / SUM(co.total_charge) * 100
+                  ELSE 0 END, 1) AS payment_rate_pct
+        FROM omop.procedure_occurrence po
+        JOIN omop.concept pc ON po.procedure_concept_id = pc.concept_id
+        JOIN omop.cost co ON po.visit_detail_id = co.cost_event_id
+            AND co.cost_domain_id = 'Visit Detail'
+        WHERE EXTRACT(YEAR FROM po.procedure_date) BETWEEN {yr_lo} AND {yr_hi}
+        GROUP BY 1 ORDER BY line_items DESC
+    """)
+    if not proc_cost.empty:
+        fig = go.Figure()
+        fig.add_trace(go.Bar(
+            y=proc_cost["proc_category"], x=proc_cost["avg_charge"],
+            name="Avg Charge", marker_color="#42A5F5", orientation="h"))
+        fig.add_trace(go.Bar(
+            y=proc_cost["proc_category"], x=proc_cost["avg_paid"],
+            name="Avg Paid", marker_color="#66BB6A", orientation="h"))
+        fig.update_layout(
+            title="Average Charge vs. Paid by Procedure Category",
+            barmode="group", yaxis_title="", xaxis_title="Amount ($)",
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
     # Charges by claim type over time
-    cost_yr_type = query(f"""
+    cost_yr_type = safe_query(f"""
         WITH {ALL_BILLS_CTE}
         SELECT EXTRACT(YEAR FROM bill_date)::INT AS year,
                claim_type,
@@ -610,9 +971,16 @@ with tab4:
                           legend_title="Claim Type")
         st.plotly_chart(fig, use_container_width=True)
 
+    explain(
+        "This shows total charges broken down by claim type (professional = doctor visits, "
+        "institutional = hospital stays, pharmacy = prescriptions) across years. "
+        "**Institutional** claims are typically the most expensive per claim. Shifts in the mix "
+        "over time can indicate changes in treatment patterns or injury severity."
+    )
+
     # Insurance carriers
     st.subheader("Insurance Carriers")
-    carriers = query("""
+    carriers = safe_query("""
         SELECT plan_source_value AS carrier,
                COUNT(DISTINCT person_id) AS patients,
                COUNT(*) AS policies
@@ -630,44 +998,291 @@ with tab4:
         fig.update_layout(yaxis_title="", xaxis_title="Patients")
         st.plotly_chart(fig, use_container_width=True)
 
+        explain(
+            "Insurance carriers (companies) ranked by how many injured workers they cover. "
+            "In Texas workers' comp, employers choose their carrier. High concentration in a few "
+            "carriers can indicate market dominance. Carriers with many patients have more "
+            "negotiating leverage with providers and may impose stricter utilization review."
+        )
 
-# =======================  TAB 5: GEOGRAPHY  ===============================
+
+# ==================  TAB 5: RX & OPIOID MONITOR  =========================
 with tab5:
+    st.subheader("Opioid Prescribing Rate Over Time")
+    st.caption("Percentage of all drug prescriptions that are opioids, by year")
+
+    explain(
+        "**Opioid over-prescribing is the signature issue in workers' comp.** Injured workers "
+        "are at high risk for opioid dependency because their injuries cause real pain and they "
+        "often can't work while recovering. Texas enacted a **closed formulary** in 2011 and "
+        "tightened it in 2017, restricting which drugs can be prescribed in workers' comp claims. "
+        "This chart tracks whether those reforms are working. A declining opioid percentage is "
+        "a positive sign. The red dashed line marks the 2017 reform."
+    )
+
+    opioid_trend = safe_query(f"""
+        WITH all_drugs AS (
+            SELECT EXTRACT(YEAR FROM de.drug_exposure_start_date)::INT AS year,
+                   COUNT(*) AS total_rx
+            FROM omop.drug_exposure de
+            WHERE EXTRACT(YEAR FROM de.drug_exposure_start_date) BETWEEN {yr_lo} AND {yr_hi}
+            GROUP BY 1
+        ),
+        opioid_drugs AS (
+            SELECT EXTRACT(YEAR FROM de.drug_exposure_start_date)::INT AS year,
+                   COUNT(*) AS opioid_rx
+            FROM omop.drug_exposure de
+            JOIN omop.concept c ON de.drug_concept_id = c.concept_id
+            WHERE {OPIOID_FILTER}
+              AND EXTRACT(YEAR FROM de.drug_exposure_start_date) BETWEEN {yr_lo} AND {yr_hi}
+            GROUP BY 1
+        )
+        SELECT a.year, a.total_rx, COALESCE(o.opioid_rx, 0) AS opioid_rx,
+               ROUND(COALESCE(o.opioid_rx, 0) * 100.0 / a.total_rx, 1) AS opioid_pct
+        FROM all_drugs a
+        LEFT JOIN opioid_drugs o ON a.year = o.year
+        ORDER BY 1
+    """)
+    if not opioid_trend.empty:
+        col_l, col_r = st.columns([3, 1])
+        with col_l:
+            fig = go.Figure()
+            fig.add_trace(go.Bar(x=opioid_trend["year"], y=opioid_trend["total_rx"],
+                                 name="Total Rx", marker_color="#90CAF9"))
+            fig.add_trace(go.Bar(x=opioid_trend["year"], y=opioid_trend["opioid_rx"],
+                                 name="Opioid Rx", marker_color="#EF5350"))
+            fig.add_trace(go.Scatter(x=opioid_trend["year"], y=opioid_trend["opioid_pct"],
+                                     name="Opioid %", yaxis="y2", mode="lines+markers",
+                                     line=dict(color="#FF6F00", width=3)))
+            fig.update_layout(
+                title="Opioid Prescribing Trend",
+                barmode="group",
+                yaxis=dict(title="Prescriptions"),
+                yaxis2=dict(title="Opioid %", overlaying="y", side="right", range=[0, 100]),
+            )
+            fig.add_vline(x=2017, line_dash="dash", line_color="red",
+                          annotation_text="TX Closed Formulary (2017)")
+            st.plotly_chart(fig, use_container_width=True)
+        with col_r:
+            if len(opioid_trend) > 0:
+                latest = opioid_trend.iloc[-1]
+                st.metric("Latest Opioid Rate", f"{latest['opioid_pct']}%")
+                st.metric("Total Opioid Rx (all years)", f"{opioid_trend['opioid_rx'].sum():,}")
+    else:
+        st.info("No drug exposure data available.")
+
+    # Opioid Escalation Tracker
+    st.subheader("Opioid Escalation Tracker")
+    st.caption("Patients by number of opioid prescriptions and duration of opioid eras")
+    explain(
+        "**Left chart:** How many opioid prescriptions each patient received. A patient with 1 Rx "
+        "likely had short-term post-injury pain relief. Patients with 7+ prescriptions may be on "
+        "a path toward chronic opioid use or dependency — these are red flags for case managers. "
+        "**Right chart:** How long each patient's opioid treatment lasted (\"era\" = continuous "
+        "period on that drug). Eras over 90 days are considered **chronic opioid use** by most "
+        "guidelines. Eras over 1 year indicate serious dependency risk."
+    )
+
+    col_l, col_r = st.columns(2)
+    with col_l:
+        repeat_rx = safe_query(f"""
+            SELECT
+                CASE
+                    WHEN opioid_rx_count = 1 THEN '1 Rx'
+                    WHEN opioid_rx_count BETWEEN 2 AND 3 THEN '2-3 Rx'
+                    WHEN opioid_rx_count BETWEEN 4 AND 6 THEN '4-6 Rx'
+                    WHEN opioid_rx_count BETWEEN 7 AND 12 THEN '7-12 Rx'
+                    ELSE '13+ Rx'
+                END AS rx_bucket,
+                COUNT(*) AS patients,
+                MIN(opioid_rx_count) AS sort_key
+            FROM (
+                SELECT de.person_id, COUNT(*) AS opioid_rx_count
+                FROM omop.drug_exposure de
+                JOIN omop.concept c ON de.drug_concept_id = c.concept_id
+                WHERE {OPIOID_FILTER}
+                  AND EXTRACT(YEAR FROM de.drug_exposure_start_date) BETWEEN {yr_lo} AND {yr_hi}
+                GROUP BY 1
+            ) sub
+            GROUP BY 1 ORDER BY sort_key
+        """)
+        if not repeat_rx.empty:
+            fig = px.bar(
+                repeat_rx, x="rx_bucket", y="patients",
+                title="Patients by Opioid Prescription Count",
+                color_discrete_sequence=["#EF5350"],
+            )
+            fig.update_layout(xaxis_title="", yaxis_title="Patients")
+            st.plotly_chart(fig, use_container_width=True)
+
+    with col_r:
+        era_dur = safe_query("""
+            SELECT c.concept_name AS opioid,
+                   COUNT(*) AS eras,
+                   ROUND(AVG(DATEDIFF('day', drug_era_start_date, drug_era_end_date)), 1) AS avg_days,
+                   MAX(DATEDIFF('day', drug_era_start_date, drug_era_end_date)) AS max_days
+            FROM omop.drug_era de
+            JOIN omop.concept c ON de.drug_concept_id = c.concept_id
+            WHERE c.concept_name ILIKE '%hydrocodone%'
+               OR c.concept_name ILIKE '%oxycodone%'
+               OR c.concept_name ILIKE '%morphine%'
+               OR c.concept_name ILIKE '%fentanyl%'
+               OR c.concept_name ILIKE '%tramadol%'
+               OR c.concept_name ILIKE '%codeine%'
+               OR c.concept_name ILIKE '%hydromorphone%'
+               OR c.concept_name ILIKE '%methadone%'
+               OR c.concept_name ILIKE '%buprenorphine%'
+            GROUP BY 1 ORDER BY eras DESC
+        """)
+        if not era_dur.empty:
+            fig = px.bar(
+                era_dur.sort_values("avg_days"),
+                y="opioid", x="avg_days", orientation="h",
+                title="Average Opioid Era Duration (days)",
+                color_discrete_sequence=["#FF7043"],
+                hover_data=["max_days", "eras"],
+            )
+            fig.update_layout(yaxis_title="", xaxis_title="Average Days")
+            st.plotly_chart(fig, use_container_width=True)
+
+
+# ==================  TAB 6: PROVIDER ANALYTICS  ===========================
+with tab6:
+    st.subheader("Provider Caseload Concentration")
+    st.caption("How patients are distributed across providers")
+
+    explain(
+        "Provider concentration reveals the structure of the workers' comp care network. "
+        "In workers' comp, a few high-volume providers often treat a large share of patients — "
+        "this can be normal (occupational medicine specialists) or concerning (potential "
+        "over-treatment or referral mills). **If the top 5 providers treat over 50% of patients**, "
+        "it suggests a highly concentrated network. Regulators and carriers monitor this for "
+        "fraud detection and network adequacy."
+    )
+
+    provider_vol = safe_query(f"""
+        WITH pv AS (
+            SELECT vo.provider_id,
+                   p.provider_name,
+                   COUNT(DISTINCT vo.person_id) AS patients,
+                   COUNT(*) AS total_visits
+            FROM omop.visit_occurrence vo
+            JOIN omop.provider p ON vo.provider_id = p.provider_id
+            WHERE vo.provider_id IS NOT NULL
+              AND EXTRACT(YEAR FROM vo.visit_start_date) BETWEEN {yr_lo} AND {yr_hi}
+            GROUP BY 1, 2
+        )
+        SELECT provider_name, patients, total_visits,
+               ROUND(total_visits * 1.0 / patients, 1) AS visits_per_patient,
+               ROUND(patients * 100.0 / (SELECT COUNT(*) FROM omop.person), 1) AS pct_of_all_patients
+        FROM pv
+        ORDER BY patients DESC
+        LIMIT 20
+    """)
+    if not provider_vol.empty:
+        col_l, col_r = st.columns([2, 1])
+        with col_l:
+            fig = px.bar(
+                provider_vol.head(15).sort_values("patients"),
+                y="provider_name", x="patients", orientation="h",
+                title="Top 15 Providers by Patient Count",
+                color_discrete_sequence=["#5C6BC0"],
+                hover_data=["total_visits", "visits_per_patient"],
+            )
+            fig.update_layout(yaxis_title="", xaxis_title="Patients")
+            st.plotly_chart(fig, use_container_width=True)
+        with col_r:
+            top5_pts = provider_vol.head(5)["patients"].sum()
+            total_pts = safe_query("SELECT COUNT(*) AS n FROM omop.person")
+            if not total_pts.empty:
+                pct = top5_pts / total_pts["n"][0] * 100
+                st.metric("Top 5 Providers Treat", f"{pct:.0f}% of patients")
+            st.metric("Total Providers", f"{len(provider_vol):,}+")
+
+    # Provider concentration distribution
+    provider_dist = safe_query(f"""
+        WITH pv AS (
+            SELECT vo.provider_id, COUNT(DISTINCT vo.person_id) AS patients
+            FROM omop.visit_occurrence vo
+            WHERE vo.provider_id IS NOT NULL
+              AND EXTRACT(YEAR FROM vo.visit_start_date) BETWEEN {yr_lo} AND {yr_hi}
+            GROUP BY 1
+        )
+        SELECT
+            CASE
+                WHEN patients = 1 THEN '1 patient'
+                WHEN patients BETWEEN 2 AND 5 THEN '2-5 patients'
+                WHEN patients BETWEEN 6 AND 20 THEN '6-20 patients'
+                WHEN patients BETWEEN 21 AND 100 THEN '21-100 patients'
+                ELSE '100+ patients'
+            END AS caseload,
+            COUNT(*) AS providers,
+            MIN(patients) AS sort_key
+        FROM pv GROUP BY 1 ORDER BY sort_key
+    """)
+    if not provider_dist.empty:
+        fig = px.bar(
+            provider_dist, x="caseload", y="providers",
+            title="Provider Distribution by Caseload Size",
+            color_discrete_sequence=["#26A69A"],
+        )
+        fig.update_layout(xaxis_title="Caseload Size", yaxis_title="Number of Providers")
+        st.plotly_chart(fig, use_container_width=True)
+
+        explain(
+            "This shows how many providers fall into each caseload bracket. A healthy network "
+            "has a long tail of low-volume providers (specialists who see a few WC patients) "
+            "and a small number of high-volume providers (occupational medicine practices). "
+            "If many providers treat only 1 patient, it may indicate fragmented care with "
+            "poor continuity."
+        )
+
+
+# =======================  TAB 7: GEOGRAPHY  ===============================
+with tab7:
     col_l, col_r = st.columns(2)
 
     with col_l:
-        cities = query("""
+        cities = safe_query("""
             SELECT city, state, COUNT(*) AS patients
             FROM omop.location
             WHERE city IS NOT NULL AND state IS NOT NULL
             GROUP BY 1, 2 ORDER BY 3 DESC LIMIT 20
         """)
-        fig = px.bar(
-            cities.sort_values("patients"),
-            y="city", x="patients", orientation="h",
-            title="Top 20 Cities by Patient Count",
-            color_discrete_sequence=["#5C6BC0"],
-            hover_data=["state"],
-        )
-        fig.update_layout(yaxis_title="", xaxis_title="Patients")
-        st.plotly_chart(fig, use_container_width=True)
+        if not cities.empty:
+            fig = px.bar(
+                cities.sort_values("patients"),
+                y="city", x="patients", orientation="h",
+                title="Top 20 Cities by Patient Count",
+                color_discrete_sequence=["#5C6BC0"],
+                hover_data=["state"],
+            )
+            fig.update_layout(yaxis_title="", xaxis_title="Patients")
+            st.plotly_chart(fig, use_container_width=True)
 
     with col_r:
-        states = query("""
+        states = safe_query("""
             SELECT COALESCE(state, 'Unknown') AS state, COUNT(*) AS patients
             FROM omop.location WHERE state IS NOT NULL
             GROUP BY 1 ORDER BY 2 DESC LIMIT 10
         """)
-        fig = px.pie(
-            states, names="state", values="patients",
-            title="Patient Distribution by State",
-            color_discrete_sequence=px.colors.qualitative.Set2,
-        )
-        st.plotly_chart(fig, use_container_width=True)
+        if not states.empty:
+            fig = px.pie(
+                states, names="state", values="patients",
+                title="Patient Distribution by State",
+                color_discrete_sequence=px.colors.qualitative.Set2,
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
+    explain(
+        "Geographic distribution of injured workers. Texas workers' comp data is statewide, "
+        "so you'll see major metro areas (Houston, Dallas, San Antonio, Austin) dominating. "
+        "Out-of-state patients may have been injured in Texas or transferred for specialized care."
+    )
 
     # Care facility distribution
     st.subheader("Healthcare Facility Concentration")
-    fac_cities = query("""
+    fac_cities = safe_query("""
         SELECT l.city, l.state, COUNT(DISTINCT cs.care_site_id) AS facilities
         FROM omop.care_site cs
         JOIN omop.location l ON cs.location_id = l.location_id
@@ -688,7 +1303,14 @@ with tab5:
     # Patient-to-facility ratio
     st.subheader("Patient-to-Facility Ratio by City")
     st.caption("Higher ratios may indicate underserved areas")
-    ratio = query("""
+    explain(
+        "This ratio divides the number of injured workers by the number of care facilities in each city. "
+        "**High ratios** (many patients per facility) may indicate underserved areas where injured "
+        "workers have limited access to care. **Low ratios** indicate well-served areas with plenty "
+        "of provider options. Cities with 0 facilities but many patients are especially concerning — "
+        "those workers must travel to other cities for treatment."
+    )
+    ratio = safe_query("""
         WITH city_patients AS (
             SELECT city, state, COUNT(*) AS patients
             FROM omop.location WHERE city IS NOT NULL
@@ -732,5 +1354,5 @@ st.caption(
     "Data: [Texas Dept of Insurance, Division of Workers' Compensation]"
     "(https://www.tdi.texas.gov/wc/data.html) | "
     "Model: [OMOP CDM v5.4](https://ohdsi.github.io/CommonDataModel/) | "
-    "Built with Streamlit + DuckDB + dbt"
+    "Built with Streamlit + DuckDB + dbt + dlt"
 )

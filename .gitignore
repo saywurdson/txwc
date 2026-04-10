@@ -9,6 +9,11 @@ json_data/
 
 # Environment
 *.env
+!.env.example
+
+# dlt secrets (credentials — never commit)
+.dlt/secrets.toml
+.dlt/*.secrets.toml
 
 # Python
 *.pyc

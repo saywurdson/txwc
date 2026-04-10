@@ -6,12 +6,12 @@ import random
 
 import dlt
 from dlt.sources.helpers.requests import Session
-from dotenv import load_dotenv
 from tqdm import tqdm
 
-load_dotenv()
-
-APP_TOKEN = os.getenv('APPLICATION_TOKEN')
+try:
+    APP_TOKEN = dlt.secrets["sources.txwc.application_token"]
+except KeyError:
+    APP_TOKEN = ""
 
 class TqdmLoggingHandler(logging.Handler):
     def emit(self, record):
@@ -58,6 +58,9 @@ SOCRATA_RENAME = {
     ":version": "version",
 }
 
+# Cache for Socrata column metadata to avoid duplicate API calls
+_column_cache: dict[str, set[str]] = {}
+
 
 def _create_session():
     """Create a dlt requests Session with built-in retry/backoff."""
@@ -78,17 +81,20 @@ def _rename_socrata_cols(row: dict) -> dict:
 
 
 def _get_socrata_columns(ds_id, session):
-    """Fetch column names from Socrata metadata API for a dataset."""
-    import requests as _requests
+    """Fetch column names from Socrata metadata API for a dataset (cached)."""
+    if ds_id in _column_cache:
+        return _column_cache[ds_id]
     try:
         url = f"https://data.texas.gov/api/views/{ds_id}/columns.json"
-        resp = _requests.get(url, timeout=30)
+        resp = session.get(url)
         resp.raise_for_status()
-        return {
+        result = {
             col.get("fieldName", "")
             for col in resp.json()
             if not col.get("fieldName", "").startswith(":")
         }
+        _column_cache[ds_id] = result
+        return result
     except Exception as e:
         logging.warning(f"Could not fetch metadata for {ds_id}: {e}")
         return set()
@@ -97,7 +103,7 @@ def _get_socrata_columns(ds_id, session):
 def _make_text_columns(column_names):
     """Build dlt column hints forcing all columns to text type."""
     renamed = {SOCRATA_RENAME.get(c, c) for c in column_names}
-    return {col: {"data_type": "text"} for col in renamed}
+    return {col: {"data_type": "text", "nullable": True} for col in renamed}
 
 
 def _ensure_full_schema(ds_id, table_name, db_path, session):
@@ -111,16 +117,18 @@ def _ensure_full_schema(ds_id, table_name, db_path, session):
         existing = {
             r[0]
             for r in conn.execute(
-                f"SELECT column_name FROM information_schema.columns "
-                f"WHERE table_schema='raw' AND table_name='{table_name}'"
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_schema='raw' AND table_name=?",
+                [table_name],
             ).fetchall()
         }
 
         missing = api_columns - existing
         if missing:
             for col_name in sorted(missing):
+                safe_col = col_name.replace('"', '""')
                 conn.execute(
-                    f'ALTER TABLE raw.{table_name} ADD COLUMN "{col_name}" VARCHAR;'
+                    f'ALTER TABLE raw.{table_name} ADD COLUMN "{safe_col}" VARCHAR;'
                 )
             logging.info(
                 f"  Added {len(missing)} missing columns to raw.{table_name}"
@@ -147,7 +155,7 @@ def _get_total_records(ds_id, session, where_clause=None):
 
 def _paginate_socrata(ds_id, session, page_size, max_pages=None,
                       starting_id=None):
-    """Yield rows from Socrata using :id-based pagination."""
+    """Yield rows from Socrata using :id-based keyset pagination."""
     last_id = starting_id
     page = 0
 
@@ -233,14 +241,16 @@ def _make_resource(ds_id, name, period, session, page_size, max_pages=None,
 
 
 def _paginate_socrata_filtered(ds_id, session, where_clause, page_size):
-    """Paginate a Socrata dataset with a $where filter."""
-    offset = 0
+    """Paginate a Socrata dataset with a $where filter using :id-based keyset pagination."""
+    last_id = None
     while True:
         url = f"https://data.texas.gov/resource/{ds_id}.json"
+        combined_where = where_clause
+        if last_id:
+            combined_where = f"({where_clause}) AND :id > '{last_id}'"
         params = {
-            "$where": where_clause,
+            "$where": combined_where,
             "$limit": page_size,
-            "$offset": offset,
             "$select": ":*, *",
             "$order": ":id",
         }
@@ -252,7 +262,7 @@ def _paginate_socrata_filtered(ds_id, session, where_clause, page_size):
         for row in data:
             yield _rename_socrata_cols(row)
 
-        offset += page_size
+        last_id = data[-1].get(":id")
         if len(data) < page_size:
             break
 
@@ -294,6 +304,9 @@ def build_where_in(column, values, max_url_chars=2000):
     return clauses
 
 
+_PATIENT_DISCOVER_LIMIT = 50000
+
+
 def discover_patients(datasets, session):
     """Discover patient_account_numbers from header tables."""
     index = build_dataset_index(datasets)
@@ -310,11 +323,16 @@ def discover_patients(datasets, session):
                 "$select": "patient_account_number",
                 "$group": "patient_account_number",
                 "$where": "patient_account_number IS NOT NULL",
-                "$limit": 50000,
+                "$limit": _PATIENT_DISCOVER_LIMIT,
             }
             try:
                 resp = session.get(url, params=params)
                 rows = resp.json()
+                if len(rows) >= _PATIENT_DISCOVER_LIMIT:
+                    logging.warning(
+                        f"Patient discovery hit {_PATIENT_DISCOVER_LIMIT:,} limit "
+                        f"for {claim_type} {period} — results may be truncated"
+                    )
                 pans = {
                     r["patient_account_number"]
                     for r in rows
@@ -347,11 +365,16 @@ def discover_complex_patients(datasets, session):
                 "$group": "patient_account_number",
                 "$where": "patient_account_number IS NOT NULL",
                 "$order": "bill_count DESC",
-                "$limit": 50000,
+                "$limit": _PATIENT_DISCOVER_LIMIT,
             }
             try:
                 resp = session.get(url, params=params)
                 rows = resp.json()
+                if len(rows) >= _PATIENT_DISCOVER_LIMIT:
+                    logging.warning(
+                        f"Complex patient discovery hit {_PATIENT_DISCOVER_LIMIT:,} limit "
+                        f"for {claim_type} {period} — results may be truncated"
+                    )
                 for r in rows:
                     pan = r.get("patient_account_number")
                     if not pan:
@@ -409,25 +432,30 @@ def select_complex_patients(patient_scores, n):
     return selected
 
 
+def _get_db_path():
+    """Resolve the DuckDB database path from dlt config or environment."""
+    try:
+        db = dlt.config["destination.duckdb.credentials"]
+    except KeyError:
+        db = "tx_workers_comp.db"
+    if not os.path.isabs(db):
+        db = os.path.join(os.path.dirname(os.path.abspath(__file__)), db)
+    return db
 
-def _yield_rows(rows):
-    """Simple generator that yields a list of rows. Used with dlt.resource()."""
-    yield from rows
 
-
-def _get_pipeline(db_path):
+def _get_pipeline():
     """Create a dlt pipeline targeting the raw schema in DuckDB."""
     return dlt.pipeline(
         pipeline_name="txwc_load",
-        destination=dlt.destinations.duckdb(db_path),
+        destination="duckdb",
         dataset_name="raw",
     )
 
 
 
-def process_datasets(selected_datasets, pipeline, db_path, page_size=3000,
+def process_datasets(selected_datasets, pipeline, db_path, page_size=10000,
                      max_pages=None, force_full=False):
-    """Fetch and load datasets via dlt pipeline."""
+    """Fetch and load datasets via dlt pipeline with batched loading."""
     session = _create_session()
 
     current = {k: v for k, v in selected_datasets.items() if v[1] == "current"}
@@ -438,13 +466,18 @@ def process_datasets(selected_datasets, pipeline, db_path, page_size=3000,
         logging.info("PROCESSING CURRENT TABLES (Full Refresh)")
         logging.info("=" * 60)
 
+        resources = []
+        current_ids = []
         for ds_id, (name, period) in current.items():
-            table_name = f"{name}_{period}"
             resource_fn = _make_resource(
                 ds_id, name, period, session, page_size, max_pages, force_full
             )
-            info = pipeline.run(resource_fn(), loader_file_format="parquet")
-            logging.info(f"  dlt load: {info}")
+            resources.append(resource_fn())
+            current_ids.append((ds_id, f"{name}_{period}"))
+
+        info = pipeline.run(resources, loader_file_format="parquet")
+        logging.info(f"  dlt load (current batch): {info}")
+        for ds_id, table_name in current_ids:
             _ensure_full_schema(ds_id, table_name, db_path, session)
 
     if historical:
@@ -452,20 +485,25 @@ def process_datasets(selected_datasets, pipeline, db_path, page_size=3000,
         logging.info("PROCESSING HISTORICAL TABLES (Merge Update)")
         logging.info("=" * 60)
 
+        resources = []
+        historical_ids = []
         for ds_id, (name, period) in historical.items():
-            table_name = f"{name}_{period}"
             resource_fn = _make_resource(
                 ds_id, name, period, session, page_size, max_pages, force_full
             )
-            info = pipeline.run(resource_fn(), loader_file_format="parquet")
+            resources.append(resource_fn())
+            historical_ids.append((ds_id, f"{name}_{period}"))
+
+        info = pipeline.run(resources, loader_file_format="parquet")
+        logging.info(f"  dlt load (historical batch): {info}")
+        for ds_id, table_name in historical_ids:
             _ensure_full_schema(ds_id, table_name, db_path, session)
-            logging.info(f"  dlt load: {info}")
 
 
 
 def process_datasets_sampled(selected_datasets, pipeline, db_path,
-                              n_patients, complex_mode=False, page_size=3000):
-    """Patient-cohort sampling: discover patients, fetch their data, load via dlt."""
+                              n_patients, complex_mode=False, page_size=10000):
+    """Patient-cohort sampling: discover patients, stream their data, load via dlt."""
     session = _create_session()
     index = build_dataset_index(selected_datasets)
 
@@ -512,29 +550,35 @@ def process_datasets_sampled(selected_datasets, pipeline, db_path,
             table_name = f"{name}_{period}"
             logging.info(f"Fetching {table_name} ({len(pan_clauses)} batches)...")
 
-            header_rows = []
-            for clause in pan_clauses:
-                for row in _paginate_socrata_filtered(
-                    ds_id, session, clause, page_size
-                ):
-                    header_rows.append(row)
-                    bid = row.get("bill_id")
-                    if bid:
-                        all_bill_ids.add(bid)
+            # Stream rows and collect bill_ids as a side effect
+            collected_bill_ids = set()
+            row_count = 0
 
-            logging.info(f"  {table_name}: {len(header_rows):,} rows fetched")
+            def _stream_headers(_ds_id=ds_id, _clauses=pan_clauses,
+                                _page_size=page_size, _collected=collected_bill_ids):
+                nonlocal row_count
+                for clause in _clauses:
+                    for row in _paginate_socrata_filtered(
+                        _ds_id, session, clause, _page_size
+                    ):
+                        bid = row.get("bill_id")
+                        if bid:
+                            _collected.add(bid)
+                        row_count += 1
+                        yield row
 
-            if header_rows:
-                resource = dlt.resource(
-                    _yield_rows(header_rows),
-                    name=table_name,
-                    write_disposition="replace",
-                    max_table_nesting=0,
-                    columns=ds_text_columns.get(ds_id, {}),
-                )
-                info = pipeline.run(resource, loader_file_format="parquet")
-                logging.info(f"  dlt load: {info}")
-                _ensure_full_schema(ds_id, table_name, db_path, session)
+            resource = dlt.resource(
+                _stream_headers(),
+                name=table_name,
+                write_disposition="replace",
+                max_table_nesting=0,
+                columns=ds_text_columns.get(ds_id, {}),
+            )
+            info = pipeline.run(resource, loader_file_format="parquet")
+            all_bill_ids.update(collected_bill_ids)
+            logging.info(f"  {table_name}: {row_count:,} rows loaded")
+            logging.info(f"  dlt load: {info}")
+            _ensure_full_schema(ds_id, table_name, db_path, session)
 
     logging.info(f"Extracted {len(all_bill_ids):,} bill_ids from headers")
 
@@ -557,26 +601,29 @@ def process_datasets_sampled(selected_datasets, pipeline, db_path,
                     f"Fetching {table_name} ({len(bid_clauses)} batches)..."
                 )
 
-                detail_rows = []
-                for clause in bid_clauses:
-                    for row in _paginate_socrata_filtered(
-                        ds_id, session, clause, page_size
-                    ):
-                        detail_rows.append(row)
+                row_count = 0
 
-                logging.info(f"  {table_name}: {len(detail_rows):,} rows fetched")
+                def _stream_details(_ds_id=ds_id, _clauses=bid_clauses,
+                                    _page_size=page_size):
+                    nonlocal row_count
+                    for clause in _clauses:
+                        for row in _paginate_socrata_filtered(
+                            _ds_id, session, clause, _page_size
+                        ):
+                            row_count += 1
+                            yield row
 
-                if detail_rows:
-                    resource = dlt.resource(
-                        _yield_rows(detail_rows),
-                        name=table_name,
-                        write_disposition="replace",
-                        max_table_nesting=0,
-                        columns=ds_text_columns.get(ds_id, {}),
-                    )
-                    info = pipeline.run(resource, loader_file_format="parquet")
-                    logging.info(f"  dlt load: {info}")
-                    _ensure_full_schema(ds_id, table_name, db_path, session)
+                resource = dlt.resource(
+                    _stream_details(),
+                    name=table_name,
+                    write_disposition="replace",
+                    max_table_nesting=0,
+                    columns=ds_text_columns.get(ds_id, {}),
+                )
+                info = pipeline.run(resource, loader_file_format="parquet")
+                logging.info(f"  {table_name}: {row_count:,} rows loaded")
+                logging.info(f"  dlt load: {info}")
+                _ensure_full_schema(ds_id, table_name, db_path, session)
 
     expected_tables = {
         f"{name}_{period}" for _, (name, period) in selected_datasets.items()
@@ -683,8 +730,8 @@ def main():
     parser.add_argument(
         "--page_size",
         type=int,
-        default=3000,
-        help="Records per page (default: 3000)",
+        default=10000,
+        help="Records per page (default: 10000)",
     )
     parser.add_argument(
         "--max_pages",
@@ -716,10 +763,7 @@ def main():
 
     args = parser.parse_args()
 
-    db_path = os.environ.get(
-        "TXWC_DB_PATH",
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), "tx_workers_comp.db"),
-    )
+    db_path = _get_db_path()
 
     if args.report_only:
         generate_summary_report(db_path)
@@ -735,7 +779,7 @@ def main():
         logging.error("No datasets matched the given filters.")
         return
 
-    pipeline = _get_pipeline(db_path)
+    pipeline = _get_pipeline()
 
     if args.sample_patients:
         logging.info(

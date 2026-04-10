@@ -3,6 +3,7 @@
 End-to-end data pipeline that extracts Texas workers' compensation medical billing data from the [Texas Open Data Portal](https://data.texas.gov), transforms it through a 3-layer dbt model architecture, and loads it into the [OMOP Common Data Model](https://ohdsi.github.io/CommonDataModel/) v5.4 using DuckDB.
 
 ![Python](https://img.shields.io/badge/Python-3.11-blue?logo=python)
+![dlt](https://img.shields.io/badge/dlt-Pipeline-4A90D9?logo=data:image/svg+xml;base64,)
 ![DuckDB](https://img.shields.io/badge/DuckDB-Database-FFC107?logo=duckdb)
 ![dbt](https://img.shields.io/badge/dbt-Transform-FF694B?logo=dbt)
 ![OMOP CDM](https://img.shields.io/badge/OMOP_CDM-v5.4-green)
@@ -93,41 +94,63 @@ The dbt transformation layer maps raw billing data into these standardized clini
 - (Optional) UMLS API key for VSAC/RxClass enrichment
 - (Required for OMOP) OMOP vocabulary files from [Athena](https://athena.ohdsi.org/) — see below
 
-### Setup
+### 1. Clone and configure credentials
 
 ```bash
-# Clone the repo
 git clone https://github.com/saywurdson/txwc.git
 cd txwc
 
-# Copy environment template and add your API keys
-cp .env.example .env
-# Edit .env with your tokens
-
-# Build the Docker container
-docker build -t txwc .
+# Copy the secrets template
+cp .dlt/secrets.toml.example .dlt/secrets.toml
 ```
 
-### Load Data
+Edit `.dlt/secrets.toml` with your API keys:
+
+```toml
+[sources.txwc]
+application_token = "your_socrata_app_token"
+
+[sources.vsac]
+api_key = "your_umls_api_key"
+```
+
+> **Note:** `.dlt/secrets.toml` is gitignored and should never be committed. The database destination is configured in `.dlt/config.toml` (defaults to `tx_workers_comp.db`).
+
+### 2. Build and run the Docker container
 
 ```bash
-# Full load (all datasets, incremental for historical)
-python load_data.py
+# Build the image
+docker build -t txwc .
 
-# Load a specific claim type
-python load_data.py --dataset professional --time_period current
-
-# Patient-cohort sample (faster for development/testing)
-python load_data.py --sample_patients 1000
-
-# Sample by complexity (patients with most claims across types)
-python load_data.py --sample_patients 500 --complex
-
-# View database summary without downloading
-python load_data.py --report_only
+# Run interactively (mounts the project so data and config persist)
+docker run -it -p 8501:8501 -v "$(pwd):/workspaces/txwc" -w /workspaces/txwc txwc bash
 ```
 
-### Download OMOP Vocabularies
+All commands below run **inside the container**.
+
+### 3. Load data
+
+```bash
+# Start with a small patient sample for fast iteration (~2 min)
+python load_data.py --sample_patients 500 --complex
+
+# Or do a full load (all datasets, incremental for historical — takes longer)
+python load_data.py
+
+# Other options:
+python load_data.py --dataset professional --time_period current  # specific claim type
+python load_data.py --sample_patients 500 --complex               # most complex patients
+python load_data.py --report_only                                  # database summary only
+```
+
+Load reference data (optional, needed for some dbt models and dashboard features):
+
+```bash
+python load_rxclass.py   # Drug classifications from RxNav (public, no key needed)
+python load_vsac.py      # Clinical value sets from VSAC (requires UMLS API key)
+```
+
+### 4. Download OMOP Vocabularies
 
 The dbt models require standard vocabulary files to map billing codes (ICD-10, NDC, HCPCS/CPT) to OMOP concepts. These are not included in the repo due to licensing.
 
@@ -152,7 +175,7 @@ The dbt models require standard vocabulary files to map billing codes (ICD-10, N
 
 The required files are: `CONCEPT.csv`, `CONCEPT_RELATIONSHIP.csv`, `CONCEPT_ANCESTOR.csv`, `DRUG_STRENGTH.csv`. The remaining files in the Athena download (`CONCEPT_SYNONYM`, `VOCABULARY`, `RELATIONSHIP`, `DOMAIN`, `CONCEPT_CLASS`) are not used by the dbt models but can be loaded for reference.
 
-### Transform with dbt
+### 5. Transform with dbt
 
 ```bash
 cd omop
@@ -161,11 +184,26 @@ dbt run      # Build all OMOP CDM tables
 dbt test     # Run data quality tests
 ```
 
-### Launch Dashboard
+### 6. Launch Dashboard
 
 ```bash
 streamlit run dashboard.py
+# Opens on http://localhost:8501
 ```
+
+The dashboard has 7 tabs:
+
+| Tab | What it shows |
+|-----|---------------|
+| **Overview** | Patient counts, visit trends, demographics, seasonality |
+| **Injury Profile** | Body region analysis, injury-to-treatment delay, treatment episode duration, PT vs imaging pathway |
+| **Condition Intelligence** | Top diagnoses, ICD-9/10 transition, co-occurrence, patient complexity |
+| **Cost & Payments** | Charges vs. payments, procedure cost efficiency, insurance carriers |
+| **Rx & Opioid Monitor** | Opioid prescribing trends, escalation tracker, era durations |
+| **Provider Analytics** | Caseload concentration, top providers, network distribution |
+| **Geography** | Cities, states, facility concentration, patient-to-facility ratios |
+
+Toggle **"Show explanations"** in the sidebar for plain-language descriptions of each chart.
 
 ---
 
@@ -179,7 +217,11 @@ txwc/
 ├── load_vocab.py          # OMOP vocabulary CSV loader
 ├── dashboard.py           # Streamlit analytics dashboard
 ├── Dockerfile             # Container build
-├── .env.example           # Environment variable template
+│
+├── .dlt/                  # dlt configuration
+│   ├── config.toml        # Destination & runtime settings (tracked)
+│   ├── secrets.toml       # API keys & credentials (gitignored)
+│   └── secrets.toml.example  # Credential template
 │
 ├── omop/                  # dbt project
 │   ├── dbt_project.yml
@@ -215,7 +257,7 @@ txwc/
 | Category | Tools |
 |----------|-------|
 | **Language** | Python 3.11 |
-| **Data Loading** | dlt (dlthub.com) |
+| **Data Loading** | [dlt](https://dlthub.com) with `secrets.toml` credential management |
 | **Database** | DuckDB |
 | **Transformation** | dbt (dbt-duckdb) |
 | **Data Model** | OMOP CDM v5.4 |

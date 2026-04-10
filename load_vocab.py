@@ -1,10 +1,15 @@
 import duckdb
 import glob
 import os
+import dlt
 
 def load_seeds_to_omop():
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    db_path = os.environ.get('TXWC_DB_PATH', os.path.join(base_dir, 'tx_workers_comp.db'))
+    try:
+        db = dlt.config["destination.duckdb.credentials"]
+    except KeyError:
+        db = "tx_workers_comp.db"
+    db_path = db if os.path.isabs(db) else os.path.join(base_dir, db)
     conn = duckdb.connect(db_path)
     conn.execute("CREATE SCHEMA IF NOT EXISTS omop;")
 

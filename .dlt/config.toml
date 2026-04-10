@@ -1,0 +1,5 @@
+[runtime]
+log_level = "WARNING"
+
+[destination.duckdb]
+credentials = "tx_workers_comp.db"
