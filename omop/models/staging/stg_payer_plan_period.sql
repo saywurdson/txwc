@@ -9,25 +9,25 @@
 institutional_payer_current as (
   select
       {{ derive_person_id() }} as person_id,
-      cast(reporting_period_start_date as date) as payer_plan_period_start_date,
-      cast(reporting_period_end_date as date) as payer_plan_period_end_date,
-      insurer_fein as payer_source_value,
-      claim_administrator_name as plan_source_value,
-      claim_administrator_fein as sponsor_source_value,
-      claim_administrator_claim as family_source_value,
-      contract_type_code as stop_reason_source_value
+      try_cast(reporting_period_start_date as date) as payer_plan_period_start_date,
+      try_cast(reporting_period_end_date as date) as payer_plan_period_end_date,
+      cast(insurer_fein as varchar) as payer_source_value,
+      cast(claim_administrator_name as varchar) as plan_source_value,
+      cast(claim_administrator_fein as varchar) as sponsor_source_value,
+      cast(claim_administrator_claim as varchar) as family_source_value,
+      cast(contract_type_code as varchar) as stop_reason_source_value
   from {{ source('raw', 'institutional_header_current') }}
   where insurer_fein is not null or claim_administrator_fein is not null
 ),
 professional_payer_current as (
   select
       {{ derive_person_id() }} as person_id,
-      cast(reporting_period_start_date as date) as payer_plan_period_start_date,
-      cast(reporting_period_end_date as date) as payer_plan_period_end_date,
-      insurer_fein as payer_source_value,
-      claim_administrator_name as plan_source_value,
-      claim_administrator_fein as sponsor_source_value,
-      claim_administrator_claim as family_source_value,
+      try_cast(reporting_period_start_date as date) as payer_plan_period_start_date,
+      try_cast(reporting_period_end_date as date) as payer_plan_period_end_date,
+      cast(insurer_fein as varchar) as payer_source_value,
+      cast(claim_administrator_name as varchar) as plan_source_value,
+      cast(claim_administrator_fein as varchar) as sponsor_source_value,
+      cast(claim_administrator_claim as varchar) as family_source_value,
       cast(null as varchar) as stop_reason_source_value
   from {{ source('raw', 'professional_header_current') }}
   where insurer_fein is not null or claim_administrator_fein is not null
@@ -35,12 +35,12 @@ professional_payer_current as (
 pharmacy_payer_current as (
   select
       {{ derive_person_id() }} as person_id,
-      cast(reporting_period_start_date as date) as payer_plan_period_start_date,
-      cast(reporting_period_end_date as date) as payer_plan_period_end_date,
-      insurer_fein as payer_source_value,
-      claim_administrator_name as plan_source_value,
-      claim_administrator_fein as sponsor_source_value,
-      claim_administrator_claim as family_source_value,
+      try_cast(reporting_period_start_date as date) as payer_plan_period_start_date,
+      try_cast(reporting_period_end_date as date) as payer_plan_period_end_date,
+      cast(insurer_fein as varchar) as payer_source_value,
+      cast(claim_administrator_name as varchar) as plan_source_value,
+      cast(claim_administrator_fein as varchar) as sponsor_source_value,
+      cast(claim_administrator_claim as varchar) as family_source_value,
       cast(null as varchar) as stop_reason_source_value
   from {{ source('raw', 'pharmacy_header_current') }}
   where insurer_fein is not null or claim_administrator_fein is not null
@@ -57,25 +57,25 @@ pharmacy_payer_current as (
 institutional_payer_historical as (
   select
       {{ derive_person_id() }} as person_id,
-      cast(reporting_period_start_date as date) as payer_plan_period_start_date,
-      cast(reporting_period_end_date as date) as payer_plan_period_end_date,
-      insurer_fein as payer_source_value,
-      claim_administrator_name as plan_source_value,
-      claim_administrator_fein as sponsor_source_value,
-      claim_administrator_claim as family_source_value,
-      contract_type_code as stop_reason_source_value
+      try_cast(reporting_period_start_date as date) as payer_plan_period_start_date,
+      try_cast(reporting_period_end_date as date) as payer_plan_period_end_date,
+      cast(insurer_fein as varchar) as payer_source_value,
+      cast(claim_administrator_name as varchar) as plan_source_value,
+      cast(claim_administrator_fein as varchar) as sponsor_source_value,
+      cast(claim_administrator_claim as varchar) as family_source_value,
+      cast(contract_type_code as varchar) as stop_reason_source_value
   from {{ source('raw', 'institutional_header_historical') }}
   where insurer_fein is not null or claim_administrator_fein is not null
 ),
 professional_payer_historical as (
   select
       {{ derive_person_id() }} as person_id,
-      cast(reporting_period_start_date as date) as payer_plan_period_start_date,
-      cast(reporting_period_end_date as date) as payer_plan_period_end_date,
-      insurer_fein as payer_source_value,
-      claim_administrator_name as plan_source_value,
-      claim_administrator_fein as sponsor_source_value,
-      claim_administrator_claim as family_source_value,
+      try_cast(reporting_period_start_date as date) as payer_plan_period_start_date,
+      try_cast(reporting_period_end_date as date) as payer_plan_period_end_date,
+      cast(insurer_fein as varchar) as payer_source_value,
+      cast(claim_administrator_name as varchar) as plan_source_value,
+      cast(claim_administrator_fein as varchar) as sponsor_source_value,
+      cast(claim_administrator_claim as varchar) as family_source_value,
       cast(null as varchar) as stop_reason_source_value
   from {{ source('raw', 'professional_header_historical') }}
   where insurer_fein is not null or claim_administrator_fein is not null
@@ -83,12 +83,12 @@ professional_payer_historical as (
 pharmacy_payer_historical as (
   select
       {{ derive_person_id() }} as person_id,
-      cast(reporting_period_start_date as date) as payer_plan_period_start_date,
-      cast(reporting_period_end_date as date) as payer_plan_period_end_date,
-      insurer_fein as payer_source_value,
-      claim_administrator_name as plan_source_value,
-      claim_administrator_fein as sponsor_source_value,
-      claim_administrator_claim as family_source_value,
+      try_cast(reporting_period_start_date as date) as payer_plan_period_start_date,
+      try_cast(reporting_period_end_date as date) as payer_plan_period_end_date,
+      cast(insurer_fein as varchar) as payer_source_value,
+      cast(claim_administrator_name as varchar) as plan_source_value,
+      cast(claim_administrator_fein as varchar) as sponsor_source_value,
+      cast(claim_administrator_claim as varchar) as family_source_value,
       cast(null as varchar) as stop_reason_source_value
   from {{ source('raw', 'pharmacy_header_historical') }}
   where insurer_fein is not null or claim_administrator_fein is not null

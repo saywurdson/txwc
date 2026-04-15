@@ -33,25 +33,9 @@
     TRY_CAST(employee_date_of_birth as timestamp) as birth_datetime,
     cast(null as integer) as race_concept_id,
     cast(null as integer) as ethnicity_concept_id,
-    cast(
-      hash(
-        concat_ws(
-          '||',
-          employee_mailing_city,
-          employee_mailing_country,
-          employee_mailing_postal_code,
-          employee_mailing_state_code
-        ),
-        'xxhash64'
-      ) % 1000000000
-    as varchar) as location_id,
+    {{ derive_employee_location_id() }} as location_id,
     cast(null as integer) as provider_id,
-    cast(
-      hash(
-        concat_ws('||', billing_provider_last_name),
-        'xxhash64'
-      ) % 1000000000
-    as varchar) as care_site_id,
+    {{ derive_care_site_id('institutional') }} as care_site_id,
     cast(patient_account_number as varchar) as person_source_value,
     cast(employee_gender_code as varchar) as gender_source_value,
     cast(null as integer) as gender_source_concept_id,
@@ -78,25 +62,9 @@
     cast(employee_date_of_birth as timestamp) as birth_datetime,
     cast(null as integer) as race_concept_id,
     cast(null as integer) as ethnicity_concept_id,
-    cast(
-      hash(
-        concat_ws(
-          '||',
-          employee_mailing_city,
-          employee_mailing_country,
-          employee_mailing_postal_code,
-          employee_mailing_state_code
-        ),
-        'xxhash64'
-      ) % 1000000000
-    as varchar) as location_id,
+    {{ derive_employee_location_id() }} as location_id,
     cast(null as integer) as provider_id,
-    cast(
-      hash(
-        concat_ws('||', billing_provider_last_name, facility_primary_address),
-        'xxhash64'
-      ) % 1000000000
-    as varchar) as care_site_id,
+    {{ derive_care_site_id('professional') }} as care_site_id,
     cast(patient_account_number as varchar) as person_source_value,
     cast(employee_gender_code as varchar) as gender_source_value,
     cast(null as integer) as gender_source_concept_id,
@@ -123,25 +91,9 @@
     cast(employee_date_of_birth as timestamp) as birth_datetime,
     cast(null as integer) as race_concept_id,
     cast(null as integer) as ethnicity_concept_id,
-    cast(
-      hash(
-        concat_ws(
-          '||',
-          employee_mailing_city,
-          employee_mailing_country,
-          employee_mailing_postal_code,
-          employee_mailing_state_code
-        ),
-        'xxhash64'
-      ) % 1000000000
-    as varchar) as location_id,
+    {{ derive_employee_location_id() }} as location_id,
     cast(null as integer) as provider_id,
-    cast(
-      hash(
-        concat_ws('||', billing_provider_last_name, billing_provider_fein),
-        'xxhash64'
-      ) % 1000000000
-    as varchar) as care_site_id,
+    {{ derive_care_site_id('pharmacy') }} as care_site_id,
     cast(patient_account_number as varchar) as person_source_value,
     cast(employee_gender_code as varchar) as gender_source_value,
     cast(null as integer) as gender_source_concept_id,

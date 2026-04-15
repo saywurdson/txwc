@@ -52,9 +52,7 @@ institutional_header_current as (
           rendering_bill_provider_state_1,
           rendering_bill_provider_4), 'xxhash64') % 1000000000 as varchar
       ) as provider_id,
-      cast(
-        hash(concat_ws('||', billing_provider_last_name), 'xxhash64') % 1000000000 as varchar
-      ) as care_site_id,
+      {{ derive_care_site_id('institutional') }} as care_site_id,
       cast(facility_code as varchar) as visit_source_value,
       cast(null as integer) as visit_source_concept_id,
       case
@@ -93,9 +91,7 @@ professional_header_current as (
           rendering_bill_provider_state_1,
           rendering_bill_provider_4), 'xxhash64') % 1000000000 as varchar
       ) as provider_id,
-      cast(
-        hash(concat_ws('||', billing_provider_last_name, facility_primary_address), 'xxhash64') % 1000000000 as varchar
-      ) as care_site_id,
+      {{ derive_care_site_id('professional') }} as care_site_id,
       cast(place_of_service_bill_code as varchar) as visit_source_value,
       cast(null as integer) as visit_source_concept_id,
       cast(null as integer) as admitted_from_concept_id,
@@ -126,9 +122,7 @@ pharmacy_header_current as (
           rendering_bill_provider_state_1,
           rendering_bill_provider_4), 'xxhash64') % 1000000000 as varchar
       ) as provider_id,
-      cast(
-        hash(concat_ws('||', billing_provider_last_name, billing_provider_fein), 'xxhash64') % 1000000000 as varchar
-      ) as care_site_id,
+      {{ derive_care_site_id('pharmacy') }} as care_site_id,
       cast(place_of_service_bill_code as varchar) as visit_source_value,
       cast(null as integer) as visit_source_concept_id,
       cast(null as integer) as admitted_from_concept_id,
@@ -188,9 +182,7 @@ institutional_header_historical as (
           rendering_bill_provider_state_1,
           rendering_bill_provider_4), 'xxhash64') % 1000000000 as varchar
       ) as provider_id,
-      cast(
-        hash(concat_ws('||', billing_provider_last_name), 'xxhash64') % 1000000000 as varchar
-      ) as care_site_id,
+      {{ derive_care_site_id('institutional') }} as care_site_id,
       cast(facility_code as varchar) as visit_source_value,
       cast(null as integer) as visit_source_concept_id,
       case
@@ -229,9 +221,7 @@ professional_header_historical as (
           rendering_bill_provider_state_1,
           rendering_bill_provider_4), 'xxhash64') % 1000000000 as varchar
       ) as provider_id,
-      cast(
-        hash(concat_ws('||', billing_provider_last_name, facility_primary_address), 'xxhash64') % 1000000000 as varchar
-      ) as care_site_id,
+      {{ derive_care_site_id('professional') }} as care_site_id,
       cast(place_of_service_bill_code as varchar) as visit_source_value,
       cast(null as integer) as visit_source_concept_id,
       cast(null as integer) as admitted_from_concept_id,
@@ -262,9 +252,7 @@ pharmacy_header_historical as (
           rendering_bill_provider_state_1,
           rendering_bill_provider_4), 'xxhash64') % 1000000000 as varchar
       ) as provider_id,
-      cast(
-        hash(concat_ws('||', billing_provider_last_name, billing_provider_fein), 'xxhash64') % 1000000000 as varchar
-      ) as care_site_id,
+      {{ derive_care_site_id('pharmacy') }} as care_site_id,
       cast(place_of_service_bill_code as varchar) as visit_source_value,
       cast(null as integer) as visit_source_concept_id,
       cast(null as integer) as admitted_from_concept_id,

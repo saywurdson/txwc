@@ -7,19 +7,7 @@
   {% set query %}
 institutional_header_current as (
   select distinct
-    cast(
-      hash(
-        concat_ws('||',
-          facility_name,
-          facility_primary_address,
-          facility_city,
-          facility_state_code,
-          facility_postal_code,
-          facility_country_code
-        ),
-        'xxhash64'
-      ) % 1000000000
-    as varchar) as location_id,
+    {{ derive_facility_location_id() }} as location_id,
     facility_primary_address as address_1,
     cast(null as varchar) as address_2,
     facility_city as city,
@@ -36,17 +24,7 @@ institutional_header_current as (
   union
 
   select distinct
-    cast(
-      hash(
-        concat_ws('||',
-          employee_mailing_city,
-          employee_mailing_state_code,
-          employee_mailing_postal_code,
-          employee_mailing_country
-        ),
-        'xxhash64'
-      ) % 1000000000
-    as varchar) as location_id,
+    {{ derive_employee_location_id() }} as location_id,
     cast(null as varchar) as address_1,
     cast(null as varchar) as address_2,
     employee_mailing_city as city,
@@ -62,19 +40,7 @@ institutional_header_current as (
 ),
 professional_header_current as (
   select distinct
-    cast(
-      hash(
-        concat_ws('||',
-          facility_name,
-          facility_primary_address,
-          facility_city,
-          facility_state_code,
-          facility_postal_code,
-          facility_country_code
-        ),
-        'xxhash64'
-      ) % 1000000000
-    as varchar) as location_id,
+    {{ derive_facility_location_id() }} as location_id,
     facility_primary_address as address_1,
     facility_secondary_address as address_2,
     facility_city as city,
@@ -91,17 +57,7 @@ professional_header_current as (
   union
 
   select distinct
-    cast(
-      hash(
-        concat_ws('||',
-          employee_mailing_city,
-          employee_mailing_state_code,
-          employee_mailing_postal_code,
-          employee_mailing_country
-        ),
-        'xxhash64'
-      ) % 1000000000
-    as varchar) as location_id,
+    {{ derive_employee_location_id() }} as location_id,
     cast(null as varchar) as address_1,
     cast(null as varchar) as address_2,
     employee_mailing_city as city,
@@ -117,19 +73,7 @@ professional_header_current as (
 ),
 pharmacy_header_current as (
   select distinct
-    cast(
-      hash(
-        concat_ws('||',
-          facility_name,
-          facility_primary_address,
-          facility_city,
-          facility_state_code,
-          facility_postal_code,
-          facility_country_code
-        ),
-        'xxhash64'
-      ) % 1000000000
-    as varchar) as location_id,
+    {{ derive_facility_location_id() }} as location_id,
     facility_primary_address as address_1,
     cast(null as varchar) as address_2,
     facility_city as city,
@@ -146,17 +90,7 @@ pharmacy_header_current as (
   union
 
   select distinct
-    cast(
-      hash(
-        concat_ws('||',
-          employee_mailing_city,
-          employee_mailing_state_code,
-          employee_mailing_postal_code,
-          employee_mailing_country
-        ),
-        'xxhash64'
-      ) % 1000000000
-    as varchar) as location_id,
+    {{ derive_employee_location_id() }} as location_id,
     cast(null as varchar) as address_1,
     cast(null as varchar) as address_2,
     employee_mailing_city as city,
@@ -178,19 +112,7 @@ pharmacy_header_current as (
   {% set query %}
 institutional_header_historical as (
   select distinct
-    cast(
-      hash(
-        concat_ws('||',
-          facility_name,
-          facility_primary_address,
-          facility_city,
-          facility_state_code,
-          facility_postal_code,
-          facility_country_code
-        ),
-        'xxhash64'
-      ) % 1000000000
-    as varchar) as location_id,
+    {{ derive_facility_location_id() }} as location_id,
     facility_primary_address as address_1,
     cast(null as varchar) as address_2,
     facility_city as city,
@@ -207,17 +129,7 @@ institutional_header_historical as (
   union
 
   select distinct
-    cast(
-      hash(
-        concat_ws('||',
-          employee_mailing_city,
-          employee_mailing_state_code,
-          employee_mailing_postal_code,
-          employee_mailing_country
-        ),
-        'xxhash64'
-      ) % 1000000000
-    as varchar) as location_id,
+    {{ derive_employee_location_id() }} as location_id,
     cast(null as varchar) as address_1,
     cast(null as varchar) as address_2,
     employee_mailing_city as city,
@@ -233,19 +145,7 @@ institutional_header_historical as (
 ),
 professional_header_historical as (
   select distinct
-    cast(
-      hash(
-        concat_ws('||',
-          facility_name,
-          facility_primary_address,
-          facility_city,
-          facility_state_code,
-          facility_postal_code,
-          facility_country_code
-        ),
-        'xxhash64'
-      ) % 1000000000
-    as varchar) as location_id,
+    {{ derive_facility_location_id() }} as location_id,
     facility_primary_address as address_1,
     facility_secondary_address as address_2,
     facility_city as city,
@@ -262,17 +162,7 @@ professional_header_historical as (
   union
 
   select distinct
-    cast(
-      hash(
-        concat_ws('||',
-          employee_mailing_city,
-          employee_mailing_state_code,
-          employee_mailing_postal_code,
-          employee_mailing_country
-        ),
-        'xxhash64'
-      ) % 1000000000
-    as varchar) as location_id,
+    {{ derive_employee_location_id() }} as location_id,
     cast(null as varchar) as address_1,
     cast(null as varchar) as address_2,
     employee_mailing_city as city,
@@ -288,19 +178,7 @@ professional_header_historical as (
 ),
 pharmacy_header_historical as (
   select distinct
-    cast(
-      hash(
-        concat_ws('||',
-          facility_name,
-          facility_primary_address,
-          facility_city,
-          facility_state_code,
-          facility_postal_code,
-          facility_country_code
-        ),
-        'xxhash64'
-      ) % 1000000000
-    as varchar) as location_id,
+    {{ derive_facility_location_id() }} as location_id,
     facility_primary_address as address_1,
     cast(null as varchar) as address_2,
     facility_city as city,
@@ -317,17 +195,7 @@ pharmacy_header_historical as (
   union
 
   select distinct
-    cast(
-      hash(
-        concat_ws('||',
-          employee_mailing_city,
-          employee_mailing_state_code,
-          employee_mailing_postal_code,
-          employee_mailing_country
-        ),
-        'xxhash64'
-      ) % 1000000000
-    as varchar) as location_id,
+    {{ derive_employee_location_id() }} as location_id,
     cast(null as varchar) as address_1,
     cast(null as varchar) as address_2,
     employee_mailing_city as city,

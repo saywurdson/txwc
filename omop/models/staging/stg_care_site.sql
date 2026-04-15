@@ -7,21 +7,7 @@
   {% set query %}
 institutional_header_current as (
   select distinct
-    -- Include full location info in care_site_id hash to ensure uniqueness
-    cast(
-      hash(
-        concat_ws(
-          '||',
-          billing_provider_last_name,
-          facility_primary_address,
-          facility_city,
-          facility_state_code,
-          facility_postal_code,
-          facility_country_code
-        )
-      , 'xxhash64'
-      ) % 1000000000
-    as varchar) as care_site_id,
+    {{ derive_care_site_id('institutional') }} as care_site_id,
     -- Fix for shifted columns: use billing_provider_state_code when it contains facility name
     -- Detects shifted records where state_code has facility name instead of 2-char state code
     case
@@ -30,92 +16,27 @@ institutional_header_current as (
       else billing_provider_last_name   -- Use normal column
     end as care_site_name,
     8717 as place_of_service_concept_id,
-    cast(
-      hash(
-        concat_ws(
-          '||',
-          billing_provider_last_name,
-          facility_primary_address,
-          facility_city,
-          facility_state_code,
-          facility_postal_code,
-          facility_country_code
-        )
-      , 'xxhash64'
-      ) % 1000000000
-    as varchar) as location_id,
+    {{ derive_facility_location_id() }} as location_id,
     facility_national_provider as care_site_source_value,
     cast(null as varchar) as place_of_service_source_value
   from {{ source('raw', 'institutional_header_current') }}
 ),
 professional_header_current as (
   select distinct
-    cast(
-      hash(
-        concat_ws(
-          '||',
-          billing_provider_last_name,
-          facility_primary_address,
-          facility_city,
-          facility_state_code,
-          facility_postal_code,
-          facility_country_code
-        )
-      , 'xxhash64'
-      ) % 1000000000
-    as varchar) as care_site_id,
+    {{ derive_care_site_id('professional') }} as care_site_id,
     billing_provider_last_name as care_site_name,
     8716 as place_of_service_concept_id,
-    cast(
-      hash(
-        concat_ws(
-          '||',
-          billing_provider_last_name,
-          facility_primary_address,
-          facility_city,
-          facility_state_code,
-          facility_postal_code,
-          facility_country_code
-        )
-      , 'xxhash64'
-      ) % 1000000000
-    as varchar) as location_id,
+    {{ derive_facility_location_id() }} as location_id,
     facility_national_provider as care_site_source_value,
     cast(place_of_service_bill_code as varchar) as place_of_service_source_value
   from {{ source('raw', 'professional_header_current') }}
 ),
 pharmacy_header_current as (
   select distinct
-    cast(
-      hash(
-        concat_ws(
-          '||',
-          billing_provider_last_name,
-          billing_provider_fein,
-          billing_provider_primary_1,
-          billing_provider_city,
-          billing_provider_state_code,
-          billing_provider_postal_code
-        )
-      , 'xxhash64'
-      ) % 1000000000
-    as varchar) as care_site_id,
+    {{ derive_care_site_id('pharmacy') }} as care_site_id,
     coalesce(facility_name, billing_provider_last_name) as care_site_name,
     38004338 as place_of_service_concept_id,
-    cast(
-      hash(
-        concat_ws(
-          '||',
-          billing_provider_last_name,
-          billing_provider_fein,
-          billing_provider_primary_1,
-          billing_provider_city,
-          billing_provider_state_code,
-          billing_provider_postal_code
-        )
-      , 'xxhash64'
-      ) % 1000000000
-    as varchar) as location_id,
+    {{ derive_facility_location_id() }} as location_id,
     facility_national_provider as care_site_source_value,
     cast(place_of_service_bill_code as varchar) as place_of_service_source_value
   from {{ source('raw', 'pharmacy_header_current') }}
@@ -128,112 +49,34 @@ pharmacy_header_current as (
   {% set query %}
 institutional_header_historical as (
   select distinct
-    cast(
-      hash(
-        concat_ws(
-          '||',
-          billing_provider_last_name,
-          facility_primary_address,
-          facility_city,
-          facility_state_code,
-          facility_postal_code,
-          facility_country_code
-        )
-      , 'xxhash64'
-      ) % 1000000000
-    as varchar) as care_site_id,
+    {{ derive_care_site_id('institutional') }} as care_site_id,
     case
       when LENGTH(billing_provider_state_code) > 2
       then billing_provider_state_code
       else billing_provider_last_name
     end as care_site_name,
     8717 as place_of_service_concept_id,
-    cast(
-      hash(
-        concat_ws(
-          '||',
-          billing_provider_last_name,
-          facility_primary_address,
-          facility_city,
-          facility_state_code,
-          facility_postal_code,
-          facility_country_code
-        )
-      , 'xxhash64'
-      ) % 1000000000
-    as varchar) as location_id,
+    {{ derive_facility_location_id() }} as location_id,
     facility_national_provider as care_site_source_value,
     cast(null as varchar) as place_of_service_source_value
   from {{ source('raw', 'institutional_header_historical') }}
 ),
 professional_header_historical as (
   select distinct
-    cast(
-      hash(
-        concat_ws(
-          '||',
-          billing_provider_last_name,
-          facility_primary_address,
-          facility_city,
-          facility_state_code,
-          facility_postal_code,
-          facility_country_code
-        )
-      , 'xxhash64'
-      ) % 1000000000
-    as varchar) as care_site_id,
+    {{ derive_care_site_id('professional') }} as care_site_id,
     billing_provider_last_name as care_site_name,
     8716 as place_of_service_concept_id,
-    cast(
-      hash(
-        concat_ws(
-          '||',
-          billing_provider_last_name,
-          facility_primary_address,
-          facility_city,
-          facility_state_code,
-          facility_postal_code,
-          facility_country_code
-        )
-      , 'xxhash64'
-      ) % 1000000000
-    as varchar) as location_id,
+    {{ derive_facility_location_id() }} as location_id,
     facility_national_provider as care_site_source_value,
     cast(place_of_service_bill_code as varchar) as place_of_service_source_value
   from {{ source('raw', 'professional_header_historical') }}
 ),
 pharmacy_header_historical as (
   select distinct
-    cast(
-      hash(
-        concat_ws(
-          '||',
-          billing_provider_last_name,
-          billing_provider_fein,
-          billing_provider_primary_1,
-          billing_provider_city,
-          billing_provider_state_code,
-          billing_provider_postal_code
-        )
-      , 'xxhash64'
-      ) % 1000000000
-    as varchar) as care_site_id,
+    {{ derive_care_site_id('pharmacy') }} as care_site_id,
     coalesce(facility_name, billing_provider_last_name) as care_site_name,
     38004338 as place_of_service_concept_id,
-    cast(
-      hash(
-        concat_ws(
-          '||',
-          billing_provider_last_name,
-          billing_provider_fein,
-          billing_provider_primary_1,
-          billing_provider_city,
-          billing_provider_state_code,
-          billing_provider_postal_code
-        )
-      , 'xxhash64'
-      ) % 1000000000
-    as varchar) as location_id,
+    {{ derive_facility_location_id() }} as location_id,
     facility_national_provider as care_site_source_value,
     cast(place_of_service_bill_code as varchar) as place_of_service_source_value
   from {{ source('raw', 'pharmacy_header_historical') }}
@@ -244,9 +87,7 @@ pharmacy_header_historical as (
 
 {% if has_current or has_historical %}
 with {{ cte_queries | join(",\n") }}
-
-select *
-from (
+, raw_union as (
   {% if has_current %}
     select * from institutional_header_current
     union all
@@ -264,7 +105,16 @@ from (
     union all
     select * from pharmacy_header_historical
   {% endif %}
-) as final_result
+)
+select
+    care_site_id,
+    min(care_site_name) as care_site_name,
+    min(place_of_service_concept_id) as place_of_service_concept_id,
+    min(location_id) as location_id,
+    min(care_site_source_value) as care_site_source_value,
+    min(place_of_service_source_value) as place_of_service_source_value
+from raw_union
+group by care_site_id
 {% else %}
 -- No source tables available - return empty result set with OMOP care_site schema
 select
@@ -272,7 +122,7 @@ select
     cast(null as varchar) as care_site_name,
     cast(null as integer) as place_of_service_concept_id,
     cast(null as varchar) as location_id,
-    facility_national_provider as care_site_source_value,
+    cast(null as varchar) as care_site_source_value,
     cast(null as varchar) as place_of_service_source_value
 where false
 {% endif %}

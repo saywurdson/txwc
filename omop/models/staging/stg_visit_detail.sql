@@ -44,11 +44,7 @@
         h.rendering_bill_provider_state_1,
         h.rendering_bill_provider_4
       ), 'xxhash64') % 1000000000 as varchar) as provider_id,
-      cast(
-        hash(concat_ws('||',
-          h.billing_provider_last_name
-        ), 'xxhash64') % 1000000000
-      as varchar) as care_site_id,
+      {{ derive_care_site_id('institutional', 'h') }} as care_site_id,
       cast(d.bill_id as varchar) as visit_occurrence_id,
       cast(null as varchar) as visit_detail_source_value,
       cast(null as integer) as visit_detail_source_concept_id,
@@ -90,12 +86,7 @@
         h.rendering_bill_provider_state_1,
         h.rendering_bill_provider_4
       ), 'xxhash64') % 1000000000 as varchar) as provider_id,
-      cast(
-        hash(concat_ws('||',
-          h.billing_provider_last_name,
-          h.facility_primary_address
-        ), 'xxhash64') % 1000000000
-      as varchar) as care_site_id,
+      {{ derive_care_site_id('professional', 'h') }} as care_site_id,
       cast(d.bill_id as varchar) as visit_occurrence_id,
       cast(null as varchar) as visit_detail_source_value,
       cast(null as integer) as visit_detail_source_concept_id,
@@ -137,12 +128,7 @@
         h.rendering_bill_provider_state_1,
         h.rendering_bill_provider_4
       ), 'xxhash64') % 1000000000 as varchar) as provider_id,
-      cast(
-        hash(concat_ws('||',
-          h.billing_provider_last_name,
-          h.billing_provider_fein
-        ), 'xxhash64') % 1000000000
-      as varchar) as care_site_id,
+      {{ derive_care_site_id('pharmacy', 'h') }} as care_site_id,
       cast(d.bill_id as varchar) as visit_occurrence_id,
       cast(null as varchar) as visit_detail_source_value,
       cast(null as integer) as visit_detail_source_concept_id,
@@ -188,11 +174,7 @@
         h.rendering_bill_provider_state_1,
         h.rendering_bill_provider_4
       ), 'xxhash64') % 1000000000 as varchar) as provider_id,
-      cast(
-        hash(concat_ws('||',
-          h.billing_provider_last_name
-        ), 'xxhash64') % 1000000000
-      as varchar) as care_site_id,
+      {{ derive_care_site_id('institutional', 'h') }} as care_site_id,
       cast(d.bill_id as varchar) as visit_occurrence_id,
       cast(null as varchar) as visit_detail_source_value,
       cast(null as integer) as visit_detail_source_concept_id,
@@ -234,12 +216,7 @@
         h.rendering_bill_provider_state_1,
         h.rendering_bill_provider_4
       ), 'xxhash64') % 1000000000 as varchar) as provider_id,
-      cast(
-        hash(concat_ws('||',
-          h.billing_provider_last_name,
-          h.facility_primary_address
-        ), 'xxhash64') % 1000000000
-      as varchar) as care_site_id,
+      {{ derive_care_site_id('professional', 'h') }} as care_site_id,
       cast(d.bill_id as varchar) as visit_occurrence_id,
       cast(null as varchar) as visit_detail_source_value,
       cast(null as integer) as visit_detail_source_concept_id,
@@ -281,12 +258,7 @@
         h.rendering_bill_provider_state_1,
         h.rendering_bill_provider_4
       ), 'xxhash64') % 1000000000 as varchar) as provider_id,
-      cast(
-        hash(concat_ws('||',
-          h.billing_provider_last_name,
-          h.billing_provider_fein
-        ), 'xxhash64') % 1000000000
-      as varchar) as care_site_id,
+      {{ derive_care_site_id('pharmacy', 'h') }} as care_site_id,
       cast(d.bill_id as varchar) as visit_occurrence_id,
       cast(null as varchar) as visit_detail_source_value,
       cast(null as integer) as visit_detail_source_concept_id,

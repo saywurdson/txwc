@@ -128,26 +128,40 @@ docker run -it -p 8501:8501 -v "$(pwd):/workspaces/txwc" -w /workspaces/txwc txw
 
 All commands below run **inside the container**.
 
-### 3. Load data
+### 3. Set up the project Python environment
+
+This repo uses a [uv](https://docs.astral.sh/uv/)-managed virtual environment at `.venv/` for the pipeline, dbt, and dashboard dependencies. The heavyweight scientific stack (Jupyter, PySpark, xgboost) stays in the base conda env and is only used by exploratory notebooks.
+
+```bash
+# One-time: create the venv from pyproject.toml + uv.lock
+uv sync
+
+# Optional: install dbt's package dependencies (dbt_utils, etc.)
+cd omop && uv run dbt deps && cd ..
+```
+
+Everything Python-related in this project runs via `uv run <command>` so it picks up the venv automatically.
+
+### 4. Load data
 
 ```bash
 # Start with a small patient sample for fast iteration (~2 min)
-python load_data.py --sample_patients 500 --complex
+uv run python load_data.py --sample_patients 500 --complex
 
 # Or do a full load (all datasets, incremental for historical — takes longer)
-python load_data.py
+uv run python load_data.py
 
 # Other options:
-python load_data.py --dataset professional --time_period current  # specific claim type
-python load_data.py --sample_patients 500 --complex               # most complex patients
-python load_data.py --report_only                                  # database summary only
+uv run python load_data.py --dataset professional --time_period current  # specific claim type
+uv run python load_data.py --sample_patients 500 --complex               # most complex patients
+uv run python load_data.py --report_only                                  # database summary only
 ```
 
 Load reference data (optional, needed for some dbt models and dashboard features):
 
 ```bash
-python load_rxclass.py   # Drug classifications from RxNav (public, no key needed)
-python load_vsac.py      # Clinical value sets from VSAC (requires UMLS API key)
+uv run python load_rxclass.py   # Drug classifications from RxNav (public, no key needed)
+uv run python load_vsac.py      # Clinical value sets from VSAC (requires UMLS API key)
 ```
 
 ### 4. Download OMOP Vocabularies
@@ -164,13 +178,13 @@ The dbt models require standard vocabulary files to map billing codes (ICD-10, N
    - **NDC** — pharmacy drug codes
    - **LOINC** — lab/observation codes
 3. Download and extract the zip file
-4. Copy the CSV files into `omop/seeds/`:
+4. Copy the CSV files into `vocab/`:
    ```bash
-   cp /path/to/athena_download/*.csv omop/seeds/
+   cp /path/to/athena_download/*.csv vocab/
    ```
 5. Load into DuckDB:
    ```bash
-   python load_vocab.py
+   uv run python load_vocab.py
    ```
 
 The required files are: `CONCEPT.csv`, `CONCEPT_RELATIONSHIP.csv`, `CONCEPT_ANCESTOR.csv`, `DRUG_STRENGTH.csv`. The remaining files in the Athena download (`CONCEPT_SYNONYM`, `VOCABULARY`, `RELATIONSHIP`, `DOMAIN`, `CONCEPT_CLASS`) are not used by the dbt models but can be loaded for reference.
@@ -179,15 +193,17 @@ The required files are: `CONCEPT.csv`, `CONCEPT_RELATIONSHIP.csv`, `CONCEPT_ANCE
 
 ```bash
 cd omop
-dbt deps
-dbt run      # Build all OMOP CDM tables
-dbt test     # Run data quality tests
+uv run dbt deps
+uv run dbt build   # runs + tests in topological order (recommended)
+# or separately:
+uv run dbt run     # build all OMOP CDM tables
+uv run dbt test    # run data quality tests
 ```
 
 ### 6. Launch Dashboard
 
 ```bash
-streamlit run dashboard.py
+uv run streamlit run dashboard.py
 # Opens on http://localhost:8501
 ```
 
@@ -211,6 +227,10 @@ Toggle **"Show explanations"** in the sidebar for plain-language descriptions of
 
 ```
 txwc/
+├── pyproject.toml         # uv-managed project dependencies (dbt, dlt, duckdb, streamlit, ...)
+├── uv.lock                # Fully pinned dependency lockfile (committed for reproducibility)
+├── .venv/                 # Project virtualenv (gitignored — created by `uv sync`)
+│
 ├── load_data.py           # Socrata API ingestion via dlt pipeline
 ├── load_rxclass.py        # RxNav drug classification loader
 ├── load_vsac.py           # VSAC FHIR value set loader
@@ -231,14 +251,30 @@ txwc/
 │   │   ├── intermediate/  # Type casting & concept mapping (ephemeral)
 │   │   └── final/         # OMOP CDM tables (materialized)
 │   ├── macros/            # Reusable SQL (concept mapping, ID derivation)
-│   ├── seeds/             # OMOP vocabulary CSVs (not tracked)
 │   └── tests/
+│
+├── vocab/                 # OMOP vocabulary CSVs from Athena (not tracked)
 │
 └── notebooks/             # Analysis notebooks
     ├── top10_analysis.ipynb
     ├── pdc.ipynb
     └── add_ccsr_value_sets.ipynb
 ```
+
+### Python environment model
+
+This project uses **two separate Python environments** to keep dependency closures small and avoid conflicts:
+
+| Env | Manager | Location | What lives here | How to invoke |
+|---|---|---|---|---|
+| **Project venv** | `uv` | `.venv/` (from `pyproject.toml` + `uv.lock`) | `dbt-core`, `dbt-duckdb`, `duckdb`, `dlt`, `streamlit`, `plotly`, `pandas`, `tqdm`, `python-dotenv` | `uv run <command>` |
+| **Conda base env** | conda | `/opt/conda` | Jupyter, PySpark, xgboost, and other heavyweight scientific libs used only by exploratory notebooks | `/opt/conda/bin/python` (or via notebook kernel) |
+| MCP servers | `uvx` / `uv run` | ephemeral per-call | `dbt-mcp`, `mcp-server-motherduck`, `dlt-workspace-mcp` | Configured in Claude Code MCP settings |
+
+Rules of thumb:
+- **All pipeline, dbt, and dashboard Python runs via `uv run`.** The venv owns the data path.
+- **Notebooks can stay on the conda kernel** for the scientific stack, or install the venv as a Jupyter kernel (`uv run python -m ipykernel install --user --name txwc --display-name "TXWC (venv)"`) to get the same `dlt`/`duckdb`/`dbt` as the pipeline.
+- **Never `pip install` into `/opt/conda`** for pipeline packages — that's how dependency pins collide across unrelated tools. Add deps with `uv add <pkg>` instead.
 
 ---
 

@@ -3,7 +3,7 @@ import glob
 import os
 import dlt
 
-def load_seeds_to_omop():
+def load_vocab_to_omop():
     base_dir = os.path.dirname(os.path.abspath(__file__))
     try:
         db = dlt.config["destination.duckdb.credentials"]
@@ -13,8 +13,8 @@ def load_seeds_to_omop():
     conn = duckdb.connect(db_path)
     conn.execute("CREATE SCHEMA IF NOT EXISTS omop;")
 
-    seeds_dir = os.path.join(base_dir, 'omop', 'seeds')
-    csv_pattern = os.path.join(seeds_dir, '*.csv')
+    vocab_dir = os.path.join(base_dir, 'vocab')
+    csv_pattern = os.path.join(vocab_dir, '*.csv')
 
     # Process each CSV file
     for csv_path in glob.glob(csv_pattern):
@@ -40,5 +40,5 @@ def load_seeds_to_omop():
     conn.close()
 
 if __name__ == "__main__":
-    load_seeds_to_omop()
-    print("Seed loading completed.")
+    load_vocab_to_omop()
+    print("Vocab loading completed.")

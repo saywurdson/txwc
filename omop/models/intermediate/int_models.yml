@@ -4,451 +4,441 @@ models:
   - name: int_person
     config:
       schema: omop
-      columns:
-        - name: person_id
-          data_type: integer
-          tests:
-            - unique
-            - not_null
-        - name: gender_concept_id
-          data_type: integer
-        - name: year_of_birth
-          data_type: integer
-        - name: month_of_birth
-          data_type: integer
-        - name: day_of_birth
-          data_type: integer
-        - name: birth_datetime
-          data_type: timestamp
-        - name: race_concept_id
-          data_type: integer
-        - name: ethnicity_concept_id
-          data_type: integer
-        - name: location_id
-          data_type: integer
-        - name: provider_id
-          data_type: integer
-        - name: care_site_id
-          data_type: integer
-        - name: person_source_value
-          data_type: varchar
-        - name: gender_source_value
-          data_type: varchar
-        - name: gender_source_concept_id
-          data_type: integer
-        - name: race_source_value
-          data_type: varchar
-        - name: race_source_concept_id
-          data_type: integer
-        - name: ethnicity_source_value
-          data_type: varchar
-        - name: ethnicity_source_concept_id
-          data_type: integer
+    columns:
+      - name: person_id
+        data_type: integer
+        data_tests:
+          - unique
+          - not_null
+      - name: gender_concept_id
+        data_type: integer
+      - name: year_of_birth
+        data_type: integer
+      - name: month_of_birth
+        data_type: integer
+      - name: day_of_birth
+        data_type: integer
+      - name: birth_datetime
+        data_type: timestamp
+      - name: race_concept_id
+        data_type: integer
+      - name: ethnicity_concept_id
+        data_type: integer
+      - name: location_id
+        data_type: integer
+      - name: provider_id
+        data_type: integer
+      - name: care_site_id
+        data_type: integer
+      - name: person_source_value
+        data_type: varchar
+      - name: gender_source_value
+        data_type: varchar
+      - name: gender_source_concept_id
+        data_type: integer
+      - name: race_source_value
+        data_type: varchar
+      - name: race_source_concept_id
+        data_type: integer
+      - name: ethnicity_source_value
+        data_type: varchar
+      - name: ethnicity_source_concept_id
+        data_type: integer
 
   - name: int_visit_occurrence
     config:
       schema: omop
-      columns:
-        - name: visit_occurrence_id
-          data_type: integer
-          tests:
-            - unique
-            - not_null
-        - name: person_id
-          data_type: integer
-          tests:
-            - not_null
-        - name: visit_concept_id
-          data_type: integer
-          tests:
-            - not_null
-        - name: visit_start_date
-          data_type: date
-          tests:
-            - not_null
-        - name: visit_start_datetime
-          data_type: datetime
-        - name: visit_end_date
-          data_type: date
-          tests:
-            - not_null
-        - name: visit_end_datetime
-          data_type: datetime
-        - name: visit_type_concept_id
-          data_type: integer
-          tests:
-            - not_null
-        - name: provider_id
-          data_type: integer
-        - name: care_site_id
-          data_type: integer
-        - name: visit_source_value
-          data_type: varchar(50)
-        - name: visit_source_concept_id
-          data_type: integer
-        - name: admitted_from_concept_id
-          data_type: integer
-        - name: admitted_from_source_value
-          data_type: varchar(50)
-        - name: discharged_to_concept_id
-          data_type: integer
-        - name: discharged_to_source_value
-          data_type: varchar(50)
-        - name: preceding_visit_occurrence_id
-          data_type: integer
+    columns:
+      - name: visit_occurrence_id
+        data_type: integer
+        data_tests:
+          - unique
+          - not_null
+      - name: person_id
+        data_type: integer
+        data_tests:
+          - not_null
+      - name: visit_concept_id
+        data_type: integer
+        data_tests:
+          - not_null
+      - name: visit_start_date
+        data_type: date
+        data_tests:
+          - not_null
+      - name: visit_start_datetime
+        data_type: datetime
+      - name: visit_end_date
+        data_type: date
+        data_tests:
+          - not_null
+      - name: visit_end_datetime
+        data_type: datetime
+      - name: visit_type_concept_id
+        data_type: integer
+        data_tests:
+          - not_null
+      - name: provider_id
+        data_type: integer
+      - name: care_site_id
+        data_type: integer
+      - name: visit_source_value
+        data_type: varchar(50)
+      - name: visit_source_concept_id
+        data_type: integer
+      - name: admitted_from_concept_id
+        data_type: integer
+      - name: admitted_from_source_value
+        data_type: varchar(50)
+      - name: discharged_to_concept_id
+        data_type: integer
+      - name: discharged_to_source_value
+        data_type: varchar(50)
+      - name: preceding_visit_occurrence_id
+        data_type: integer
 
   - name: int_condition_occurrence
     config:
       schema: omop
-      columns:
-        - name: condition_occurrence_id
-          data_type: integer
-          tests:
-            - unique
-            - not_null
-        - name: person_id
-          data_type: integer
-          tests:
-            - not_null
-        - name: condition_concept_id
-          data_type: integer
-          tests:
-            - not_null
-        - name: condition_start_date
-          data_type: date
-          tests:
-            - not_null
-        - name: condition_start_datetime
-          data_type: datetime
-        - name: condition_end_date
-          data_type: date
-        - name: condition_end_datetime
-          data_type: datetime
-        - name: condition_type_concept_id
-          data_type: integer
-          tests:
-            - not_null
-        - name: condition_status_concept_id
-          data_type: integer
-        - name: stop_reason
-          data_type: varchar(20)
-        - name: provider_id
-          data_type: integer
-        - name: visit_occurrence_id
-          data_type: integer
-        - name: visit_detail_id
-          data_type: integer
-        - name: condition_source_value
-          data_type: varchar(50)
-        - name: condition_source_concept_id
-          data_type: integer
-        - name: condition_status_source_value
-          data_type: varchar(50)
+    columns:
+      - name: condition_occurrence_id
+        data_type: integer
+        data_tests:
+          - unique
+          - not_null
+      - name: person_id
+        data_type: integer
+        data_tests:
+          - not_null
+      - name: condition_concept_id
+        data_type: integer
+      - name: condition_start_date
+        data_type: date
+        data_tests:
+          - not_null
+      - name: condition_start_datetime
+        data_type: datetime
+      - name: condition_end_date
+        data_type: date
+      - name: condition_end_datetime
+        data_type: datetime
+      - name: condition_type_concept_id
+        data_type: integer
+        data_tests:
+          - not_null
+      - name: condition_status_concept_id
+        data_type: integer
+      - name: stop_reason
+        data_type: varchar(20)
+      - name: provider_id
+        data_type: integer
+      - name: visit_occurrence_id
+        data_type: integer
+      - name: visit_detail_id
+        data_type: integer
+      - name: condition_source_value
+        data_type: varchar(50)
+      - name: condition_source_concept_id
+        data_type: integer
+      - name: condition_status_source_value
+        data_type: varchar(50)
 
   - name: int_procedure_occurrence
     config:
       schema: omop
-      columns:
-        - name: procedure_occurrence_id
-          data_type: integer
-          tests:
-            - unique
-            - not_null
-        - name: person_id
-          data_type: integer
-          tests:
-            - not_null
-        - name: procedure_concept_id
-          data_type: integer
-          tests:
-            - not_null
-        - name: procedure_date
-          data_type: date
-          tests:
-            - not_null
-        - name: procedure_datetime
-          data_type: datetime
-        - name: procedure_end_date
-          data_type: date
-        - name: procedure_end_datetime
-          data_type: datetime
-        - name: procedure_type_concept_id
-          data_type: integer
-          tests:
-            - not_null
-        - name: modifier_concept_id
-          data_type: integer
-        - name: quantity
-          data_type: integer
-        - name: provider_id
-          data_type: integer
-        - name: visit_occurrence_id
-          data_type: integer
-        - name: visit_detail_id
-          data_type: integer
-        - name: procedure_source_value
-          data_type: varchar(50)
-        - name: procedure_source_concept_id
-          data_type: integer
-        - name: modifier_source_value
-          data_type: varchar(50)
+    columns:
+      - name: procedure_occurrence_id
+        data_type: integer
+        data_tests:
+          - unique
+          - not_null
+      - name: person_id
+        data_type: integer
+        data_tests:
+          - not_null
+      - name: procedure_concept_id
+        data_type: integer
+      - name: procedure_date
+        data_type: date
+        data_tests:
+          - not_null
+      - name: procedure_datetime
+        data_type: datetime
+      - name: procedure_end_date
+        data_type: date
+      - name: procedure_end_datetime
+        data_type: datetime
+      - name: procedure_type_concept_id
+        data_type: integer
+        data_tests:
+          - not_null
+      - name: modifier_concept_id
+        data_type: integer
+      - name: quantity
+        data_type: integer
+      - name: provider_id
+        data_type: integer
+      - name: visit_occurrence_id
+        data_type: integer
+      - name: visit_detail_id
+        data_type: integer
+      - name: procedure_source_value
+        data_type: varchar(50)
+      - name: procedure_source_concept_id
+        data_type: integer
+      - name: modifier_source_value
+        data_type: varchar(50)
 
   - name: int_device_exposure
     config:
       schema: omop
-      columns:
-        - name: device_exposure_id
-          data_type: integer
-          tests:
-            - unique
-            - not_null
-        - name: person_id
-          data_type: integer
-          tests:
-            - not_null
-        - name: device_concept_id
-          data_type: integer
-          tests:
-            - not_null
-        - name: device_exposure_start_date
-          data_type: date
-          tests:
-            - not_null
-        - name: device_exposure_start_datetime
-          data_type: datetime
-        - name: device_exposure_end_date
-          data_type: date
-        - name: device_exposure_end_datetime
-          data_type: datetime
-        - name: device_type_concept_id
-          data_type: integer
-          tests:
-            - not_null
-        - name: unique_device_id
-          data_type: varchar(255)
-        - name: production_id
-          data_type: varchar(255)
-        - name: quantity
-          data_type: integer
-        - name: provider_id
-          data_type: integer
-        - name: visit_occurrence_id
-          data_type: integer
-        - name: visit_detail_id
-          data_type: integer
-        - name: device_source_value
-          data_type: varchar(50)
-        - name: device_source_concept_id
-          data_type: integer
-        - name: unit_concept_id
-          data_type: integer
-        - name: unit_source_value
-          data_type: varchar(50)
-        - name: unit_source_concept_id
-          data_type: integer
+    columns:
+      - name: device_exposure_id
+        data_type: integer
+        data_tests:
+          - unique
+          - not_null
+      - name: person_id
+        data_type: integer
+        data_tests:
+          - not_null
+      - name: device_concept_id
+        data_type: integer
+      - name: device_exposure_start_date
+        data_type: date
+        data_tests:
+          - not_null
+      - name: device_exposure_start_datetime
+        data_type: datetime
+      - name: device_exposure_end_date
+        data_type: date
+      - name: device_exposure_end_datetime
+        data_type: datetime
+      - name: device_type_concept_id
+        data_type: integer
+        data_tests:
+          - not_null
+      - name: unique_device_id
+        data_type: varchar(255)
+      - name: production_id
+        data_type: varchar(255)
+      - name: quantity
+        data_type: integer
+      - name: provider_id
+        data_type: integer
+      - name: visit_occurrence_id
+        data_type: integer
+      - name: visit_detail_id
+        data_type: integer
+      - name: device_source_value
+        data_type: varchar(50)
+      - name: device_source_concept_id
+        data_type: integer
+      - name: unit_concept_id
+        data_type: integer
+      - name: unit_source_value
+        data_type: varchar(50)
+      - name: unit_source_concept_id
+        data_type: integer
 
   - name: int_measurement
     config:
       schema: omop
-      columns:
-        - name: measurement_id
-          data_type: integer
-          tests:
-            - unique
-            - not_null
-        - name: person_id
-          data_type: integer
-          tests:
-            - not_null
-        - name: measurement_concept_id
-          data_type: integer
-          tests:
-            - not_null
-        - name: measurement_date
-          data_type: date
-          tests:
-            - not_null
-        - name: measurement_datetime
-          data_type: datetime
-        - name: measurement_time
-          data_type: varchar(10)
-        - name: measurement_type_concept_id
-          data_type: integer
-          tests:
-            - not_null
-        - name: operator_concept_id
-          data_type: integer
-        - name: value_as_number
-          data_type: float
-        - name: value_as_concept_id
-          data_type: integer
-        - name: unit_concept_id
-          data_type: integer
-        - name: range_low
-          data_type: float
-        - name: range_high
-          data_type: float
-        - name: provider_id
-          data_type: integer
-        - name: visit_occurrence_id
-          data_type: integer
-        - name: visit_detail_id
-          data_type: integer
-        - name: measurement_source_value
-          data_type: varchar(50)
-        - name: measurement_source_concept_id
-          data_type: integer
-        - name: unit_source_value
-          data_type: varchar(50)
-        - name: unit_source_concept_id
-          data_type: integer
-        - name: value_source_value
-          data_type: varchar(50)
-        - name: measurement_event_id
-          data_type: integer
-        - name: meas_event_field_concept_id
-          data_type: integer
+    columns:
+      - name: measurement_id
+        data_type: integer
+        data_tests:
+          - unique
+          - not_null
+      - name: person_id
+        data_type: integer
+        data_tests:
+          - not_null
+      - name: measurement_concept_id
+        data_type: integer
+      - name: measurement_date
+        data_type: date
+        data_tests:
+          - not_null
+      - name: measurement_datetime
+        data_type: datetime
+      - name: measurement_time
+        data_type: varchar(10)
+      - name: measurement_type_concept_id
+        data_type: integer
+        data_tests:
+          - not_null
+      - name: operator_concept_id
+        data_type: integer
+      - name: value_as_number
+        data_type: float
+      - name: value_as_concept_id
+        data_type: integer
+      - name: unit_concept_id
+        data_type: integer
+      - name: range_low
+        data_type: float
+      - name: range_high
+        data_type: float
+      - name: provider_id
+        data_type: integer
+      - name: visit_occurrence_id
+        data_type: integer
+      - name: visit_detail_id
+        data_type: integer
+      - name: measurement_source_value
+        data_type: varchar(50)
+      - name: measurement_source_concept_id
+        data_type: integer
+      - name: unit_source_value
+        data_type: varchar(50)
+      - name: unit_source_concept_id
+        data_type: integer
+      - name: value_source_value
+        data_type: varchar(50)
+      - name: measurement_event_id
+        data_type: integer
+      - name: meas_event_field_concept_id
+        data_type: integer
 
   - name: int_observation
     config:
       schema: omop
-      columns:
-        - name: observation_id
-          data_type: integer
-          tests:
-            - unique
-            - not_null
-        - name: person_id
-          data_type: integer
-          tests:
-            - not_null
-        - name: observation_concept_id
-          data_type: integer
-          tests:
-            - not_null
-        - name: observation_date
-          data_type: date
-          tests:
-            - not_null
-        - name: observation_datetime
-          data_type: datetime
-        - name: observation_type_concept_id
-          data_type: integer
-          tests:
-            - not_null
-        - name: value_as_number
-          data_type: float
-        - name: value_as_string
-          data_type: varchar(60)
-        - name: value_as_concept_id
-          data_type: integer
-        - name: qualifier_concept_id
-          data_type: integer
-        - name: unit_concept_id
-          data_type: integer
-        - name: provider_id
-          data_type: integer
-        - name: visit_occurrence_id
-          data_type: integer
-        - name: visit_detail_id
-          data_type: integer
-        - name: observation_source_value
-          data_type: varchar(50)
-        - name: observation_source_concept_id
-          data_type: integer
-        - name: unit_source_value
-          data_type: varchar(50)
-        - name: qualifier_source_value
-          data_type: varchar(50)
-        - name: value_source_value
-          data_type: varchar(50)
-        - name: observation_event_id
-          data_type: integer
-        - name: obs_event_field_concept_id
-          data_type: integer
+    columns:
+      - name: observation_id
+        data_type: integer
+        data_tests:
+          - unique
+          - not_null
+      - name: person_id
+        data_type: integer
+        data_tests:
+          - not_null
+      - name: observation_concept_id
+        data_type: integer
+      - name: observation_date
+        data_type: date
+        data_tests:
+          - not_null
+      - name: observation_datetime
+        data_type: datetime
+      - name: observation_type_concept_id
+        data_type: integer
+        data_tests:
+          - not_null
+      - name: value_as_number
+        data_type: float
+      - name: value_as_string
+        data_type: varchar(60)
+      - name: value_as_concept_id
+        data_type: integer
+      - name: qualifier_concept_id
+        data_type: integer
+      - name: unit_concept_id
+        data_type: integer
+      - name: provider_id
+        data_type: integer
+      - name: visit_occurrence_id
+        data_type: integer
+      - name: visit_detail_id
+        data_type: integer
+      - name: observation_source_value
+        data_type: varchar(50)
+      - name: observation_source_concept_id
+        data_type: integer
+      - name: unit_source_value
+        data_type: varchar(50)
+      - name: qualifier_source_value
+        data_type: varchar(50)
+      - name: value_source_value
+        data_type: varchar(50)
+      - name: observation_event_id
+        data_type: integer
+      - name: obs_event_field_concept_id
+        data_type: integer
 
   - name: int_location
     config:
       schema: omop
-      columns:
-        - name: location_id
-          data_type: integer
-          tests:
-            - unique
-            - not_null
-        - name: address_1
-          data_type: varchar(50)
-        - name: address_2
-          data_type: varchar(50)
-        - name: city
-          data_type: varchar(50)
-        - name: state
-          data_type: varchar(2)
-        - name: zip
-          data_type: varchar(9)
-        - name: county
-          data_type: varchar(20)
-        - name: location_source_value
-          data_type: varchar(50)
-        - name: country_concept_id
-          data_type: integer
-        - name: country_source_value
-          data_type: varchar(80)
-        - name: latitude
-          data_type: float
-        - name: longitude
-          data_type: float
+    columns:
+      - name: location_id
+        data_type: integer
+        data_tests:
+          - unique
+          - not_null
+      - name: address_1
+        data_type: varchar(50)
+      - name: address_2
+        data_type: varchar(50)
+      - name: city
+        data_type: varchar(50)
+      - name: state
+        data_type: varchar(2)
+      - name: zip
+        data_type: varchar(9)
+      - name: county
+        data_type: varchar(20)
+      - name: location_source_value
+        data_type: varchar(50)
+      - name: country_concept_id
+        data_type: integer
+      - name: country_source_value
+        data_type: varchar(80)
+      - name: latitude
+        data_type: float
+      - name: longitude
+        data_type: float
 
   - name: int_care_site
     config:
       schema: omop
-      columns:
-        - name: care_site_id
-          data_type: integer
-          tests:
-            - unique
-            - not_null
-        - name: care_site_name
-          data_type: varchar(255)
-        - name: place_of_service_concept_id
-          data_type: integer
-        - name: location_id
-          data_type: integer
-        - name: care_site_source_value
-          data_type: varchar(50)
-        - name: place_of_service_source_value
-          data_type: varchar(50)
+    columns:
+      - name: care_site_id
+        data_type: integer
+        data_tests:
+          - unique
+          - not_null
+      - name: care_site_name
+        data_type: varchar(255)
+      - name: place_of_service_concept_id
+        data_type: integer
+      - name: location_id
+        data_type: integer
+      - name: care_site_source_value
+        data_type: varchar(50)
+      - name: place_of_service_source_value
+        data_type: varchar(50)
 
   - name: int_provider
     config:
       schema: omop
-      columns:
-        - name: provider_id
-          data_type: integer
-          tests:
-            - unique
-            - not_null
-        - name: provider_name
-          data_type: varchar(255)
-        - name: npi
-          data_type: varchar(20)
-        - name: dea
-          data_type: varchar(20)
-        - name: specialty_concept_id
-          data_type: integer
-        - name: care_site_id
-          data_type: integer
-        - name: year_of_birth
-          data_type: integer
-        - name: gender_concept_id
-          data_type: integer
-        - name: provider_source_value
-          data_type: varchar(50)
-        - name: specialty_source_value
-          data_type: varchar(50)
-        - name: specialty_source_concept_id
-          data_type: integer
-        - name: gender_source_value
-          data_type: varchar(50)
-        - name: gender_source_concept_id
-          data_type: integer
+    columns:
+      - name: provider_id
+        data_type: integer
+        data_tests:
+          - unique
+          - not_null
+      - name: provider_name
+        data_type: varchar(255)
+      - name: npi
+        data_type: varchar(20)
+      - name: dea
+        data_type: varchar(20)
+      - name: specialty_concept_id
+        data_type: integer
+      - name: care_site_id
+        data_type: integer
+      - name: year_of_birth
+        data_type: integer
+      - name: gender_concept_id
+        data_type: integer
+      - name: provider_source_value
+        data_type: varchar(50)
+      - name: specialty_source_value
+        data_type: varchar(50)
+      - name: specialty_source_concept_id
+        data_type: integer
+      - name: gender_source_value
+        data_type: varchar(50)
+      - name: gender_source_concept_id
+        data_type: integer

@@ -28,20 +28,7 @@ institutional_header_current as (
     cast(null as varchar) as dea,
     cast(null as integer) as specialty_concept_id,
     -- care_site_id hash must match stg_care_site
-    cast(
-      hash(
-        concat_ws(
-          '||',
-          billing_provider_last_name,
-          facility_primary_address,
-          facility_city,
-          facility_state_code,
-          facility_postal_code,
-          facility_country_code
-        ),
-        'xxhash64'
-      ) % 1000000000
-    as varchar) as care_site_id,
+    {{ derive_care_site_id('institutional') }} as care_site_id,
     cast(null as integer) as year_of_birth,
     cast(null as integer) as gender_concept_id,
     rendering_bill_provider_state_1 as provider_source_value,
@@ -96,20 +83,7 @@ professional_header_current as (
     cast(null as integer) as specialty_concept_id,
     {% endif %}
     -- care_site_id hash must match stg_care_site
-    cast(
-      hash(
-        concat_ws(
-          '||',
-          billing_provider_last_name,
-          facility_primary_address,
-          facility_city,
-          facility_state_code,
-          facility_postal_code,
-          facility_country_code
-        ),
-        'xxhash64'
-      ) % 1000000000
-    as varchar) as care_site_id,
+    {{ derive_care_site_id('professional') }} as care_site_id,
     cast(null as integer) as year_of_birth,
     cast(null as integer) as gender_concept_id,
     rendering_bill_provider_state_1 as provider_source_value,
@@ -140,20 +114,7 @@ pharmacy_header_current as (
     cast(null as varchar) as dea,
     cast(null as integer) as specialty_concept_id,
     -- care_site_id hash must match stg_care_site
-    cast(
-      hash(
-        concat_ws(
-          '||',
-          billing_provider_last_name,
-          billing_provider_fein,
-          billing_provider_primary_1,
-          billing_provider_city,
-          billing_provider_state_code,
-          billing_provider_postal_code
-        ),
-        'xxhash64'
-      ) % 1000000000
-    as varchar) as care_site_id,
+    {{ derive_care_site_id('pharmacy') }} as care_site_id,
     cast(null as integer) as year_of_birth,
     cast(null as integer) as gender_concept_id,
     rendering_bill_provider_state_1 as provider_source_value,
@@ -396,20 +357,7 @@ institutional_header_historical as (
     ) as provider_name,
     cast(null as varchar) as dea,
     cast(null as integer) as specialty_concept_id,
-    cast(
-      hash(
-        concat_ws(
-          '||',
-          billing_provider_last_name,
-          facility_primary_address,
-          facility_city,
-          facility_state_code,
-          facility_postal_code,
-          facility_country_code
-        ),
-        'xxhash64'
-      ) % 1000000000
-    as varchar) as care_site_id,
+    {{ derive_care_site_id('institutional') }} as care_site_id,
     cast(null as integer) as year_of_birth,
     cast(null as integer) as gender_concept_id,
     rendering_bill_provider_state_1 as provider_source_value,
@@ -460,20 +408,7 @@ professional_header_historical as (
     {% else %}
     cast(null as integer) as specialty_concept_id,
     {% endif %}
-    cast(
-      hash(
-        concat_ws(
-          '||',
-          billing_provider_last_name,
-          facility_primary_address,
-          facility_city,
-          facility_state_code,
-          facility_postal_code,
-          facility_country_code
-        ),
-        'xxhash64'
-      ) % 1000000000
-    as varchar) as care_site_id,
+    {{ derive_care_site_id('professional') }} as care_site_id,
     cast(null as integer) as year_of_birth,
     cast(null as integer) as gender_concept_id,
     rendering_bill_provider_state_1 as provider_source_value,
@@ -503,20 +438,7 @@ pharmacy_header_historical as (
     ) as provider_name,
     cast(null as varchar) as dea,
     cast(null as integer) as specialty_concept_id,
-    cast(
-      hash(
-        concat_ws(
-          '||',
-          billing_provider_last_name,
-          billing_provider_fein,
-          billing_provider_primary_1,
-          billing_provider_city,
-          billing_provider_state_code,
-          billing_provider_postal_code
-        ),
-        'xxhash64'
-      ) % 1000000000
-    as varchar) as care_site_id,
+    {{ derive_care_site_id('pharmacy') }} as care_site_id,
     cast(null as integer) as year_of_birth,
     cast(null as integer) as gender_concept_id,
     rendering_bill_provider_state_1 as provider_source_value,
@@ -701,8 +623,22 @@ providers_with_npi as (
     on p.raw_last_name = npi_lookup.raw_last_name
     and coalesce(p.raw_first_name, '') = coalesce(npi_lookup.raw_first_name, '')
 )
-select *
+select
+  provider_id,
+  min(provider_name) as provider_name,
+  min(npi) as npi,
+  min(dea) as dea,
+  min(specialty_concept_id) as specialty_concept_id,
+  min(care_site_id) as care_site_id,
+  min(year_of_birth) as year_of_birth,
+  min(gender_concept_id) as gender_concept_id,
+  min(provider_source_value) as provider_source_value,
+  min(specialty_source_value) as specialty_source_value,
+  min(specialty_source_concept_id) as specialty_source_concept_id,
+  min(gender_source_value) as gender_source_value,
+  min(gender_source_concept_id) as gender_source_concept_id
 from providers_with_npi
+group by provider_id
 {% else %}
 -- No source tables available - return empty result set with OMOP provider schema
 select

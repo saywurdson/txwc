@@ -82,7 +82,7 @@
       from recovered_conditions
     )
     select
-      cast(hash(concat_ws('||', base.row_id, base.bill_id), 'xxhash64') % 1000000000 as varchar) as condition_occurrence_id,
+      cast(hash(concat_ws('||', base.row_id, base.bill_id, all_diagnoses.source_column), 'xxhash64') % 1000000000 as varchar) as condition_occurrence_id,
       {{ derive_person_id('base') }} as person_id,
       cast(null as integer) as condition_concept_id,
       cast(base.reporting_period_start_date as date) as condition_start_date,
@@ -156,7 +156,7 @@
         and c.vocabulary_id in ('ICD10CM','ICD9CM')
     )
     select
-      cast(hash(concat_ws('||', base.row_id, base.bill_id), 'xxhash64') % 1000000000 as varchar) as condition_occurrence_id,
+      cast(hash(concat_ws('||', base.row_id, base.bill_id, unpivot_cte.source_column), 'xxhash64') % 1000000000 as varchar) as condition_occurrence_id,
       {{ derive_person_id('base') }} as person_id,
       cast(null as integer) as condition_concept_id,
       cast(base.reporting_period_start_date as date) as condition_start_date,
@@ -225,7 +225,7 @@
         and c.vocabulary_id in ('ICD10CM','ICD9CM')
     )
     select
-      cast(hash(concat_ws('||', base.row_id, base.bill_id), 'xxhash64') % 1000000000 as varchar) as condition_occurrence_id,
+      cast(hash(concat_ws('||', base.row_id, base.bill_id, unpivot_cte.source_column), 'xxhash64') % 1000000000 as varchar) as condition_occurrence_id,
       {{ derive_person_id('base') }} as person_id,
       cast(null as integer) as condition_concept_id,
       cast(base.reporting_period_start_date as date) as condition_start_date,
@@ -332,7 +332,7 @@
       from recovered_conditions
     )
     select
-      cast(hash(concat_ws('||', base.row_id, base.bill_id), 'xxhash64') % 1000000000 as varchar) as condition_occurrence_id,
+      cast(hash(concat_ws('||', base.row_id, base.bill_id, all_diagnoses.source_column), 'xxhash64') % 1000000000 as varchar) as condition_occurrence_id,
       {{ derive_person_id('base') }} as person_id,
       cast(null as integer) as condition_concept_id,
       cast(base.reporting_period_start_date as date) as condition_start_date,
@@ -406,7 +406,7 @@
         and c.vocabulary_id in ('ICD10CM','ICD9CM')
     )
     select
-      cast(hash(concat_ws('||', base.row_id, base.bill_id), 'xxhash64') % 1000000000 as varchar) as condition_occurrence_id,
+      cast(hash(concat_ws('||', base.row_id, base.bill_id, unpivot_cte.source_column), 'xxhash64') % 1000000000 as varchar) as condition_occurrence_id,
       {{ derive_person_id('base') }} as person_id,
       cast(null as integer) as condition_concept_id,
       cast(base.reporting_period_start_date as date) as condition_start_date,
@@ -475,7 +475,7 @@
         and c.vocabulary_id in ('ICD10CM','ICD9CM')
     )
     select
-      cast(hash(concat_ws('||', base.row_id, base.bill_id), 'xxhash64') % 1000000000 as varchar) as condition_occurrence_id,
+      cast(hash(concat_ws('||', base.row_id, base.bill_id, unpivot_cte.source_column), 'xxhash64') % 1000000000 as varchar) as condition_occurrence_id,
       {{ derive_person_id('base') }} as person_id,
       cast(null as integer) as condition_concept_id,
       cast(base.reporting_period_start_date as date) as condition_start_date,

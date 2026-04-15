@@ -61,7 +61,7 @@ final_ihc as (
     from recovered_procedures
   )
   select
-    cast(hash(concat_ws('||', ihc.bill_id, ihc.row_id), 'xxhash64') % 1000000000 as varchar) as procedure_occurrence_id,
+    cast(hash(concat_ws('||', 'header', ihc.bill_id, ihc.row_id, all_procedures.source_column), 'xxhash64') % 1000000000 as varchar) as procedure_occurrence_id,
     {{ derive_person_id('ihc') }} as person_id,
     cast(null as integer) as procedure_concept_id,
     case
@@ -111,7 +111,7 @@ final_ihc as (
   {% set query %}
 final_id as (
   select
-    cast(hash(concat_ws('||', id.bill_id, id.row_id), 'xxhash64') % 1000000000 as varchar) as procedure_occurrence_id,
+    cast(hash(concat_ws('||', 'detail', id.bill_id, id.row_id), 'xxhash64') % 1000000000 as varchar) as procedure_occurrence_id,
     {{ derive_person_id('ihc') }} as person_id,
     cast(null as integer) as procedure_concept_id,
     CASE WHEN id.service_line_from_date = 'N' THEN NULL
@@ -158,7 +158,7 @@ final_id as (
   {% set query %}
 final_pdc as (
   select
-    cast(hash(concat_ws('||', prd.bill_id, prd.row_id), 'xxhash64') % 1000000000 as varchar) as procedure_occurrence_id,
+    cast(hash(concat_ws('||', 'detail', prd.bill_id, prd.row_id), 'xxhash64') % 1000000000 as varchar) as procedure_occurrence_id,
     {{ derive_person_id('prhc') }} as person_id,
     cast(null as integer) as procedure_concept_id,
     cast(prd.service_line_from_date as date) as procedure_date,
@@ -255,7 +255,7 @@ final_ihh as (
     from recovered_procedures
   )
   select
-    cast(hash(concat_ws('||', ihc.bill_id, ihc.row_id), 'xxhash64') % 1000000000 as varchar) as procedure_occurrence_id,
+    cast(hash(concat_ws('||', 'header', ihc.bill_id, ihc.row_id, all_procedures.source_column), 'xxhash64') % 1000000000 as varchar) as procedure_occurrence_id,
     {{ derive_person_id('ihc') }} as person_id,
     cast(null as integer) as procedure_concept_id,
     case
@@ -305,7 +305,7 @@ final_ihh as (
   {% set query %}
 final_idh as (
   select
-    cast(hash(concat_ws('||', id.bill_id, id.row_id), 'xxhash64') % 1000000000 as varchar) as procedure_occurrence_id,
+    cast(hash(concat_ws('||', 'detail', id.bill_id, id.row_id), 'xxhash64') % 1000000000 as varchar) as procedure_occurrence_id,
     {{ derive_person_id('ihc') }} as person_id,
     cast(null as integer) as procedure_concept_id,
     CASE WHEN id.service_line_from_date = 'N' THEN NULL
@@ -352,7 +352,7 @@ final_idh as (
   {% set query %}
 final_pdh as (
   select
-    cast(hash(concat_ws('||', prd.bill_id, prd.row_id), 'xxhash64') % 1000000000 as varchar) as procedure_occurrence_id,
+    cast(hash(concat_ws('||', 'detail', prd.bill_id, prd.row_id), 'xxhash64') % 1000000000 as varchar) as procedure_occurrence_id,
     {{ derive_person_id('prhc') }} as person_id,
     cast(null as integer) as procedure_concept_id,
     cast(prd.service_line_from_date as date) as procedure_date,

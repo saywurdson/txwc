@@ -7,6 +7,11 @@
 *.wal
 json_data/
 
+# Reinstate specific JSON config files that must be tracked
+# (these are team-shareable and contain no credentials)
+!.mcp.json
+!.devcontainer/devcontainer.json
+
 # Environment
 *.env
 !.env.example
