@@ -60,39 +60,45 @@ def explain(text: str):
             st.markdown(text)
 
 
-# Reusable CTE that unions all raw header tables with charge and paid amounts.
-ALL_BILLS_CTE = """
-    all_bills AS (
-        SELECT TRY_CAST(total_charge_per_bill AS FLOAT) AS charge,
-               TRY_CAST(total_amount_paid_per_bill AS FLOAT) AS paid,
-               TRY_CAST(reporting_period_start_date AS DATE) AS bill_date,
-               'Professional' AS claim_type
-        FROM raw.professional_header_current
-        UNION ALL
-        SELECT TRY_CAST(total_charge_per_bill AS FLOAT),
-               TRY_CAST(total_amount_paid_per_bill AS FLOAT),
-               TRY_CAST(reporting_period_start_date AS DATE), 'Professional'
-        FROM raw.professional_header_historical
-        UNION ALL
-        SELECT TRY_CAST(total_charge_per_bill AS FLOAT),
-               TRY_CAST(total_amount_paid_per_bill AS FLOAT),
-               TRY_CAST(reporting_period_start_date AS DATE), 'Institutional'
-        FROM raw.institutional_header_current
-        UNION ALL
-        SELECT TRY_CAST(total_charge_per_bill AS FLOAT),
-               TRY_CAST(total_amount_paid_per_bill AS FLOAT),
-               TRY_CAST(reporting_period_start_date AS DATE), 'Institutional'
-        FROM raw.institutional_header_historical
-        UNION ALL
-        SELECT TRY_CAST(total_charge_per_bill AS FLOAT),
-               TRY_CAST(total_amount_paid_per_bill AS FLOAT),
-               TRY_CAST(reporting_period_start_date AS DATE), 'Pharmacy'
-        FROM raw.pharmacy_header_current
-        UNION ALL
-        SELECT TRY_CAST(total_charge_per_bill AS FLOAT),
-               TRY_CAST(total_amount_paid_per_bill AS FLOAT),
-               TRY_CAST(reporting_period_start_date AS DATE), 'Pharmacy'
-        FROM raw.pharmacy_header_historical
+# Bill-level cost CTE using the OMOP cost table (replaces direct raw-header unions).
+# Joins cost -> visit_occurrence on cost_event_id = visit_occurrence_id (for bill-level rows)
+# to get visit_start_date, which is admission_date for institutional and
+# reporting_period_start_date for professional/pharmacy.
+BILL_COSTS_CTE = """
+    bill_costs AS (
+        SELECT
+            c.total_charge AS charge,
+            c.total_paid AS paid,
+            v.visit_start_date AS bill_date,
+            CASE c.cost_type_concept_id
+                WHEN 32855 THEN 'Institutional'
+                WHEN 32873 THEN 'Professional'
+                WHEN 32869 THEN 'Pharmacy'
+            END AS claim_type
+        FROM omop.cost c
+        JOIN omop.visit_occurrence v ON c.cost_event_id = v.visit_occurrence_id
+        WHERE c.cost_domain_id = 'Visit'
+    )
+"""
+
+# Line-level cost CTE exposing amount_allowed and paid_by_payer, which unlock
+# WC-specific metrics (write-off rate, collection rate) that bill-level data can't show.
+LINE_COSTS_CTE = """
+    line_costs AS (
+        SELECT
+            c.total_charge AS charge,
+            c.total_paid AS paid,
+            c.amount_allowed AS allowed,
+            c.paid_by_payer AS paid_by_payer,
+            vd.visit_detail_start_date AS line_date,
+            CASE c.cost_type_concept_id
+                WHEN 32855 THEN 'Institutional'
+                WHEN 32873 THEN 'Professional'
+                WHEN 32869 THEN 'Pharmacy'
+            END AS claim_type
+        FROM omop.cost c
+        JOIN omop.visit_detail vd ON c.cost_event_id = vd.visit_detail_id
+        WHERE c.cost_domain_id = 'Visit Detail'
     )
 """
 
@@ -323,6 +329,44 @@ with tab1:
             "season), or holiday periods. Dips in December often reflect reduced work activity."
         )
 
+    st.divider()
+    st.subheader("Top Employers by Injured Worker Count")
+    st.caption("Employers carrying the most workers' comp claims in this dataset")
+    top_emp = safe_query("""
+        SELECT
+            value_as_string AS employer_fein,
+            COUNT(DISTINCT person_id) AS patients,
+            COUNT(*) AS bills
+        FROM omop.observation
+        WHERE observation_concept_id = 21492865  -- LOINC 'Employer name [Identifier]'
+          AND value_as_string IS NOT NULL
+        GROUP BY 1
+        ORDER BY 2 DESC
+        LIMIT 15
+    """)
+    if not top_emp.empty:
+        fig = px.bar(
+            top_emp.sort_values("patients"),
+            x="patients", y="employer_fein", orientation="h",
+            title="Top 15 Employers — Patient Count",
+            color="patients", color_continuous_scale="Tealgrn",
+            hover_data=["bills"],
+        )
+        fig.update_layout(
+            xaxis_title="Distinct Injured Workers",
+            yaxis_title="Employer FEIN",
+            height=420,
+        )
+        st.plotly_chart(fig, use_container_width=True)
+        explain(
+            "Top employers ranked by how many of their workers filed workers' comp claims. "
+            "The **Employer FEIN** is the Federal Employer Identification Number from the raw "
+            "billing data (stored as `observation_concept_id = 21492865` in OMOP). High concentration "
+            "of claims at a single employer may indicate specific workplace hazards, industry risk, "
+            "or just that the employer is large. In real analytics you'd join this to industry / "
+            "NAICS codes for safety benchmarking."
+        )
+
 
 # ========================  TAB 2: INJURY PROFILE  ==========================
 with tab2:
@@ -399,11 +443,11 @@ with tab2:
     st.caption("Time from employee date of injury to first recorded medical visit")
     delay = safe_query(f"""
         WITH injury_dates AS (
-            SELECT person_id,
-                   TRY_CAST(value_as_string AS DATE) AS injury_date
+            SELECT person_id, MIN(observation_date) AS injury_date
             FROM omop.observation
-            WHERE observation_source_value = 'employee_date_of_injury'
-              AND value_as_string IS NOT NULL
+            WHERE observation_concept_id = 40771952  -- LOINC 'Injury date'
+              AND observation_date IS NOT NULL
+            GROUP BY 1
         ),
         first_visits AS (
             SELECT person_id, MIN(visit_start_date) AS first_visit_date
@@ -621,6 +665,68 @@ with tab2:
     else:
         st.info("Not enough procedure data to analyze treatment pathways.")
 
+    st.divider()
+    st.subheader("Injury-to-First-Procedure Delay")
+    st.caption("Time from injury to the first recorded procedure (CPT / HCPCS)")
+    proc_delay = safe_query(f"""
+        WITH injury_dates AS (
+            SELECT person_id, MIN(observation_date) AS injury_date
+            FROM omop.observation
+            WHERE observation_concept_id = 40771952
+              AND observation_date IS NOT NULL
+            GROUP BY 1
+        ),
+        first_procs AS (
+            SELECT person_id, MIN(procedure_date) AS first_proc_date
+            FROM omop.procedure_occurrence
+            WHERE procedure_date IS NOT NULL
+              AND EXTRACT(YEAR FROM procedure_date) BETWEEN {yr_lo} AND {yr_hi}
+            GROUP BY 1
+        )
+        SELECT
+            CASE
+                WHEN gap BETWEEN 0 AND 7 THEN '0-7 days'
+                WHEN gap BETWEEN 8 AND 30 THEN '8-30 days'
+                WHEN gap BETWEEN 31 AND 90 THEN '1-3 months'
+                WHEN gap BETWEEN 91 AND 365 THEN '3-12 months'
+                ELSE '1+ year'
+            END AS bucket,
+            COUNT(*) AS patients,
+            MIN(gap) AS sort_key,
+            ROUND(AVG(gap), 1) AS avg_days
+        FROM (
+            SELECT i.person_id,
+                   DATEDIFF('day', i.injury_date, f.first_proc_date) AS gap
+            FROM injury_dates i
+            JOIN first_procs f USING (person_id)
+            WHERE DATEDIFF('day', i.injury_date, f.first_proc_date) >= 0
+        ) sub
+        GROUP BY 1 ORDER BY sort_key
+    """)
+    if not proc_delay.empty:
+        col_l, col_r = st.columns([2, 1])
+        with col_l:
+            fig = px.bar(
+                proc_delay, x="bucket", y="patients",
+                title="Patients by Time from Injury to First Procedure",
+                color="avg_days", color_continuous_scale="YlOrRd",
+            )
+            fig.update_layout(xaxis_title="Delay from Injury", yaxis_title="Patients")
+            st.plotly_chart(fig, use_container_width=True)
+        with col_r:
+            total = proc_delay["patients"].sum()
+            within_30 = proc_delay[proc_delay["sort_key"] <= 30]["patients"].sum()
+            st.metric("Median Delay", f"{proc_delay['avg_days'].median():.0f} days")
+            st.metric("Procedures within 30 days",
+                      f"{within_30 / total * 100:.0f}%" if total > 0 else "N/A")
+    explain(
+        "Unlike the **visit** delay (first time patient saw a doctor), the **procedure** delay "
+        "tracks the first interventional step — imaging, PT, injection, surgery. Longer gaps here "
+        "typically mean conservative management was tried first (rest, meds) before escalating. "
+        "Short gaps may signal acute injuries (fractures needing immediate setting) or providers "
+        "using procedures as front-line treatment."
+    )
+
 
 # ====================  TAB 3: CONDITION INTELLIGENCE  ======================
 with tab3:
@@ -779,15 +885,71 @@ with tab3:
             "resources and are the hardest to return to work."
         )
 
+    st.divider()
+    st.subheader("Top Procedure → Diagnosis Treatment Pairs")
+    st.caption(
+        "Derived from the OMOP `fact_relationship` table, which links each procedure on a "
+        "professional claim line to the specific diagnosis it treated (via the CMS-1500 Box 24E "
+        "diagnosis pointer)."
+    )
+    top_pairs = safe_query("""
+        SELECT
+            p.procedure_source_value AS procedure_code,
+            COALESCE(pc.concept_name, p.procedure_source_value) AS procedure_name,
+            c.condition_source_value AS diagnosis_code,
+            COALESCE(cc.concept_name, c.condition_source_value) AS diagnosis_name,
+            COUNT(*) AS pair_count
+        FROM omop.fact_relationship fr
+        JOIN omop.procedure_occurrence p
+          ON fr.fact_id_1 = p.procedure_occurrence_id AND fr.domain_concept_id_1 = 10
+        JOIN omop.condition_occurrence c
+          ON fr.fact_id_2 = c.condition_occurrence_id AND fr.domain_concept_id_2 = 19
+        LEFT JOIN omop.concept pc ON pc.concept_code = p.procedure_source_value
+            AND pc.vocabulary_id IN ('CPT4', 'HCPCS')
+        LEFT JOIN omop.concept cc ON cc.concept_code = c.condition_source_value
+            AND cc.vocabulary_id IN ('ICD10CM', 'ICD9CM')
+        WHERE fr.relationship_concept_id = 46233684  -- 'Relevant condition of'
+        GROUP BY 1, 2, 3, 4
+        ORDER BY 5 DESC
+        LIMIT 20
+    """)
+    if not top_pairs.empty:
+        top_pairs["pair_label"] = (
+            top_pairs["procedure_code"] + " → " + top_pairs["diagnosis_code"]
+        )
+        fig = px.bar(
+            top_pairs.sort_values("pair_count").tail(20),
+            x="pair_count", y="pair_label", orientation="h",
+            title="Top 20 Treatment Pairs (Procedure → Diagnosis)",
+            color="pair_count", color_continuous_scale="Viridis",
+            hover_data=["procedure_name", "diagnosis_name"],
+        )
+        fig.update_layout(
+            xaxis_title="Times Linked",
+            yaxis_title="",
+            height=600,
+        )
+        st.plotly_chart(fig, use_container_width=True)
+        explain(
+            "Each row shows which **procedure** was performed for which **specific diagnosis**. "
+            "This is a richer signal than just \"what procedures were on the same bill as what "
+            "diagnoses\" — the diagnosis pointer on each line tells us exactly which condition the "
+            "procedure is treating. `97110` (Therapeutic Exercise) paired with multiple back and "
+            "shoulder ICD codes is a classic workers' comp signature: repetitive physical therapy "
+            "for musculoskeletal injuries. `97530` (Therapeutic Activities) appearing alongside "
+            "fracture aftercare codes (`S*A`) is the post-op rehab pattern."
+        )
+
 
 # ======================  TAB 4: COST & PAYMENTS  ==========================
 with tab4:
     st.caption(
-        "Cost data sourced from raw billing headers (professional, institutional, pharmacy)."
+        "Cost data sourced from the OMOP `cost` table — bill-level charges, paid amounts, "
+        "WC-allowed amounts, and write-offs."
     )
 
     cost_summary = safe_query(f"""
-        WITH {ALL_BILLS_CTE}
+        WITH {BILL_COSTS_CTE}
         SELECT
             COUNT(*) AS bills,
             SUM(charge) AS total_charges,
@@ -795,7 +957,7 @@ with tab4:
             AVG(charge) AS avg_charge,
             PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY charge) AS median_charge,
             CASE WHEN SUM(charge) > 0 THEN SUM(paid) / SUM(charge) * 100 ELSE 0 END AS payment_rate
-        FROM all_bills
+        FROM bill_costs
         WHERE charge IS NOT NULL AND charge > 0
           AND EXTRACT(YEAR FROM bill_date) BETWEEN {yr_lo} AND {yr_hi}
     """)
@@ -820,7 +982,7 @@ with tab4:
 
     with col_l:
         charge_dist = safe_query(f"""
-            WITH {ALL_BILLS_CTE}
+            WITH {BILL_COSTS_CTE}
             SELECT
                 CASE
                     WHEN charge < 100 THEN '$0-99'
@@ -833,7 +995,7 @@ with tab4:
                 END AS charge_range,
                 COUNT(*) AS bills,
                 MIN(charge) AS sort_key
-            FROM all_bills
+            FROM bill_costs
             WHERE charge IS NOT NULL AND charge > 0
               AND EXTRACT(YEAR FROM bill_date) BETWEEN {yr_lo} AND {yr_hi}
             GROUP BY 1 ORDER BY sort_key
@@ -849,12 +1011,12 @@ with tab4:
 
     with col_r:
         cost_by_type = safe_query(f"""
-            WITH {ALL_BILLS_CTE}
+            WITH {BILL_COSTS_CTE}
             SELECT claim_type,
                    COUNT(*) AS bills,
                    SUM(charge) AS total_charges,
                    AVG(charge) AS avg_charge
-            FROM all_bills
+            FROM bill_costs
             WHERE charge IS NOT NULL AND charge > 0
               AND EXTRACT(YEAR FROM bill_date) BETWEEN {yr_lo} AND {yr_hi}
             GROUP BY 1 ORDER BY 3 DESC
@@ -870,11 +1032,11 @@ with tab4:
 
     # Charges vs Payments over time
     cost_yr = safe_query(f"""
-        WITH {ALL_BILLS_CTE}
+        WITH {BILL_COSTS_CTE}
         SELECT EXTRACT(YEAR FROM bill_date)::INT AS year,
                SUM(charge) AS total_charges,
                SUM(paid) AS total_paid
-        FROM all_bills
+        FROM bill_costs
         WHERE charge IS NOT NULL AND charge > 0
           AND EXTRACT(YEAR FROM bill_date) BETWEEN {yr_lo} AND {yr_hi}
         GROUP BY 1 ORDER BY 1
@@ -891,6 +1053,150 @@ with tab4:
             xaxis_title="", yaxis_title="Amount ($)",
         )
         st.plotly_chart(fig, use_container_width=True)
+
+    # --- WC Revenue Cycle: write-off and collection rates ---
+    st.divider()
+    st.subheader("Workers' Comp Revenue Cycle")
+    st.caption("Line-level charges, allowed amounts, and collected payments from `omop.cost`")
+
+    wc_cycle = safe_query(f"""
+        WITH {LINE_COSTS_CTE}
+        SELECT
+            claim_type,
+            COUNT(*) AS lines,
+            SUM(charge) AS total_charged,
+            SUM(allowed) AS total_allowed,
+            SUM(paid_by_payer) AS total_paid,
+            CASE WHEN SUM(charge) > 0
+                 THEN (SUM(charge) - SUM(allowed)) / SUM(charge) * 100
+                 ELSE 0 END AS writeoff_pct,
+            CASE WHEN SUM(allowed) > 0
+                 THEN SUM(paid_by_payer) / SUM(allowed) * 100
+                 ELSE 0 END AS collection_pct
+        FROM line_costs
+        WHERE charge IS NOT NULL AND charge > 0
+          AND line_date IS NOT NULL
+          AND EXTRACT(YEAR FROM line_date) BETWEEN {yr_lo} AND {yr_hi}
+        GROUP BY 1 ORDER BY 3 DESC
+    """)
+
+    if not wc_cycle.empty:
+        totals = safe_query(f"""
+            WITH {LINE_COSTS_CTE}
+            SELECT
+                SUM(charge) AS total_charged,
+                SUM(allowed) AS total_allowed,
+                SUM(paid_by_payer) AS total_paid,
+                (SUM(charge) - SUM(allowed)) AS total_writeoff,
+                CASE WHEN SUM(charge) > 0
+                     THEN (SUM(charge) - SUM(allowed)) / SUM(charge) * 100 ELSE 0 END AS writeoff_pct,
+                CASE WHEN SUM(allowed) > 0
+                     THEN SUM(paid_by_payer) / SUM(allowed) * 100 ELSE 0 END AS collection_pct
+            FROM line_costs
+            WHERE charge IS NOT NULL AND charge > 0
+              AND line_date IS NOT NULL
+              AND EXTRACT(YEAR FROM line_date) BETWEEN {yr_lo} AND {yr_hi}
+        """)
+        if not totals.empty:
+            k1, k2, k3, k4 = st.columns(4)
+            k1.metric("Total Charged (lines)", f"${totals['total_charged'][0]:,.0f}")
+            k2.metric("Fee-Schedule Allowed", f"${totals['total_allowed'][0]:,.0f}")
+            k3.metric("Contract Write-off", f"${totals['total_writeoff'][0]:,.0f}",
+                      delta=f"{totals['writeoff_pct'][0]:.1f}% of billed",
+                      delta_color="off")
+            k4.metric("Collection Rate", f"{totals['collection_pct'][0]:.1f}%",
+                      help="Of the fee-schedule-allowed amount, what share was actually paid.")
+
+        col_l, col_r = st.columns(2)
+        with col_l:
+            fig = px.bar(
+                wc_cycle, x="claim_type", y=["total_charged", "total_allowed", "total_paid"],
+                title="Charged → Allowed → Paid by Claim Type",
+                barmode="group",
+                labels={"value": "Amount ($)", "variable": "Stage"},
+                color_discrete_sequence=["#42A5F5", "#FFB74D", "#66BB6A"],
+            )
+            fig.update_layout(xaxis_title="", yaxis_title="Amount ($)", legend_title="")
+            st.plotly_chart(fig, use_container_width=True)
+
+        with col_r:
+            fig = go.Figure()
+            fig.add_trace(go.Bar(
+                x=wc_cycle["claim_type"], y=wc_cycle["writeoff_pct"],
+                name="Write-off %", marker_color="#EF5350",
+            ))
+            fig.add_trace(go.Bar(
+                x=wc_cycle["claim_type"], y=wc_cycle["collection_pct"],
+                name="Collection %", marker_color="#26A69A",
+            ))
+            fig.update_layout(
+                title="Write-off & Collection Rates by Claim Type",
+                xaxis_title="", yaxis_title="Percent",
+                barmode="group",
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
+        explain(
+            "**Write-off** = (billed − allowed) / billed. For Texas workers' comp this is the "
+            "contractual discount mandated by the DWC fee schedule — providers can't collect the "
+            "full charge. A 60%+ write-off is normal; institutional (facility) claims typically "
+            "have the highest write-off because facility charges are most discounted. "
+            "**Collection rate** = paid / allowed. This is what *actually* got collected "
+            "out of the already-discounted allowed amount. A 100% collection rate means the "
+            "payer paid the full allowed; anything less is pending, denied, or disputed."
+        )
+
+    st.divider()
+    st.subheader("Employer Cost Burden (Top 15)")
+    st.caption("Total amount paid per employer across all their workers' claims")
+    emp_cost = safe_query("""
+        WITH employers AS (
+            SELECT DISTINCT person_id, value_as_string AS employer_fein
+            FROM omop.observation
+            WHERE observation_concept_id = 21492865
+              AND value_as_string IS NOT NULL
+        ),
+        patient_paid AS (
+            SELECT v.person_id, SUM(c.total_paid) AS paid, SUM(c.total_charge) AS charged
+            FROM omop.cost c
+            JOIN omop.visit_occurrence v ON c.cost_event_id = v.visit_occurrence_id
+            WHERE c.cost_domain_id = 'Visit' AND c.total_paid IS NOT NULL
+            GROUP BY 1
+        )
+        SELECT
+            e.employer_fein,
+            COUNT(DISTINCT e.person_id) AS workers,
+            SUM(pp.charged) AS total_charged,
+            SUM(pp.paid) AS total_paid
+        FROM employers e
+        LEFT JOIN patient_paid pp ON e.person_id = pp.person_id
+        GROUP BY 1
+        ORDER BY 4 DESC NULLS LAST
+        LIMIT 15
+    """)
+    if not emp_cost.empty:
+        fig = px.bar(
+            emp_cost.sort_values("total_paid"),
+            x="total_paid", y="employer_fein", orientation="h",
+            title="Top 15 Employers by Total Paid",
+            color="workers", color_continuous_scale="Oranges",
+            hover_data=["total_charged", "workers"],
+        )
+        fig.update_layout(
+            xaxis_title="Total Paid ($)",
+            yaxis_title="Employer FEIN",
+            height=520,
+        )
+        st.plotly_chart(fig, use_container_width=True)
+        explain(
+            "Sum of all bill-level payments tied to each employer's injured workers. Combined "
+            "with worker count, this shows **per-employer claim exposure**. A small employer with "
+            "one catastrophic claim can dominate the top ranking; a large employer with many small "
+            "claims is a different risk profile. For real benchmarking, normalize by employer "
+            "payroll or workforce size (not available in this dataset)."
+        )
+
+    st.divider()
 
     # Procedure Cost Efficiency
     st.subheader("Procedure Cost Efficiency by Treatment Category")
@@ -951,11 +1257,11 @@ with tab4:
 
     # Charges by claim type over time
     cost_yr_type = safe_query(f"""
-        WITH {ALL_BILLS_CTE}
+        WITH {BILL_COSTS_CTE}
         SELECT EXTRACT(YEAR FROM bill_date)::INT AS year,
                claim_type,
                SUM(charge) AS total_charges
-        FROM all_bills
+        FROM bill_costs
         WHERE charge IS NOT NULL AND charge > 0
           AND EXTRACT(YEAR FROM bill_date) BETWEEN {yr_lo} AND {yr_hi}
         GROUP BY 1, 2 ORDER BY 1
@@ -1008,6 +1314,68 @@ with tab4:
 
 # ==================  TAB 5: RX & OPIOID MONITOR  =========================
 with tab5:
+    st.subheader("Injury-to-First-Prescription Delay")
+    st.caption("Time from injury to the first recorded drug fill — a proxy for pain-medication onset")
+    rx_delay = safe_query(f"""
+        WITH injury_dates AS (
+            SELECT person_id, MIN(observation_date) AS injury_date
+            FROM omop.observation
+            WHERE observation_concept_id = 40771952
+              AND observation_date IS NOT NULL
+            GROUP BY 1
+        ),
+        first_drugs AS (
+            SELECT person_id, MIN(drug_exposure_start_date) AS first_rx_date
+            FROM omop.drug_exposure
+            WHERE drug_exposure_start_date IS NOT NULL
+              AND EXTRACT(YEAR FROM drug_exposure_start_date) BETWEEN {yr_lo} AND {yr_hi}
+            GROUP BY 1
+        )
+        SELECT
+            CASE
+                WHEN gap BETWEEN 0 AND 7 THEN '0-7 days'
+                WHEN gap BETWEEN 8 AND 30 THEN '8-30 days'
+                WHEN gap BETWEEN 31 AND 90 THEN '1-3 months'
+                WHEN gap BETWEEN 91 AND 365 THEN '3-12 months'
+                ELSE '1+ year'
+            END AS bucket,
+            COUNT(*) AS patients,
+            MIN(gap) AS sort_key,
+            ROUND(AVG(gap), 1) AS avg_days
+        FROM (
+            SELECT i.person_id,
+                   DATEDIFF('day', i.injury_date, f.first_rx_date) AS gap
+            FROM injury_dates i
+            JOIN first_drugs f USING (person_id)
+            WHERE DATEDIFF('day', i.injury_date, f.first_rx_date) >= 0
+        ) sub
+        GROUP BY 1 ORDER BY sort_key
+    """)
+    if not rx_delay.empty:
+        col_l, col_r = st.columns([2, 1])
+        with col_l:
+            fig = px.bar(
+                rx_delay, x="bucket", y="patients",
+                title="Patients by Time from Injury to First Prescription",
+                color="avg_days", color_continuous_scale="Magma",
+            )
+            fig.update_layout(xaxis_title="Delay from Injury", yaxis_title="Patients")
+            st.plotly_chart(fig, use_container_width=True)
+        with col_r:
+            total = rx_delay["patients"].sum()
+            within_30 = rx_delay[rx_delay["sort_key"] <= 30]["patients"].sum()
+            st.metric("Median Delay", f"{rx_delay['avg_days'].median():.0f} days")
+            st.metric("Filled within 30 days",
+                      f"{within_30 / total * 100:.0f}%" if total > 0 else "N/A")
+    explain(
+        "How quickly injured workers get prescription drugs after an injury. A tight 0-7 day "
+        "peak is typical for acute injuries where pain meds are prescribed immediately. Later "
+        "spikes in the 1-3 month or 3-12 month buckets may indicate **chronic pain management** "
+        "or delayed escalation — both strongly correlate with long-term opioid risk in workers' "
+        "comp research."
+    )
+
+    st.divider()
     st.subheader("Opioid Prescribing Rate Over Time")
     st.caption("Percentage of all drug prescriptions that are opioids, by year")
 

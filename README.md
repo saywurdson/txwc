@@ -83,6 +83,17 @@ The dbt transformation layer maps raw billing data into these standardized clini
 
 **Administrative:** `cost`, `payer_plan_period`, `care_site`, `location`, `provider`
 
+**Relationships:** `fact_relationship` (links each `procedure_occurrence` to the `condition_occurrence` it was performed for, using the CMS-1500 Box 24E diagnosis pointer on professional claim lines)
+
+### Workers'-comp specific enrichments
+
+Several OMOP columns are populated with WC-specific semantics that a generic claims ETL would leave empty or guess at:
+
+- **Injury date observation** (`observation_concept_id = 40771952` LOINC "Injury date") — one row per patient, carrying `employee_date_of_injury` from the raw headers. Used to anchor `observation_period.observation_period_start_date` via `LEAST(injury_date, earliest_clinical_event)` so every clinical event stays OMOP-compliant.
+- **Employer identifier observation** (`observation_concept_id = 21492865` LOINC "Employer name [Identifier]") — stores each bill's `employer_fein` in `value_as_string` for employer-level cohort segmentation.
+- **WC-correct cost math** — `paid_by_patient`, `paid_patient_copay`, `paid_patient_coinsurance`, `paid_patient_deductible` are all hardcoded to `0` (workers' comp is no-fault; no patient responsibility). `amount_allowed = total_charge - service_adjustment_amount` surfaces ~$4M of contractual write-offs that were previously invisible.
+- **Injury → first-treatment cohort analytics** via the injury-date observation.
+
 ---
 
 ## Quick Start
