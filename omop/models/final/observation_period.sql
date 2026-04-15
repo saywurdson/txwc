@@ -1,6 +1,18 @@
--- Observation period derived from the span of clinical events per person
--- For claims data, this represents the enrollment period where we have visibility into the patient's care
-with clinical_events as (
+-- Observation period derived from the span of clinical events per person.
+-- For workers' comp claims, the lower bound is the employee_date_of_injury
+-- (surfaced via observation_concept_id = 40771952 'Injury date') when present,
+-- falling back to the earliest clinical event otherwise. The upper bound is
+-- always the latest clinical event.
+with injury_dates as (
+    select
+        person_id,
+        min(observation_date) as earliest_injury_date
+    from {{ ref('observation') }}
+    where observation_concept_id = 40771952  -- LOINC 'Injury date'
+      and observation_date is not null
+    group by person_id
+),
+clinical_events as (
     -- Combine all clinical event dates to find observation bounds
     select person_id, event_date
     from (
@@ -58,13 +70,27 @@ with clinical_events as (
     ) events
     where event_date is not null
 ),
-person_observation_bounds as (
+person_clinical_bounds as (
     select
         person_id,
-        min(event_date) as observation_period_start_date,
+        min(event_date) as earliest_clinical_event,
         max(event_date) as observation_period_end_date
     from clinical_events
     group by person_id
+),
+person_observation_bounds as (
+    -- Start = earliest of (injury date, earliest clinical event) so every clinical
+    -- event is guaranteed to fall within the observation_period (OMOP CDM requires
+    -- all events to be covered). For clean workers' comp data, injury_date is usually
+    -- earlier than all care, and LEAST picks it. If any clinical event predates the
+    -- injury date (data anomaly), LEAST picks that earlier event so we stay compliant.
+    -- DuckDB's LEAST ignores NULL args, so a missing injury_date falls back correctly.
+    select
+        c.person_id,
+        least(i.earliest_injury_date, c.earliest_clinical_event) as observation_period_start_date,
+        c.observation_period_end_date
+    from person_clinical_bounds c
+    left join injury_dates i on c.person_id = i.person_id
 )
 select
     cast(row_number() over (order by person_id) as integer) as observation_period_id,

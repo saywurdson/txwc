@@ -648,14 +648,24 @@ models:
         data_type: float
       - name: paid_by_payer
         data_type: float
+        data_tests:
+          - not_null  # WC: mirrors total_paid; every row gets a payer amount
       - name: paid_by_patient
         data_type: float
+        data_tests:
+          - not_null  # WC: hardcoded 0 (no patient responsibility)
       - name: paid_patient_copay
         data_type: float
+        data_tests:
+          - not_null  # WC: hardcoded 0 (no copay)
       - name: paid_patient_coinsurance
         data_type: float
+        data_tests:
+          - not_null  # WC: hardcoded 0 (no coinsurance)
       - name: paid_patient_deductible
         data_type: float
+        data_tests:
+          - not_null  # WC: hardcoded 0 (no deductible)
       - name: paid_by_primary
         data_type: float
       - name: paid_ingredient_cost
@@ -876,6 +886,31 @@ models:
         data_type: varchar
       - name: disease_status_source_value
         data_type: varchar
+
+  - name: fact_relationship
+    config:
+      schema: omop
+    columns:
+      - name: fact_id_1
+        data_type: integer
+        data_tests:
+          - not_null
+      - name: domain_concept_id_1
+        data_type: integer
+        data_tests:
+          - not_null
+      - name: fact_id_2
+        data_type: integer
+        data_tests:
+          - not_null
+      - name: domain_concept_id_2
+        data_type: integer
+        data_tests:
+          - not_null
+      - name: relationship_concept_id
+        data_type: integer
+        data_tests:
+          - not_null
 
   - name: visit_detail
     config:

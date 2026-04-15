@@ -668,7 +668,7 @@ employer_fein_inst_current as (
   select
     cast(hash(concat_ws('||', 'employer_fein_inst_current', bill_id), 'xxhash64') % 1000000000 as varchar) as observation_id,
     {{ derive_person_id() }} as person_id,
-    0 as observation_concept_id,
+    21492865 as observation_concept_id,  -- LOINC 'Employer name [Identifier]'
     cast(reporting_period_start_date as date) as observation_date,
     cast(reporting_period_start_date as timestamp) as observation_datetime,
     32855 as observation_type_concept_id,
@@ -697,7 +697,7 @@ employer_fein_prof_current as (
   select
     cast(hash(concat_ws('||', 'employer_fein_prof_current', bill_id), 'xxhash64') % 1000000000 as varchar) as observation_id,
     {{ derive_person_id() }} as person_id,
-    0 as observation_concept_id,
+    21492865 as observation_concept_id,  -- LOINC 'Employer name [Identifier]'
     cast(reporting_period_start_date as date) as observation_date,
     cast(reporting_period_start_date as timestamp) as observation_datetime,
     32873 as observation_type_concept_id,
@@ -726,7 +726,7 @@ employer_fein_pharm_current as (
   select
     cast(hash(concat_ws('||', 'employer_fein_pharm_current', bill_id), 'xxhash64') % 1000000000 as varchar) as observation_id,
     {{ derive_person_id() }} as person_id,
-    0 as observation_concept_id,
+    21492865 as observation_concept_id,  -- LOINC 'Employer name [Identifier]'
     cast(reporting_period_start_date as date) as observation_date,
     cast(reporting_period_start_date as timestamp) as observation_datetime,
     32869 as observation_type_concept_id,
@@ -761,7 +761,7 @@ employer_fein_inst_historical as (
   select
     cast(hash(concat_ws('||', 'employer_fein_inst_historical', bill_id), 'xxhash64') % 1000000000 as varchar) as observation_id,
     {{ derive_person_id() }} as person_id,
-    0 as observation_concept_id,
+    21492865 as observation_concept_id,  -- LOINC 'Employer name [Identifier]'
     cast(reporting_period_start_date as date) as observation_date,
     cast(reporting_period_start_date as timestamp) as observation_datetime,
     32855 as observation_type_concept_id,
@@ -790,7 +790,7 @@ employer_fein_prof_historical as (
   select
     cast(hash(concat_ws('||', 'employer_fein_prof_historical', bill_id), 'xxhash64') % 1000000000 as varchar) as observation_id,
     {{ derive_person_id() }} as person_id,
-    0 as observation_concept_id,
+    21492865 as observation_concept_id,  -- LOINC 'Employer name [Identifier]'
     cast(reporting_period_start_date as date) as observation_date,
     cast(reporting_period_start_date as timestamp) as observation_datetime,
     32873 as observation_type_concept_id,
@@ -819,7 +819,7 @@ employer_fein_pharm_historical as (
   select
     cast(hash(concat_ws('||', 'employer_fein_pharm_historical', bill_id), 'xxhash64') % 1000000000 as varchar) as observation_id,
     {{ derive_person_id() }} as person_id,
-    0 as observation_concept_id,
+    21492865 as observation_concept_id,  -- LOINC 'Employer name [Identifier]'
     cast(reporting_period_start_date as date) as observation_date,
     cast(reporting_period_start_date as timestamp) as observation_datetime,
     32869 as observation_type_concept_id,

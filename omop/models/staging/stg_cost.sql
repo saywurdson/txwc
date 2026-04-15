@@ -28,11 +28,11 @@ institutional_bill_cost_current as (
       TRY_CAST(total_charge_per_bill as float) as total_charge,
       cast(null as float) as total_cost,
       TRY_CAST(total_amount_paid_per_bill as float) as total_paid,
-      cast(null as float) as paid_by_payer,
-      cast(null as float) as paid_by_patient,
-      cast(null as float) as paid_patient_copay,
-      cast(null as float) as paid_patient_coinsurance,
-      cast(null as float) as paid_patient_deductible,
+      TRY_CAST(total_amount_paid_per_bill as float) as paid_by_payer,  -- WC: all payments from payer
+      cast(0 as float) as paid_by_patient,            -- WC: no patient responsibility
+      cast(0 as float) as paid_patient_copay,          -- WC: no copay
+      cast(0 as float) as paid_patient_coinsurance,    -- WC: no coinsurance
+      cast(0 as float) as paid_patient_deductible,     -- WC: no deductible
       cast(null as float) as paid_by_primary,
       cast(null as float) as paid_ingredient_cost,
       cast(null as float) as paid_dispensing_fee,
@@ -56,11 +56,11 @@ professional_bill_cost_current as (
       TRY_CAST(total_charge_per_bill as float) as total_charge,
       cast(null as float) as total_cost,
       TRY_CAST(total_amount_paid_per_bill as float) as total_paid,
-      cast(null as float) as paid_by_payer,
-      cast(null as float) as paid_by_patient,
-      cast(null as float) as paid_patient_copay,
-      cast(null as float) as paid_patient_coinsurance,
-      cast(null as float) as paid_patient_deductible,
+      TRY_CAST(total_amount_paid_per_bill as float) as paid_by_payer,  -- WC: all payments from payer
+      cast(0 as float) as paid_by_patient,            -- WC: no patient responsibility
+      cast(0 as float) as paid_patient_copay,          -- WC: no copay
+      cast(0 as float) as paid_patient_coinsurance,    -- WC: no coinsurance
+      cast(0 as float) as paid_patient_deductible,     -- WC: no deductible
       cast(null as float) as paid_by_primary,
       cast(null as float) as paid_ingredient_cost,
       cast(null as float) as paid_dispensing_fee,
@@ -84,11 +84,11 @@ pharmacy_bill_cost_current as (
       TRY_CAST(total_charge_per_bill as float) as total_charge,
       cast(null as float) as total_cost,
       TRY_CAST(total_amount_paid_per_bill as float) as total_paid,
-      cast(null as float) as paid_by_payer,
-      cast(null as float) as paid_by_patient,
-      cast(null as float) as paid_patient_copay,
-      cast(null as float) as paid_patient_coinsurance,
-      cast(null as float) as paid_patient_deductible,
+      TRY_CAST(total_amount_paid_per_bill as float) as paid_by_payer,  -- WC: all payments from payer
+      cast(0 as float) as paid_by_patient,            -- WC: no patient responsibility
+      cast(0 as float) as paid_patient_copay,          -- WC: no copay
+      cast(0 as float) as paid_patient_coinsurance,    -- WC: no coinsurance
+      cast(0 as float) as paid_patient_deductible,     -- WC: no deductible
       cast(null as float) as paid_by_primary,
       cast(null as float) as paid_ingredient_cost,
       cast(null as float) as paid_dispensing_fee,
@@ -127,16 +127,17 @@ institutional_line_cost_current as (
       TRY_CAST(total_charge_per_line as float) as total_charge,
       cast(null as float) as total_cost,
       TRY_CAST(total_amount_paid_per_line as float) as total_paid,
-      cast(null as float) as paid_by_payer,
-      cast(null as float) as paid_by_patient,
-      cast(null as float) as paid_patient_copay,
-      cast(null as float) as paid_patient_coinsurance,
-      cast(null as float) as paid_patient_deductible,
+      TRY_CAST(total_amount_paid_per_line as float) as paid_by_payer,  -- WC: all payments from payer
+      cast(0 as float) as paid_by_patient,            -- WC: no patient responsibility
+      cast(0 as float) as paid_patient_copay,          -- WC: no copay
+      cast(0 as float) as paid_patient_coinsurance,    -- WC: no coinsurance
+      cast(0 as float) as paid_patient_deductible,     -- WC: no deductible
       cast(null as float) as paid_by_primary,
       cast(null as float) as paid_ingredient_cost,
       cast(null as float) as paid_dispensing_fee,
       cast(null as integer) as payer_plan_period_id,
-      cast(null as float) as amount_allowed,
+      -- WC amount_allowed = billed − contractual write-offs (no patient share in WC)
+      TRY_CAST(total_charge_per_line as float) - coalesce(TRY_CAST(service_adjustment_amount as float), 0) as amount_allowed,
       cast(null as integer) as revenue_code_concept_id,
       revenue_billed_code as revenue_code_source_value,
       cast(null as integer) as drg_concept_id,
@@ -166,16 +167,17 @@ professional_line_cost_current as (
       TRY_CAST(total_charge_per_line as float) as total_charge,
       cast(null as float) as total_cost,
       TRY_CAST(total_amount_paid_per_line as float) as total_paid,
-      cast(null as float) as paid_by_payer,
-      cast(null as float) as paid_by_patient,
-      cast(null as float) as paid_patient_copay,
-      cast(null as float) as paid_patient_coinsurance,
-      cast(null as float) as paid_patient_deductible,
+      TRY_CAST(total_amount_paid_per_line as float) as paid_by_payer,  -- WC: all payments from payer
+      cast(0 as float) as paid_by_patient,            -- WC: no patient responsibility
+      cast(0 as float) as paid_patient_copay,          -- WC: no copay
+      cast(0 as float) as paid_patient_coinsurance,    -- WC: no coinsurance
+      cast(0 as float) as paid_patient_deductible,     -- WC: no deductible
       cast(null as float) as paid_by_primary,
       cast(null as float) as paid_ingredient_cost,
       cast(null as float) as paid_dispensing_fee,
       cast(null as integer) as payer_plan_period_id,
-      cast(null as float) as amount_allowed,
+      -- WC amount_allowed = billed − contractual write-offs (no patient share in WC)
+      TRY_CAST(total_charge_per_line as float) - coalesce(TRY_CAST(service_adjustment_amount as float), 0) as amount_allowed,
       cast(null as integer) as revenue_code_concept_id,
       cast(null as varchar) as revenue_code_source_value,
       cast(null as integer) as drg_concept_id,
@@ -205,16 +207,23 @@ pharmacy_line_cost_current as (
       TRY_CAST(drugs_supplies_billed_amount as float) as total_charge,
       cast(null as float) as total_cost,
       TRY_CAST(total_amount_paid_per_line as float) as total_paid,
-      cast(null as float) as paid_by_payer,
-      cast(null as float) as paid_by_patient,
-      cast(null as float) as paid_patient_copay,
-      cast(null as float) as paid_patient_coinsurance,
-      cast(null as float) as paid_patient_deductible,
+      TRY_CAST(total_amount_paid_per_line as float) as paid_by_payer,  -- WC: all payments from payer
+      cast(0 as float) as paid_by_patient,            -- WC: no patient responsibility
+      cast(0 as float) as paid_patient_copay,          -- WC: no copay
+      cast(0 as float) as paid_patient_coinsurance,    -- WC: no coinsurance
+      cast(0 as float) as paid_patient_deductible,     -- WC: no deductible
       cast(null as float) as paid_by_primary,
       cast(null as float) as paid_ingredient_cost,
       TRY_CAST(drugs_supplies_dispensing as float) as paid_dispensing_fee,
       cast(null as integer) as payer_plan_period_id,
-      cast(null as float) as amount_allowed,
+      -- WC amount_allowed = billed − contractual write-offs (no patient share in WC).
+      -- Pharmacy detail only has numbered adjustment amounts; sum them.
+      TRY_CAST(drugs_supplies_billed_amount as float)
+        - (coalesce(TRY_CAST(service_adjustment_amount_1 as float), 0)
+         + coalesce(TRY_CAST(service_adjustment_amount_2 as float), 0)
+         + coalesce(TRY_CAST(service_adjustment_amount_3 as float), 0)
+         + coalesce(TRY_CAST(service_adjustment_amount_4 as float), 0)
+         + coalesce(TRY_CAST(service_adjustment_amount_5 as float), 0)) as amount_allowed,
       cast(null as integer) as revenue_code_concept_id,
       cast(null as varchar) as revenue_code_source_value,
       cast(null as integer) as drg_concept_id,
@@ -243,11 +252,11 @@ institutional_bill_cost_historical as (
       TRY_CAST(total_charge_per_bill as float) as total_charge,
       cast(null as float) as total_cost,
       TRY_CAST(total_amount_paid_per_bill as float) as total_paid,
-      cast(null as float) as paid_by_payer,
-      cast(null as float) as paid_by_patient,
-      cast(null as float) as paid_patient_copay,
-      cast(null as float) as paid_patient_coinsurance,
-      cast(null as float) as paid_patient_deductible,
+      TRY_CAST(total_amount_paid_per_bill as float) as paid_by_payer,  -- WC: all payments from payer
+      cast(0 as float) as paid_by_patient,            -- WC: no patient responsibility
+      cast(0 as float) as paid_patient_copay,          -- WC: no copay
+      cast(0 as float) as paid_patient_coinsurance,    -- WC: no coinsurance
+      cast(0 as float) as paid_patient_deductible,     -- WC: no deductible
       cast(null as float) as paid_by_primary,
       cast(null as float) as paid_ingredient_cost,
       cast(null as float) as paid_dispensing_fee,
@@ -271,11 +280,11 @@ professional_bill_cost_historical as (
       TRY_CAST(total_charge_per_bill as float) as total_charge,
       cast(null as float) as total_cost,
       TRY_CAST(total_amount_paid_per_bill as float) as total_paid,
-      cast(null as float) as paid_by_payer,
-      cast(null as float) as paid_by_patient,
-      cast(null as float) as paid_patient_copay,
-      cast(null as float) as paid_patient_coinsurance,
-      cast(null as float) as paid_patient_deductible,
+      TRY_CAST(total_amount_paid_per_bill as float) as paid_by_payer,  -- WC: all payments from payer
+      cast(0 as float) as paid_by_patient,            -- WC: no patient responsibility
+      cast(0 as float) as paid_patient_copay,          -- WC: no copay
+      cast(0 as float) as paid_patient_coinsurance,    -- WC: no coinsurance
+      cast(0 as float) as paid_patient_deductible,     -- WC: no deductible
       cast(null as float) as paid_by_primary,
       cast(null as float) as paid_ingredient_cost,
       cast(null as float) as paid_dispensing_fee,
@@ -299,11 +308,11 @@ pharmacy_bill_cost_historical as (
       TRY_CAST(total_charge_per_bill as float) as total_charge,
       cast(null as float) as total_cost,
       TRY_CAST(total_amount_paid_per_bill as float) as total_paid,
-      cast(null as float) as paid_by_payer,
-      cast(null as float) as paid_by_patient,
-      cast(null as float) as paid_patient_copay,
-      cast(null as float) as paid_patient_coinsurance,
-      cast(null as float) as paid_patient_deductible,
+      TRY_CAST(total_amount_paid_per_bill as float) as paid_by_payer,  -- WC: all payments from payer
+      cast(0 as float) as paid_by_patient,            -- WC: no patient responsibility
+      cast(0 as float) as paid_patient_copay,          -- WC: no copay
+      cast(0 as float) as paid_patient_coinsurance,    -- WC: no coinsurance
+      cast(0 as float) as paid_patient_deductible,     -- WC: no deductible
       cast(null as float) as paid_by_primary,
       cast(null as float) as paid_ingredient_cost,
       cast(null as float) as paid_dispensing_fee,
@@ -338,16 +347,17 @@ institutional_line_cost_historical as (
       TRY_CAST(total_charge_per_line as float) as total_charge,
       cast(null as float) as total_cost,
       TRY_CAST(total_amount_paid_per_line as float) as total_paid,
-      cast(null as float) as paid_by_payer,
-      cast(null as float) as paid_by_patient,
-      cast(null as float) as paid_patient_copay,
-      cast(null as float) as paid_patient_coinsurance,
-      cast(null as float) as paid_patient_deductible,
+      TRY_CAST(total_amount_paid_per_line as float) as paid_by_payer,  -- WC: all payments from payer
+      cast(0 as float) as paid_by_patient,            -- WC: no patient responsibility
+      cast(0 as float) as paid_patient_copay,          -- WC: no copay
+      cast(0 as float) as paid_patient_coinsurance,    -- WC: no coinsurance
+      cast(0 as float) as paid_patient_deductible,     -- WC: no deductible
       cast(null as float) as paid_by_primary,
       cast(null as float) as paid_ingredient_cost,
       cast(null as float) as paid_dispensing_fee,
       cast(null as integer) as payer_plan_period_id,
-      cast(null as float) as amount_allowed,
+      -- WC amount_allowed = billed − contractual write-offs (no patient share in WC)
+      TRY_CAST(total_charge_per_line as float) - coalesce(TRY_CAST(service_adjustment_amount as float), 0) as amount_allowed,
       cast(null as integer) as revenue_code_concept_id,
       revenue_billed_code as revenue_code_source_value,
       cast(null as integer) as drg_concept_id,
@@ -376,16 +386,17 @@ professional_line_cost_historical as (
       TRY_CAST(total_charge_per_line as float) as total_charge,
       cast(null as float) as total_cost,
       TRY_CAST(total_amount_paid_per_line as float) as total_paid,
-      cast(null as float) as paid_by_payer,
-      cast(null as float) as paid_by_patient,
-      cast(null as float) as paid_patient_copay,
-      cast(null as float) as paid_patient_coinsurance,
-      cast(null as float) as paid_patient_deductible,
+      TRY_CAST(total_amount_paid_per_line as float) as paid_by_payer,  -- WC: all payments from payer
+      cast(0 as float) as paid_by_patient,            -- WC: no patient responsibility
+      cast(0 as float) as paid_patient_copay,          -- WC: no copay
+      cast(0 as float) as paid_patient_coinsurance,    -- WC: no coinsurance
+      cast(0 as float) as paid_patient_deductible,     -- WC: no deductible
       cast(null as float) as paid_by_primary,
       cast(null as float) as paid_ingredient_cost,
       cast(null as float) as paid_dispensing_fee,
       cast(null as integer) as payer_plan_period_id,
-      cast(null as float) as amount_allowed,
+      -- WC amount_allowed = billed − contractual write-offs (no patient share in WC)
+      TRY_CAST(total_charge_per_line as float) - coalesce(TRY_CAST(service_adjustment_amount as float), 0) as amount_allowed,
       cast(null as integer) as revenue_code_concept_id,
       cast(null as varchar) as revenue_code_source_value,
       cast(null as integer) as drg_concept_id,
@@ -414,16 +425,23 @@ pharmacy_line_cost_historical as (
       TRY_CAST(drugs_supplies_billed_amount as float) as total_charge,
       cast(null as float) as total_cost,
       TRY_CAST(total_amount_paid_per_line as float) as total_paid,
-      cast(null as float) as paid_by_payer,
-      cast(null as float) as paid_by_patient,
-      cast(null as float) as paid_patient_copay,
-      cast(null as float) as paid_patient_coinsurance,
-      cast(null as float) as paid_patient_deductible,
+      TRY_CAST(total_amount_paid_per_line as float) as paid_by_payer,  -- WC: all payments from payer
+      cast(0 as float) as paid_by_patient,            -- WC: no patient responsibility
+      cast(0 as float) as paid_patient_copay,          -- WC: no copay
+      cast(0 as float) as paid_patient_coinsurance,    -- WC: no coinsurance
+      cast(0 as float) as paid_patient_deductible,     -- WC: no deductible
       cast(null as float) as paid_by_primary,
       cast(null as float) as paid_ingredient_cost,
       TRY_CAST(drugs_supplies_dispensing as float) as paid_dispensing_fee,
       cast(null as integer) as payer_plan_period_id,
-      cast(null as float) as amount_allowed,
+      -- WC amount_allowed = billed − contractual write-offs (no patient share in WC).
+      -- Pharmacy detail only has numbered adjustment amounts; sum them.
+      TRY_CAST(drugs_supplies_billed_amount as float)
+        - (coalesce(TRY_CAST(service_adjustment_amount_1 as float), 0)
+         + coalesce(TRY_CAST(service_adjustment_amount_2 as float), 0)
+         + coalesce(TRY_CAST(service_adjustment_amount_3 as float), 0)
+         + coalesce(TRY_CAST(service_adjustment_amount_4 as float), 0)
+         + coalesce(TRY_CAST(service_adjustment_amount_5 as float), 0)) as amount_allowed,
       cast(null as integer) as revenue_code_concept_id,
       cast(null as varchar) as revenue_code_source_value,
       cast(null as integer) as drg_concept_id,
