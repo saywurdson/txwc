@@ -1,3 +1,18 @@
+-- depends_on: registered for dbt's manifest DAG (sources are referenced inside check_table_exists-gated blocks below,
+-- which the static parser misses because run_query returns None at parse time).
+-- depends_on: {{ source('raw', 'institutional_detail_current') }}
+-- depends_on: {{ source('raw', 'institutional_detail_historical') }}
+-- depends_on: {{ source('raw', 'institutional_header_current') }}
+-- depends_on: {{ source('raw', 'institutional_header_historical') }}
+-- depends_on: {{ source('raw', 'pharmacy_detail_current') }}
+-- depends_on: {{ source('raw', 'pharmacy_detail_historical') }}
+-- depends_on: {{ source('raw', 'pharmacy_header_current') }}
+-- depends_on: {{ source('raw', 'pharmacy_header_historical') }}
+-- depends_on: {{ source('raw', 'professional_detail_current') }}
+-- depends_on: {{ source('raw', 'professional_detail_historical') }}
+-- depends_on: {{ source('raw', 'professional_header_current') }}
+-- depends_on: {{ source('raw', 'professional_header_historical') }}
+
 {% set has_current = check_table_exists('raw', 'institutional_header_current') %}
 {% set has_historical = check_table_exists('raw', 'institutional_header_historical') %}
 
@@ -19,7 +34,7 @@
 institutional_bill_cost_current as (
   select
       cast(
-        hash(concat_ws('||', 'bill', bill_id, total_charge_per_bill), 'xxhash64') % 1000000000 as varchar
+        hash(concat_ws('||', 'bill', bill_id, total_charge_per_bill), 'xxhash64')  % 1000000000 as integer
       ) as cost_id,
       cast(bill_id as integer) as cost_event_id,
       'Visit' as cost_domain_id,
@@ -47,7 +62,7 @@ institutional_bill_cost_current as (
 professional_bill_cost_current as (
   select
       cast(
-        hash(concat_ws('||', 'bill', bill_id, total_charge_per_bill), 'xxhash64') % 1000000000 as varchar
+        hash(concat_ws('||', 'bill', bill_id, total_charge_per_bill), 'xxhash64')  % 1000000000 as integer
       ) as cost_id,
       cast(bill_id as integer) as cost_event_id,
       'Visit' as cost_domain_id,
@@ -75,7 +90,7 @@ professional_bill_cost_current as (
 pharmacy_bill_cost_current as (
   select
       cast(
-        hash(concat_ws('||', 'bill', bill_id, total_charge_per_bill), 'xxhash64') % 1000000000 as varchar
+        hash(concat_ws('||', 'bill', bill_id, total_charge_per_bill), 'xxhash64')  % 1000000000 as integer
       ) as cost_id,
       cast(bill_id as integer) as cost_event_id,
       'Visit' as cost_domain_id,
@@ -115,7 +130,7 @@ pharmacy_bill_cost_current as (
 institutional_line_cost_current as (
   select
       cast(
-        hash(concat_ws('||', 'line', bill_id, row_id), 'xxhash64') % 1000000000 as varchar
+        hash(concat_ws('||', 'line', bill_id, row_id), 'xxhash64')  % 1000000000 as integer
       ) as cost_id,
       -- Link to visit_detail_id (same hash used in stg_visit_detail)
       cast(
@@ -156,7 +171,7 @@ institutional_line_cost_current as (
 professional_line_cost_current as (
   select
       cast(
-        hash(concat_ws('||', 'line', bill_id, row_id), 'xxhash64') % 1000000000 as varchar
+        hash(concat_ws('||', 'line', bill_id, row_id), 'xxhash64')  % 1000000000 as integer
       ) as cost_id,
       cast(
         hash(concat_ws('||', bill_id, row_id), 'xxhash64') % 1000000000 as integer
@@ -196,7 +211,7 @@ professional_line_cost_current as (
 pharmacy_line_cost_current as (
   select
       cast(
-        hash(concat_ws('||', 'line', bill_id, row_id), 'xxhash64') % 1000000000 as varchar
+        hash(concat_ws('||', 'line', bill_id, row_id), 'xxhash64')  % 1000000000 as integer
       ) as cost_id,
       cast(
         hash(concat_ws('||', bill_id, row_id), 'xxhash64') % 1000000000 as integer
@@ -243,7 +258,7 @@ pharmacy_line_cost_current as (
 institutional_bill_cost_historical as (
   select
       cast(
-        hash(concat_ws('||', 'bill', bill_id, total_charge_per_bill), 'xxhash64') % 1000000000 as varchar
+        hash(concat_ws('||', 'bill', bill_id, total_charge_per_bill), 'xxhash64')  % 1000000000 as integer
       ) as cost_id,
       cast(bill_id as integer) as cost_event_id,
       'Visit' as cost_domain_id,
@@ -271,7 +286,7 @@ institutional_bill_cost_historical as (
 professional_bill_cost_historical as (
   select
       cast(
-        hash(concat_ws('||', 'bill', bill_id, total_charge_per_bill), 'xxhash64') % 1000000000 as varchar
+        hash(concat_ws('||', 'bill', bill_id, total_charge_per_bill), 'xxhash64')  % 1000000000 as integer
       ) as cost_id,
       cast(bill_id as integer) as cost_event_id,
       'Visit' as cost_domain_id,
@@ -299,7 +314,7 @@ professional_bill_cost_historical as (
 pharmacy_bill_cost_historical as (
   select
       cast(
-        hash(concat_ws('||', 'bill', bill_id, total_charge_per_bill), 'xxhash64') % 1000000000 as varchar
+        hash(concat_ws('||', 'bill', bill_id, total_charge_per_bill), 'xxhash64')  % 1000000000 as integer
       ) as cost_id,
       cast(bill_id as integer) as cost_event_id,
       'Visit' as cost_domain_id,
@@ -336,7 +351,7 @@ pharmacy_bill_cost_historical as (
 institutional_line_cost_historical as (
   select
       cast(
-        hash(concat_ws('||', 'line', bill_id, row_id), 'xxhash64') % 1000000000 as varchar
+        hash(concat_ws('||', 'line', bill_id, row_id), 'xxhash64')  % 1000000000 as integer
       ) as cost_id,
       cast(
         hash(concat_ws('||', bill_id, row_id), 'xxhash64') % 1000000000 as integer
@@ -375,7 +390,7 @@ institutional_line_cost_historical as (
 professional_line_cost_historical as (
   select
       cast(
-        hash(concat_ws('||', 'line', bill_id, row_id), 'xxhash64') % 1000000000 as varchar
+        hash(concat_ws('||', 'line', bill_id, row_id), 'xxhash64')  % 1000000000 as integer
       ) as cost_id,
       cast(
         hash(concat_ws('||', bill_id, row_id), 'xxhash64') % 1000000000 as integer
@@ -414,7 +429,7 @@ professional_line_cost_historical as (
 pharmacy_line_cost_historical as (
   select
       cast(
-        hash(concat_ws('||', 'line', bill_id, row_id), 'xxhash64') % 1000000000 as varchar
+        hash(concat_ws('||', 'line', bill_id, row_id), 'xxhash64')  % 1000000000 as integer
       ) as cost_id,
       cast(
         hash(concat_ws('||', bill_id, row_id), 'xxhash64') % 1000000000 as integer

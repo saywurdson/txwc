@@ -198,7 +198,8 @@ ctedrugeraends as (
 ),
 final as (
     select
-        cast(row_number() over (order by person_id) as integer) as drug_era_id,
+        -- determinism: full natural key (person, drug, era_end) makes surrogate stable
+        cast(row_number() over (order by person_id, drug_concept_id, drug_era_end_date) as integer) as drug_era_id,
         person_id,
         cast(drug_concept_id as integer) as drug_concept_id,
         cast(min(drug_sub_exposure_start_date) as date) as drug_era_start_date,

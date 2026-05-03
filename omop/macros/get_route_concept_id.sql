@@ -14,6 +14,7 @@
         and cr2.relationship_id = 'Has route of admin'
         and route.domain_id = 'Route'
         and route.standard_concept = 'S'
+      order by route.concept_id
       limit 1
     ),
     -- Fallback: infer route from dose form name
@@ -45,6 +46,7 @@
       join {{ source('omop','concept') }} df on cr.concept_id_2 = df.concept_id
       where cr.concept_id_1 = {{ drug_concept_id }}
         and cr.relationship_id = 'RxNorm has dose form'
+      order by df.concept_id  -- determinism: a drug may have multiple dose forms
       limit 1
     ),
     cast(null as integer)  -- If no route can be determined

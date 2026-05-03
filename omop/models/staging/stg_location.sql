@@ -1,3 +1,12 @@
+-- depends_on: registered for dbt's manifest DAG (sources are referenced inside check_table_exists-gated blocks below,
+-- which the static parser misses because run_query returns None at parse time).
+-- depends_on: {{ source('raw', 'institutional_header_current') }}
+-- depends_on: {{ source('raw', 'institutional_header_historical') }}
+-- depends_on: {{ source('raw', 'pharmacy_header_current') }}
+-- depends_on: {{ source('raw', 'pharmacy_header_historical') }}
+-- depends_on: {{ source('raw', 'professional_header_current') }}
+-- depends_on: {{ source('raw', 'professional_header_historical') }}
+
 {% set has_current = check_table_exists('raw', 'institutional_header_current') %}
 {% set has_historical = check_table_exists('raw', 'institutional_header_historical') %}
 

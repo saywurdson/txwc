@@ -9,6 +9,16 @@
         "mcp",
         "--stdio"
       ]
+    },
+    "dbt": {
+      "command": "uvx",
+      "args": [
+        "dbt-mcp"
+      ],
+      "env": {
+        "DBT_PROJECT_DIR": "/workspaces/txwc/omop",
+        "DBT_PATH": "/workspaces/txwc/.venv/bin/dbt"
+      }
     }
   }
 }

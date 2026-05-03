@@ -1,27 +1,64 @@
 version: 2
-
 sources:
-  - name: raw
-    database: tx_workers_comp
-    schema: raw
-    tables:
-      - name: institutional_header_current
-      - name: institutional_detail_current
-      - name: institutional_header_historical
-      - name: institutional_detail_historical
-      - name: professional_header_historical
-      - name: professional_detail_historical
-      - name: professional_header_current
-      - name: professional_detail_current
-      - name: pharmacy_header_historical
-      - name: pharmacy_detail_historical
-      - name: pharmacy_header_current
-      - name: pharmacy_detail_current
-  - name: omop
-    database: tx_workers_comp
-    schema: omop
-    tables:
-      - name: concept
-      - name: concept_relationship
-      - name: concept_ancestor
-      - name: drug_strength
+- name: raw
+  description: 'Texas workers-comp medical bill submissions ingested via dlt.
+
+    `*_current` tables hold the latest snapshot per claim line; `*_historical`
+
+    tables hold the immutable archive of prior submissions.
+
+    '
+  database: tx_workers_comp
+  schema: raw
+  loaded_at_field: created_at
+  freshness:
+    warn_after:
+      count: 7
+      period: day
+  tables:
+  - name: institutional_header_current
+    description: "UB-04 institutional claim header \u2014 latest snapshot per claim line. One row per (claim, bill, line)\
+      \ at the bill-header level."
+  - name: institutional_detail_current
+    description: "UB-04 institutional claim detail \u2014 latest snapshot. Service/revenue lines linked to header by bill_id\
+      \ + row_id."
+  - name: professional_header_current
+    description: "CMS-1500 professional claim header \u2014 latest snapshot per claim line."
+  - name: professional_detail_current
+    description: "CMS-1500 professional claim detail \u2014 latest snapshot. Service-line CPT/HCPCS-coded entries."
+  - name: pharmacy_header_current
+    description: "NCPDP pharmacy claim header \u2014 latest snapshot per claim line."
+  - name: pharmacy_detail_current
+    description: "NCPDP pharmacy claim detail \u2014 latest snapshot. Per-fill NDC drug entries."
+  - name: institutional_header_historical
+    freshness: null
+    description: Immutable archive of prior institutional claim header submissions.
+  - name: institutional_detail_historical
+    freshness: null
+    description: Immutable archive of prior institutional claim detail submissions.
+  - name: professional_header_historical
+    freshness: null
+    description: Immutable archive of prior professional claim header submissions.
+  - name: professional_detail_historical
+    freshness: null
+    description: Immutable archive of prior professional claim detail submissions.
+  - name: pharmacy_header_historical
+    freshness: null
+    description: Immutable archive of prior pharmacy claim header submissions.
+  - name: pharmacy_detail_historical
+    freshness: null
+    description: Immutable archive of prior pharmacy claim detail submissions.
+- name: omop
+  description: "OMOP standardized vocabularies (concept, concept_relationship, etc.) \u2014 reference data, no freshness check."
+  database: tx_workers_comp
+  schema: omop
+  tables:
+  - name: concept
+    description: OMOP standardized vocabulary concepts (~10M rows). Each concept has a domain, vocabulary, standard flag,
+      and validity window.
+  - name: concept_relationship
+    description: Pairwise relationships between concepts (e.g., "Maps to", "Subsumes"). Powers cross-vocabulary mappings.
+  - name: concept_ancestor
+    description: Pre-computed ancestor-descendant transitive closure for hierarchical vocabularies (RxNorm, SNOMED, etc.).
+  - name: drug_strength
+    description: 'Pre-computed drug strength info per (drug, ingredient): amount, numerator, denominator, units.'

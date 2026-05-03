@@ -42,6 +42,7 @@
               )
             {% endif %}
           {% endif %}
+        order by c.concept_id  -- determinism: source codes can match multiple concept_id rows
         limit 1
     )
     {% endset %}

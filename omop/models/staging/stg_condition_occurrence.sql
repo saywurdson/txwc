@@ -1,3 +1,12 @@
+-- depends_on: registered for dbt's manifest DAG (sources are referenced inside check_table_exists-gated blocks below,
+-- which the static parser misses because run_query returns None at parse time).
+-- depends_on: {{ source('raw', 'institutional_header_current') }}
+-- depends_on: {{ source('raw', 'institutional_header_historical') }}
+-- depends_on: {{ source('raw', 'pharmacy_header_current') }}
+-- depends_on: {{ source('raw', 'pharmacy_header_historical') }}
+-- depends_on: {{ source('raw', 'professional_header_current') }}
+-- depends_on: {{ source('raw', 'professional_header_historical') }}
+
 -- Check if current or historical data exists (use institutional_header as representative)
 {% set has_current = check_table_exists('raw', 'institutional_header_current') %}
 {% set has_historical = check_table_exists('raw', 'institutional_header_historical') %}
@@ -82,7 +91,7 @@
       from recovered_conditions
     )
     select
-      cast(hash(concat_ws('||', base.row_id, base.bill_id, all_diagnoses.source_column), 'xxhash64') % 1000000000 as varchar) as condition_occurrence_id,
+      cast(hash(concat_ws('||', base.row_id, base.bill_id, all_diagnoses.source_column), 'xxhash64')  % 1000000000 as integer) as condition_occurrence_id,
       {{ derive_person_id('base') }} as person_id,
       cast(null as integer) as condition_concept_id,
       cast(base.reporting_period_start_date as date) as condition_start_date,
@@ -102,7 +111,7 @@
         coalesce(base.rendering_bill_provider_first, ''),
         base.rendering_bill_provider_state_1,
         base.rendering_bill_provider_4
-      ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+      ), 'xxhash64')  % 1000000000 as integer) as provider_id,
       cast(base.bill_id as varchar) as visit_occurrence_id,
       -- Header-based diagnoses don't have a corresponding detail line, so no visit_detail_id
       cast(null as varchar) as visit_detail_id,
@@ -156,7 +165,7 @@
         and c.vocabulary_id in ('ICD10CM','ICD9CM')
     )
     select
-      cast(hash(concat_ws('||', base.row_id, base.bill_id, unpivot_cte.source_column), 'xxhash64') % 1000000000 as varchar) as condition_occurrence_id,
+      cast(hash(concat_ws('||', base.row_id, base.bill_id, unpivot_cte.source_column), 'xxhash64')  % 1000000000 as integer) as condition_occurrence_id,
       {{ derive_person_id('base') }} as person_id,
       cast(null as integer) as condition_concept_id,
       cast(base.reporting_period_start_date as date) as condition_start_date,
@@ -171,7 +180,7 @@
         coalesce(base.rendering_bill_provider_first, ''),
         base.rendering_bill_provider_state_1,
         base.rendering_bill_provider_4
-      ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+      ), 'xxhash64')  % 1000000000 as integer) as provider_id,
       cast(base.bill_id as varchar) as visit_occurrence_id,
       -- Header-based diagnoses don't have a corresponding detail line, so no visit_detail_id
       cast(null as varchar) as visit_detail_id,
@@ -225,7 +234,7 @@
         and c.vocabulary_id in ('ICD10CM','ICD9CM')
     )
     select
-      cast(hash(concat_ws('||', base.row_id, base.bill_id, unpivot_cte.source_column), 'xxhash64') % 1000000000 as varchar) as condition_occurrence_id,
+      cast(hash(concat_ws('||', base.row_id, base.bill_id, unpivot_cte.source_column), 'xxhash64')  % 1000000000 as integer) as condition_occurrence_id,
       {{ derive_person_id('base') }} as person_id,
       cast(null as integer) as condition_concept_id,
       cast(base.reporting_period_start_date as date) as condition_start_date,
@@ -240,7 +249,7 @@
         coalesce(base.rendering_bill_provider_first, ''),
         base.rendering_bill_provider_state_1,
         base.rendering_bill_provider_4
-      ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+      ), 'xxhash64')  % 1000000000 as integer) as provider_id,
       cast(base.bill_id as varchar) as visit_occurrence_id,
       -- Header-based diagnoses don't have a corresponding detail line, so no visit_detail_id
       cast(null as varchar) as visit_detail_id,
@@ -332,7 +341,7 @@
       from recovered_conditions
     )
     select
-      cast(hash(concat_ws('||', base.row_id, base.bill_id, all_diagnoses.source_column), 'xxhash64') % 1000000000 as varchar) as condition_occurrence_id,
+      cast(hash(concat_ws('||', base.row_id, base.bill_id, all_diagnoses.source_column), 'xxhash64')  % 1000000000 as integer) as condition_occurrence_id,
       {{ derive_person_id('base') }} as person_id,
       cast(null as integer) as condition_concept_id,
       cast(base.reporting_period_start_date as date) as condition_start_date,
@@ -352,7 +361,7 @@
         coalesce(base.rendering_bill_provider_first, ''),
         base.rendering_bill_provider_state_1,
         base.rendering_bill_provider_4
-      ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+      ), 'xxhash64')  % 1000000000 as integer) as provider_id,
       cast(base.bill_id as varchar) as visit_occurrence_id,
       -- Header-based diagnoses don't have a corresponding detail line, so no visit_detail_id
       cast(null as varchar) as visit_detail_id,
@@ -406,7 +415,7 @@
         and c.vocabulary_id in ('ICD10CM','ICD9CM')
     )
     select
-      cast(hash(concat_ws('||', base.row_id, base.bill_id, unpivot_cte.source_column), 'xxhash64') % 1000000000 as varchar) as condition_occurrence_id,
+      cast(hash(concat_ws('||', base.row_id, base.bill_id, unpivot_cte.source_column), 'xxhash64')  % 1000000000 as integer) as condition_occurrence_id,
       {{ derive_person_id('base') }} as person_id,
       cast(null as integer) as condition_concept_id,
       cast(base.reporting_period_start_date as date) as condition_start_date,
@@ -421,7 +430,7 @@
         coalesce(base.rendering_bill_provider_first, ''),
         base.rendering_bill_provider_state_1,
         base.rendering_bill_provider_4
-      ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+      ), 'xxhash64')  % 1000000000 as integer) as provider_id,
       cast(base.bill_id as varchar) as visit_occurrence_id,
       -- Header-based diagnoses don't have a corresponding detail line, so no visit_detail_id
       cast(null as varchar) as visit_detail_id,
@@ -475,7 +484,7 @@
         and c.vocabulary_id in ('ICD10CM','ICD9CM')
     )
     select
-      cast(hash(concat_ws('||', base.row_id, base.bill_id, unpivot_cte.source_column), 'xxhash64') % 1000000000 as varchar) as condition_occurrence_id,
+      cast(hash(concat_ws('||', base.row_id, base.bill_id, unpivot_cte.source_column), 'xxhash64')  % 1000000000 as integer) as condition_occurrence_id,
       {{ derive_person_id('base') }} as person_id,
       cast(null as integer) as condition_concept_id,
       cast(base.reporting_period_start_date as date) as condition_start_date,
@@ -490,7 +499,7 @@
         coalesce(base.rendering_bill_provider_first, ''),
         base.rendering_bill_provider_state_1,
         base.rendering_bill_provider_4
-      ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+      ), 'xxhash64')  % 1000000000 as integer) as provider_id,
       cast(base.bill_id as varchar) as visit_occurrence_id,
       -- Header-based diagnoses don't have a corresponding detail line, so no visit_detail_id
       cast(null as varchar) as visit_detail_id,

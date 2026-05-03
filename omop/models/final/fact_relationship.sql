@@ -1,3 +1,10 @@
+-- depends_on: registered for dbt's manifest DAG (sources are referenced inside check_table_exists-gated blocks below,
+-- which the static parser misses because run_query returns None at parse time).
+-- depends_on: {{ source('raw', 'professional_detail_current') }}
+-- depends_on: {{ source('raw', 'professional_detail_historical') }}
+-- depends_on: {{ source('raw', 'professional_header_current') }}
+-- depends_on: {{ source('raw', 'professional_header_historical') }}
+
 -- OMOP fact_relationship: links each procedure_occurrence to the condition
 -- it was performed for, using the CMS-1500 Box 24E diagnosis_pointer on each
 -- professional claim line. Only professional claims carry diagnosis pointers;

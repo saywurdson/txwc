@@ -14,7 +14,7 @@ profile: 'omop'
 model-paths: ["models"]
 analysis-paths: ["analyses"]
 test-paths: ["tests"]
-seed-paths: []
+seed-paths: ["seeds"]
 macro-paths: ["macros"]
 snapshot-paths: ["snapshots"]
 
@@ -31,10 +31,48 @@ clean-targets:         # directories to be removed by `dbt clean`
 # files using the `{{ config(...) }}` macro.
 models:
   omop:
-    # Config indicated by + and applies to all files under models/example/
     staging:
       +materialized: ephemeral
     intermediate:
-      +materialized: ephemeral
+      +materialized: view
+      int_concept_map:
+        +materialized: table
     final:
       +materialized: table
+
+  # Suppress dbt_project_evaluator's own model materializations into a separate schema
+  # so its findings tables don't clutter the main omop schema.
+  dbt_project_evaluator:
+    +schema: dbt_project_evaluator
+    marts:
+      structure:
+        # OMOP CDM mandates exact final-table names (person, visit_occurrence, etc.) — the
+        # rpt_/fct_/dim_ naming convention does not apply.
+        fct_model_naming_conventions:
+          +enabled: false
+        # We use a single source.yml at models/ root rather than nested _sources/ directories.
+        fct_source_directories:
+          +enabled: false
+        # Wants stg_*.sql nested under models/staging/<source_name>/. Single-source project
+        # doesn't benefit from the extra folder layer.
+        fct_model_directories:
+          +enabled: false
+
+# Override the package's empty exception seed with our own (path: seeds/).
+# Disabling the package seed forces filter_exceptions() to honor our overrides.
+seeds:
+  dbt_project_evaluator:
+    dbt_project_evaluator_exceptions:
+      +enabled: false
+
+vars:
+  # See dbt_packages/dbt_project_evaluator/dbt_project.yml for the full var list.
+  # We tighten naming-conventions to recognize 'final' as a marts folder so
+  # downstream lineage classification puts those models in the 'marts' bucket.
+  marts_folder_name: 'final'
+  marts_prefixes: ['']  # OMOP CDM table names have no required prefix
+  # Staging models union 6-12 source CTEs (institutional/professional/pharmacy ×
+  # current/historical × header/detail) — the package's join-counter treats each
+  # CTE select as a join. Raise the threshold so this OMOP-specific pattern
+  # doesn't dominate findings.
+  too_many_joins_threshold: 13

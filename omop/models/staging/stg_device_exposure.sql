@@ -1,3 +1,14 @@
+-- depends_on: registered for dbt's manifest DAG (sources are referenced inside check_table_exists-gated blocks below,
+-- which the static parser misses because run_query returns None at parse time).
+-- depends_on: {{ source('raw', 'institutional_detail_current') }}
+-- depends_on: {{ source('raw', 'institutional_detail_historical') }}
+-- depends_on: {{ source('raw', 'institutional_header_current') }}
+-- depends_on: {{ source('raw', 'institutional_header_historical') }}
+-- depends_on: {{ source('raw', 'professional_detail_current') }}
+-- depends_on: {{ source('raw', 'professional_detail_historical') }}
+-- depends_on: {{ source('raw', 'professional_header_current') }}
+-- depends_on: {{ source('raw', 'professional_header_historical') }}
+
 -- Check if current or historical data exists (use institutional_header as representative)
 {% set has_current = check_table_exists('raw', 'institutional_header_current') %}
 {% set has_historical = check_table_exists('raw', 'institutional_header_historical') %}
@@ -52,7 +63,7 @@
         as varchar) as provider_id,
         cast(detail.bill_id as varchar) as visit_occurrence_id,
         -- Detail-based devices link to visit_detail via bill_id + row_id hash
-        cast(hash(concat_ws('||', detail.bill_id, detail.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
+        cast(hash(concat_ws('||', detail.bill_id, detail.row_id), 'xxhash64')  % 1000000000 as integer) as visit_detail_id,
         detail.hcpcs_line_procedure_billed as device_source_value,
         cast(null as integer) as device_source_concept_id,
         cast(null as integer) as unit_concept_id,
@@ -109,7 +120,7 @@
         as varchar) as provider_id,
         cast(detail.bill_id as varchar) as visit_occurrence_id,
         -- Detail-based devices link to visit_detail via bill_id + row_id hash
-        cast(hash(concat_ws('||', detail.bill_id, detail.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
+        cast(hash(concat_ws('||', detail.bill_id, detail.row_id), 'xxhash64')  % 1000000000 as integer) as visit_detail_id,
         detail.hcpcs_line_procedure_billed as device_source_value,
         cast(null as integer) as device_source_concept_id,
         cast(null as integer) as unit_concept_id,
@@ -170,7 +181,7 @@
         as varchar) as provider_id,
         cast(detail.bill_id as varchar) as visit_occurrence_id,
         -- Detail-based devices link to visit_detail via bill_id + row_id hash
-        cast(hash(concat_ws('||', detail.bill_id, detail.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
+        cast(hash(concat_ws('||', detail.bill_id, detail.row_id), 'xxhash64')  % 1000000000 as integer) as visit_detail_id,
         detail.hcpcs_line_procedure_billed as device_source_value,
         cast(null as integer) as device_source_concept_id,
         cast(null as integer) as unit_concept_id,
@@ -227,7 +238,7 @@
         as varchar) as provider_id,
         cast(detail.bill_id as varchar) as visit_occurrence_id,
         -- Detail-based devices link to visit_detail via bill_id + row_id hash
-        cast(hash(concat_ws('||', detail.bill_id, detail.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
+        cast(hash(concat_ws('||', detail.bill_id, detail.row_id), 'xxhash64')  % 1000000000 as integer) as visit_detail_id,
         detail.hcpcs_line_procedure_billed as device_source_value,
         cast(null as integer) as device_source_concept_id,
         cast(null as integer) as unit_concept_id,

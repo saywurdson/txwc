@@ -12,5 +12,5 @@ cast(
     ),
     'xxhash64'
   ) % 1000000000
-as varchar)
+as integer)
 {% endmacro %}

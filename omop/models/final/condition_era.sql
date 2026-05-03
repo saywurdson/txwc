@@ -65,7 +65,8 @@ cteconditionends (person_id, condition_concept_id, condition_start_date, era_end
 ),
 final as (
     select
-        row_number() over (order by person_id) as condition_era_id,
+        -- determinism: full natural key (person, concept, era_end) makes surrogate stable
+        row_number() over (order by person_id, condition_concept_id, era_end_date) as condition_era_id,
         person_id,
         cast(condition_concept_id as integer) as condition_concept_id,
         cast(min(condition_start_date) as date) as condition_era_start_date,

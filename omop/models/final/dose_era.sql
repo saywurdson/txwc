@@ -25,6 +25,7 @@ with drug_doses as (
                 from {{ source('omop', 'drug_strength') }} ds
                 where ds.drug_concept_id = d.drug_concept_id
                     and ds.amount_unit_concept_id is not null
+                order by ds.amount_unit_concept_id  -- determinism: multiple strength rows possible
                 limit 1
             ),
             8576  -- milligram (default unit)
@@ -62,7 +63,7 @@ dose_groups as (
             *,
             lag(drug_exposure_end_date) over (
                 partition by person_id, drug_concept_id, unit_concept_id, dose_value
-                order by drug_exposure_start_date
+                order by drug_exposure_start_date, drug_exposure_id  -- determinism: tiebreak ties
             ) as lag_end_date
         from drug_doses
     ) with_lag
@@ -79,7 +80,8 @@ dose_eras_grouped as (
     group by person_id, drug_concept_id, unit_concept_id, dose_value, era_group
 )
 select
-    cast(row_number() over (order by person_id, drug_concept_id, dose_era_start_date) as integer) as dose_era_id,
+    -- determinism: include all business-key columns to break surrogate-id ties
+    cast(row_number() over (order by person_id, drug_concept_id, dose_era_start_date, dose_era_end_date, dose_value, unit_concept_id) as integer) as dose_era_id,
     cast(person_id as integer) as person_id,
     cast(drug_concept_id as integer) as drug_concept_id,
     cast(unit_concept_id as integer) as unit_concept_id,

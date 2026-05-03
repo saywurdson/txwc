@@ -1,3 +1,12 @@
+-- depends_on: registered for dbt's manifest DAG (sources are referenced inside check_table_exists-gated blocks below,
+-- which the static parser misses because run_query returns None at parse time).
+-- depends_on: {{ source('raw', 'institutional_header_current') }}
+-- depends_on: {{ source('raw', 'institutional_header_historical') }}
+-- depends_on: {{ source('raw', 'pharmacy_header_current') }}
+-- depends_on: {{ source('raw', 'pharmacy_header_historical') }}
+-- depends_on: {{ source('raw', 'professional_header_current') }}
+-- depends_on: {{ source('raw', 'professional_header_historical') }}
+
 -- Check if current or historical data exists (use institutional_header as representative)
 {% set has_current = check_table_exists('raw', 'institutional_header_current') %}
 {% set has_historical = check_table_exists('raw', 'institutional_header_historical') %}
@@ -50,7 +59,7 @@ institutional_header_current as (
         hash(concat_ws('||', rendering_bill_provider_last,
           coalesce(rendering_bill_provider_first, ''),
           rendering_bill_provider_state_1,
-          rendering_bill_provider_4), 'xxhash64') % 1000000000 as varchar
+          rendering_bill_provider_4), 'xxhash64') % 1000000000 as integer
       ) as provider_id,
       {{ derive_care_site_id('institutional') }} as care_site_id,
       cast(facility_code as varchar) as visit_source_value,
@@ -89,7 +98,7 @@ professional_header_current as (
         hash(concat_ws('||', rendering_bill_provider_last,
           coalesce(rendering_bill_provider_first, ''),
           rendering_bill_provider_state_1,
-          rendering_bill_provider_4), 'xxhash64') % 1000000000 as varchar
+          rendering_bill_provider_4), 'xxhash64') % 1000000000 as integer
       ) as provider_id,
       {{ derive_care_site_id('professional') }} as care_site_id,
       cast(place_of_service_bill_code as varchar) as visit_source_value,
@@ -120,7 +129,7 @@ pharmacy_header_current as (
         hash(concat_ws('||', rendering_bill_provider_last,
           coalesce(rendering_bill_provider_first, ''),
           rendering_bill_provider_state_1,
-          rendering_bill_provider_4), 'xxhash64') % 1000000000 as varchar
+          rendering_bill_provider_4), 'xxhash64') % 1000000000 as integer
       ) as provider_id,
       {{ derive_care_site_id('pharmacy') }} as care_site_id,
       cast(place_of_service_bill_code as varchar) as visit_source_value,
@@ -180,7 +189,7 @@ institutional_header_historical as (
         hash(concat_ws('||', rendering_bill_provider_last,
           coalesce(rendering_bill_provider_first, ''),
           rendering_bill_provider_state_1,
-          rendering_bill_provider_4), 'xxhash64') % 1000000000 as varchar
+          rendering_bill_provider_4), 'xxhash64') % 1000000000 as integer
       ) as provider_id,
       {{ derive_care_site_id('institutional') }} as care_site_id,
       cast(facility_code as varchar) as visit_source_value,
@@ -219,7 +228,7 @@ professional_header_historical as (
         hash(concat_ws('||', rendering_bill_provider_last,
           coalesce(rendering_bill_provider_first, ''),
           rendering_bill_provider_state_1,
-          rendering_bill_provider_4), 'xxhash64') % 1000000000 as varchar
+          rendering_bill_provider_4), 'xxhash64') % 1000000000 as integer
       ) as provider_id,
       {{ derive_care_site_id('professional') }} as care_site_id,
       cast(place_of_service_bill_code as varchar) as visit_source_value,
@@ -250,7 +259,7 @@ pharmacy_header_historical as (
         hash(concat_ws('||', rendering_bill_provider_last,
           coalesce(rendering_bill_provider_first, ''),
           rendering_bill_provider_state_1,
-          rendering_bill_provider_4), 'xxhash64') % 1000000000 as varchar
+          rendering_bill_provider_4), 'xxhash64') % 1000000000 as integer
       ) as provider_id,
       {{ derive_care_site_id('pharmacy') }} as care_site_id,
       cast(place_of_service_bill_code as varchar) as visit_source_value,

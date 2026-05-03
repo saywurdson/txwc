@@ -1,3 +1,14 @@
+-- depends_on: registered for dbt's manifest DAG (sources are referenced inside check_table_exists-gated blocks below,
+-- which the static parser misses because run_query returns None at parse time).
+-- depends_on: {{ source('raw', 'institutional_detail_current') }}
+-- depends_on: {{ source('raw', 'institutional_detail_historical') }}
+-- depends_on: {{ source('raw', 'institutional_header_current') }}
+-- depends_on: {{ source('raw', 'institutional_header_historical') }}
+-- depends_on: {{ source('raw', 'professional_detail_current') }}
+-- depends_on: {{ source('raw', 'professional_detail_historical') }}
+-- depends_on: {{ source('raw', 'professional_header_current') }}
+-- depends_on: {{ source('raw', 'professional_header_historical') }}
+
 -- Check if current or historical data exists (use institutional_header as representative)
 {% set has_current = check_table_exists('raw', 'institutional_header_current') %}
 {% set has_historical = check_table_exists('raw', 'institutional_header_historical') %}
@@ -61,7 +72,7 @@ final_ihc as (
     from recovered_procedures
   )
   select
-    cast(hash(concat_ws('||', 'header', ihc.bill_id, ihc.row_id, all_procedures.source_column), 'xxhash64') % 1000000000 as varchar) as procedure_occurrence_id,
+    cast(hash(concat_ws('||', 'header', ihc.bill_id, ihc.row_id, all_procedures.source_column), 'xxhash64')  % 1000000000 as integer) as procedure_occurrence_id,
     {{ derive_person_id('ihc') }} as person_id,
     cast(null as integer) as procedure_concept_id,
     case
@@ -93,7 +104,7 @@ final_ihc as (
       coalesce(ihc.rendering_bill_provider_first, ''),
       ihc.rendering_bill_provider_state_1,
       ihc.rendering_bill_provider_4
-    ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+    ), 'xxhash64')  % 1000000000 as integer) as provider_id,
     cast(ihc.bill_id as varchar) as visit_occurrence_id,
     -- Header-based ICD procedures don't have a corresponding detail line, so no visit_detail_id
     cast(null as varchar) as visit_detail_id,
@@ -111,7 +122,7 @@ final_ihc as (
   {% set query %}
 final_id as (
   select
-    cast(hash(concat_ws('||', 'detail', id.bill_id, id.row_id), 'xxhash64') % 1000000000 as varchar) as procedure_occurrence_id,
+    cast(hash(concat_ws('||', 'detail', id.bill_id, id.row_id), 'xxhash64')  % 1000000000 as integer) as procedure_occurrence_id,
     {{ derive_person_id('ihc') }} as person_id,
     cast(null as integer) as procedure_concept_id,
     CASE WHEN id.service_line_from_date = 'N' THEN NULL
@@ -135,10 +146,10 @@ final_id as (
       coalesce(ihc.rendering_bill_provider_first, ''),
       ihc.rendering_bill_provider_state_1,
       ihc.rendering_bill_provider_4
-    ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+    ), 'xxhash64')  % 1000000000 as integer) as provider_id,
     cast(id.bill_id as varchar) as visit_occurrence_id,
     -- Detail-based HCPCS procedures link to visit_detail via bill_id + row_id hash
-    cast(hash(concat_ws('||', id.bill_id, id.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
+    cast(hash(concat_ws('||', id.bill_id, id.row_id), 'xxhash64')  % 1000000000 as integer) as visit_detail_id,
     id.hcpcs_line_procedure_billed as procedure_source_value,
     cast(null as integer) as procedure_source_concept_id,
     concat_ws('|', id.first_hcpcs_modifier_billed, id.second_hcpcs_modifier_billed, id.third_hcpcs_modifier_billed) as modifier_source_value
@@ -158,7 +169,7 @@ final_id as (
   {% set query %}
 final_pdc as (
   select
-    cast(hash(concat_ws('||', 'detail', prd.bill_id, prd.row_id), 'xxhash64') % 1000000000 as varchar) as procedure_occurrence_id,
+    cast(hash(concat_ws('||', 'detail', prd.bill_id, prd.row_id), 'xxhash64')  % 1000000000 as integer) as procedure_occurrence_id,
     {{ derive_person_id('prhc') }} as person_id,
     cast(null as integer) as procedure_concept_id,
     cast(prd.service_line_from_date as date) as procedure_date,
@@ -180,10 +191,10 @@ final_pdc as (
       coalesce(prhc.rendering_bill_provider_first, ''),
       prhc.rendering_bill_provider_state_1,
       prhc.rendering_bill_provider_4
-    ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+    ), 'xxhash64')  % 1000000000 as integer) as provider_id,
     cast(prd.bill_id as varchar) as visit_occurrence_id,
     -- Detail-based HCPCS procedures link to visit_detail via bill_id + row_id hash
-    cast(hash(concat_ws('||', prd.bill_id, prd.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
+    cast(hash(concat_ws('||', prd.bill_id, prd.row_id), 'xxhash64')  % 1000000000 as integer) as visit_detail_id,
     prd.hcpcs_line_procedure_billed as procedure_source_value,
     cast(null as integer) as procedure_source_concept_id,
     concat_ws('|', prd.first_hcpcs_modifier_billed, prd.second_hcpcs_modifier_billed, prd.third_hcpcs_modifier_billed, prd.fourth_hcpcs_modifier_billed) as modifier_source_value
@@ -255,7 +266,7 @@ final_ihh as (
     from recovered_procedures
   )
   select
-    cast(hash(concat_ws('||', 'header', ihc.bill_id, ihc.row_id, all_procedures.source_column), 'xxhash64') % 1000000000 as varchar) as procedure_occurrence_id,
+    cast(hash(concat_ws('||', 'header', ihc.bill_id, ihc.row_id, all_procedures.source_column), 'xxhash64')  % 1000000000 as integer) as procedure_occurrence_id,
     {{ derive_person_id('ihc') }} as person_id,
     cast(null as integer) as procedure_concept_id,
     case
@@ -287,7 +298,7 @@ final_ihh as (
       coalesce(ihc.rendering_bill_provider_first, ''),
       ihc.rendering_bill_provider_state_1,
       ihc.rendering_bill_provider_4
-    ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+    ), 'xxhash64')  % 1000000000 as integer) as provider_id,
     cast(ihc.bill_id as varchar) as visit_occurrence_id,
     -- Header-based ICD procedures don't have a corresponding detail line, so no visit_detail_id
     cast(null as varchar) as visit_detail_id,
@@ -305,7 +316,7 @@ final_ihh as (
   {% set query %}
 final_idh as (
   select
-    cast(hash(concat_ws('||', 'detail', id.bill_id, id.row_id), 'xxhash64') % 1000000000 as varchar) as procedure_occurrence_id,
+    cast(hash(concat_ws('||', 'detail', id.bill_id, id.row_id), 'xxhash64')  % 1000000000 as integer) as procedure_occurrence_id,
     {{ derive_person_id('ihc') }} as person_id,
     cast(null as integer) as procedure_concept_id,
     CASE WHEN id.service_line_from_date = 'N' THEN NULL
@@ -329,10 +340,10 @@ final_idh as (
       coalesce(ihc.rendering_bill_provider_first, ''),
       ihc.rendering_bill_provider_state_1,
       ihc.rendering_bill_provider_4
-    ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+    ), 'xxhash64')  % 1000000000 as integer) as provider_id,
     cast(id.bill_id as varchar) as visit_occurrence_id,
     -- Detail-based HCPCS procedures link to visit_detail via bill_id + row_id hash
-    cast(hash(concat_ws('||', id.bill_id, id.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
+    cast(hash(concat_ws('||', id.bill_id, id.row_id), 'xxhash64')  % 1000000000 as integer) as visit_detail_id,
     id.hcpcs_line_procedure_billed as procedure_source_value,
     cast(null as integer) as procedure_source_concept_id,
     concat_ws('|', id.first_hcpcs_modifier_billed, id.second_hcpcs_modifier_billed, id.third_hcpcs_modifier_billed) as modifier_source_value
@@ -352,7 +363,7 @@ final_idh as (
   {% set query %}
 final_pdh as (
   select
-    cast(hash(concat_ws('||', 'detail', prd.bill_id, prd.row_id), 'xxhash64') % 1000000000 as varchar) as procedure_occurrence_id,
+    cast(hash(concat_ws('||', 'detail', prd.bill_id, prd.row_id), 'xxhash64')  % 1000000000 as integer) as procedure_occurrence_id,
     {{ derive_person_id('prhc') }} as person_id,
     cast(null as integer) as procedure_concept_id,
     cast(prd.service_line_from_date as date) as procedure_date,
@@ -374,10 +385,10 @@ final_pdh as (
       coalesce(prhc.rendering_bill_provider_first, ''),
       prhc.rendering_bill_provider_state_1,
       prhc.rendering_bill_provider_4
-    ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+    ), 'xxhash64')  % 1000000000 as integer) as provider_id,
     cast(prd.bill_id as varchar) as visit_occurrence_id,
     -- Detail-based HCPCS procedures link to visit_detail via bill_id + row_id hash
-    cast(hash(concat_ws('||', prd.bill_id, prd.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
+    cast(hash(concat_ws('||', prd.bill_id, prd.row_id), 'xxhash64')  % 1000000000 as integer) as visit_detail_id,
     prd.hcpcs_line_procedure_billed as procedure_source_value,
     cast(null as integer) as procedure_source_concept_id,
     concat_ws('|', prd.first_hcpcs_modifier_billed, prd.second_hcpcs_modifier_billed, prd.third_hcpcs_modifier_billed, prd.fourth_hcpcs_modifier_billed) as modifier_source_value

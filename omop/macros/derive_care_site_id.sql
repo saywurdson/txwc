@@ -16,7 +16,7 @@ cast(
     ),
     'xxhash64'
   ) % 1000000000
-as varchar)
+as integer)
 {% elif claim_type == 'pharmacy' %}
 cast(
   hash(
@@ -30,7 +30,7 @@ cast(
     ),
     'xxhash64'
   ) % 1000000000
-as varchar)
+as integer)
 {% else %}
 {{ exceptions.raise_compiler_error("Unknown claim_type: " ~ claim_type) }}
 {% endif %}

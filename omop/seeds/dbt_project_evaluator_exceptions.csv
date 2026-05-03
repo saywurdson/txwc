@@ -1,0 +1,16 @@
+fct_name,column_name,id_to_exclude,comment
+fct_missing_primary_key_tests,resource_name,stg_%,Stg models intentionally have no PK tests; finals are the contract layer.
+fct_missing_primary_key_tests,resource_name,int_%,Int models intentionally have no PK tests; finals are the contract layer.
+fct_marts_or_intermediate_dependent_on_source,parent,omop.%,OMOP vocabulary sources (concept etc) are reference data — direct lookup is intentional.
+fct_direct_join_to_source,parent,omop.%,Same as above for direct_join_to_source check.
+fct_direct_join_to_source,parent,raw.%,Staging models read raw sources directly; no base layer.
+fct_direct_join_to_source,child,int_%,Intermediate models combine stg refs with omop vocab source lookups.
+fct_direct_join_to_source,child,drug_exposure,final.drug_exposure uses get_route_* and get_dose_unit macros that touch concept tables.
+fct_direct_join_to_source,child,fact_relationship,final.fact_relationship reads omop.concept for relationship_concept_id.
+fct_direct_join_to_source,child,dose_era,Era models derive from drug_exposure via concept_ancestor lookups (OHDSI canonical).
+fct_direct_join_to_source,child,drug_era,Era models derive from drug_exposure via concept_ancestor lookups (OHDSI canonical).
+fct_direct_join_to_source,child,specimen,Specimen joins concept directly per OHDSI canonical pattern.
+fct_multiple_sources_joined,child,stg_%,Staging models union institutional/professional/pharmacy claim types into one OMOP target by design.
+fct_source_fanout,parent,raw.%,Each raw claim source feeds many OMOP staging models by design.
+fct_rejoining_of_upstream_concepts,child,drug_exposure,final.drug_exposure uses get_route_concept_id and get_dose_unit_source_value which join omop.concept_relationship and omop.drug_strength per row.
+fct_root_models,child,death,final.death is intentionally empty — no death data in source claims.

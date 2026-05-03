@@ -30,6 +30,9 @@
   left join {{ source('omop','concept') }} denom_unit
     on ds.denominator_unit_concept_id = denom_unit.concept_id
   where ds.drug_concept_id = {{ drug_concept_id }}
+  -- determinism: a drug_concept_id may have multiple drug_strength rows (different ingredients)
+  order by ds.amount_value nulls last, ds.numerator_value nulls last,
+           ds.denominator_value nulls last, ds.amount_unit_concept_id nulls last
   limit 1
 )
 {% endmacro %}

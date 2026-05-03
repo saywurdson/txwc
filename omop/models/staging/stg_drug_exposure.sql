@@ -1,3 +1,18 @@
+-- depends_on: registered for dbt's manifest DAG (sources are referenced inside check_table_exists-gated blocks below,
+-- which the static parser misses because run_query returns None at parse time).
+-- depends_on: {{ source('raw', 'institutional_detail_current') }}
+-- depends_on: {{ source('raw', 'institutional_detail_historical') }}
+-- depends_on: {{ source('raw', 'institutional_header_current') }}
+-- depends_on: {{ source('raw', 'institutional_header_historical') }}
+-- depends_on: {{ source('raw', 'pharmacy_detail_current') }}
+-- depends_on: {{ source('raw', 'pharmacy_detail_historical') }}
+-- depends_on: {{ source('raw', 'pharmacy_header_current') }}
+-- depends_on: {{ source('raw', 'pharmacy_header_historical') }}
+-- depends_on: {{ source('raw', 'professional_detail_current') }}
+-- depends_on: {{ source('raw', 'professional_detail_historical') }}
+-- depends_on: {{ source('raw', 'professional_header_current') }}
+-- depends_on: {{ source('raw', 'professional_header_historical') }}
+
 -- Check if current or historical data exists (use institutional_header as representative)
 {% set has_current = check_table_exists('raw', 'institutional_header_current') %}
 {% set has_historical = check_table_exists('raw', 'institutional_header_historical') %}
@@ -15,7 +30,7 @@
   {% set query %}
   pharmacy_detail_current as (
     select
-      cast(hash(concat_ws('||', pdc.bill_id, pdc.row_id), 'xxhash64') % 1000000000 as varchar) as drug_exposure_id,
+      cast(hash(concat_ws('||', pdc.bill_id, pdc.row_id), 'xxhash64')  % 1000000000 as integer) as drug_exposure_id,
       {{ derive_person_id('phc') }} as person_id,
       cast(null as integer) as drug_concept_id,
       coalesce(try_cast(pdc.service_line_from_date as date), try_cast(pdc.prescription_line_date as date)) as drug_exposure_start_date,
@@ -43,10 +58,10 @@
         coalesce(phc.rendering_bill_provider_first, ''),
         phc.rendering_bill_provider_state_1,
         phc.rendering_bill_provider_4
-      ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+      ), 'xxhash64')  % 1000000000 as integer) as provider_id,
       cast(pdc.bill_id as varchar) as visit_occurrence_id,
       -- visit_detail_id uses same hash as visit_detail table
-      cast(hash(concat_ws('||', pdc.bill_id, pdc.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
+      cast(hash(concat_ws('||', pdc.bill_id, pdc.row_id), 'xxhash64')  % 1000000000 as integer) as visit_detail_id,
       pdc.ndc_billed_code as drug_source_value,
       cast(null as integer) as drug_source_concept_id,
       cast(null as varchar) as route_source_value,
@@ -62,7 +77,7 @@
   {% set query %}
   institutional_detail_current as (
     select
-      cast(hash(concat_ws('||', idc.bill_id, idc.row_id), 'xxhash64') % 1000000000 as varchar) as drug_exposure_id,
+      cast(hash(concat_ws('||', idc.bill_id, idc.row_id), 'xxhash64')  % 1000000000 as integer) as drug_exposure_id,
       {{ derive_person_id('ihc') }} as person_id,
       cast(null as integer) as drug_concept_id,
       CASE WHEN idc.service_line_from_date = 'N' THEN NULL
@@ -105,10 +120,10 @@
         coalesce(ihc.rendering_bill_provider_first, ''),
         ihc.rendering_bill_provider_state_1,
         ihc.rendering_bill_provider_4
-      ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+      ), 'xxhash64')  % 1000000000 as integer) as provider_id,
       cast(idc.bill_id as varchar) as visit_occurrence_id,
       -- visit_detail_id uses same hash as visit_detail table
-      cast(hash(concat_ws('||', idc.bill_id, idc.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
+      cast(hash(concat_ws('||', idc.bill_id, idc.row_id), 'xxhash64')  % 1000000000 as integer) as visit_detail_id,
       idc.hcpcs_line_procedure_billed as drug_source_value,
       cast(null as integer) as drug_source_concept_id,
       cast(null as varchar) as route_source_value,
@@ -128,7 +143,7 @@
   {% set query %}
   professional_detail_current as (
     select
-      cast(hash(concat_ws('||', prdc.bill_id, prdc.row_id), 'xxhash64') % 1000000000 as varchar) as drug_exposure_id,
+      cast(hash(concat_ws('||', prdc.bill_id, prdc.row_id), 'xxhash64')  % 1000000000 as integer) as drug_exposure_id,
       {{ derive_person_id('prhc') }} as person_id,
       cast(null as integer) as drug_concept_id,
       try_cast(prdc.service_line_from_date as date) as drug_exposure_start_date,
@@ -168,10 +183,10 @@
         coalesce(prhc.rendering_bill_provider_first, ''),
         prhc.rendering_bill_provider_state_1,
         prhc.rendering_bill_provider_4
-      ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+      ), 'xxhash64')  % 1000000000 as integer) as provider_id,
       cast(prdc.bill_id as varchar) as visit_occurrence_id,
       -- visit_detail_id uses same hash as visit_detail table
-      cast(hash(concat_ws('||', prdc.bill_id, prdc.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
+      cast(hash(concat_ws('||', prdc.bill_id, prdc.row_id), 'xxhash64')  % 1000000000 as integer) as visit_detail_id,
       prdc.hcpcs_line_procedure_billed as drug_source_value,
       cast(null as integer) as drug_source_concept_id,
       cast(null as varchar) as route_source_value,
@@ -193,7 +208,7 @@
   {% set query %}
   pharmacy_detail_historical as (
     select
-      cast(hash(concat_ws('||', pdc.bill_id, pdc.row_id), 'xxhash64') % 1000000000 as varchar) as drug_exposure_id,
+      cast(hash(concat_ws('||', pdc.bill_id, pdc.row_id), 'xxhash64')  % 1000000000 as integer) as drug_exposure_id,
       {{ derive_person_id('phc') }} as person_id,
       cast(null as integer) as drug_concept_id,
       coalesce(try_cast(pdc.service_line_from_date as date), try_cast(pdc.prescription_line_date as date)) as drug_exposure_start_date,
@@ -221,10 +236,10 @@
         coalesce(phc.rendering_bill_provider_first, ''),
         phc.rendering_bill_provider_state_1,
         phc.rendering_bill_provider_4
-      ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+      ), 'xxhash64')  % 1000000000 as integer) as provider_id,
       cast(pdc.bill_id as varchar) as visit_occurrence_id,
       -- visit_detail_id uses same hash as visit_detail table
-      cast(hash(concat_ws('||', pdc.bill_id, pdc.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
+      cast(hash(concat_ws('||', pdc.bill_id, pdc.row_id), 'xxhash64')  % 1000000000 as integer) as visit_detail_id,
       pdc.ndc_billed_code as drug_source_value,
       cast(null as integer) as drug_source_concept_id,
       cast(null as varchar) as route_source_value,
@@ -240,7 +255,7 @@
   {% set query %}
   institutional_detail_historical as (
     select
-      cast(hash(concat_ws('||', idc.bill_id, idc.row_id), 'xxhash64') % 1000000000 as varchar) as drug_exposure_id,
+      cast(hash(concat_ws('||', idc.bill_id, idc.row_id), 'xxhash64')  % 1000000000 as integer) as drug_exposure_id,
       {{ derive_person_id('ihc') }} as person_id,
       cast(null as integer) as drug_concept_id,
       CASE WHEN idc.service_line_from_date = 'N' THEN NULL
@@ -283,10 +298,10 @@
         coalesce(ihc.rendering_bill_provider_first, ''),
         ihc.rendering_bill_provider_state_1,
         ihc.rendering_bill_provider_4
-      ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+      ), 'xxhash64')  % 1000000000 as integer) as provider_id,
       cast(idc.bill_id as varchar) as visit_occurrence_id,
       -- visit_detail_id uses same hash as visit_detail table
-      cast(hash(concat_ws('||', idc.bill_id, idc.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
+      cast(hash(concat_ws('||', idc.bill_id, idc.row_id), 'xxhash64')  % 1000000000 as integer) as visit_detail_id,
       idc.hcpcs_line_procedure_billed as drug_source_value,
       cast(null as integer) as drug_source_concept_id,
       cast(null as varchar) as route_source_value,
@@ -306,7 +321,7 @@
   {% set query %}
   professional_detail_historical as (
     select
-      cast(hash(concat_ws('||', prdc.bill_id, prdc.row_id), 'xxhash64') % 1000000000 as varchar) as drug_exposure_id,
+      cast(hash(concat_ws('||', prdc.bill_id, prdc.row_id), 'xxhash64')  % 1000000000 as integer) as drug_exposure_id,
       {{ derive_person_id('prhc') }} as person_id,
       cast(null as integer) as drug_concept_id,
       try_cast(prdc.service_line_from_date as date) as drug_exposure_start_date,
@@ -346,10 +361,10 @@
         coalesce(prhc.rendering_bill_provider_first, ''),
         prhc.rendering_bill_provider_state_1,
         prhc.rendering_bill_provider_4
-      ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+      ), 'xxhash64')  % 1000000000 as integer) as provider_id,
       cast(prdc.bill_id as varchar) as visit_occurrence_id,
       -- visit_detail_id uses same hash as visit_detail table
-      cast(hash(concat_ws('||', prdc.bill_id, prdc.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
+      cast(hash(concat_ws('||', prdc.bill_id, prdc.row_id), 'xxhash64')  % 1000000000 as integer) as visit_detail_id,
       prdc.hcpcs_line_procedure_billed as drug_source_value,
       cast(null as integer) as drug_source_concept_id,
       cast(null as varchar) as route_source_value,

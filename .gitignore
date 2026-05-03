@@ -12,6 +12,9 @@ json_data/
 !.mcp.json
 !.devcontainer/devcontainer.json
 
+# dbt seeds are config, not data — keep them tracked
+!omop/seeds/*.csv
+
 # Environment
 *.env
 !.env.example

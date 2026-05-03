@@ -8,6 +8,6 @@ cast(
     coalesce({{ prefix }}rendering_bill_provider_first, ''),
     {{ prefix }}rendering_bill_provider_state_1,
     {{ prefix }}rendering_bill_provider_4
-  ), 'xxhash64') % 1000000000 as varchar
+  ), 'xxhash64') % 1000000000 as integer
 )
 {% endmacro %}

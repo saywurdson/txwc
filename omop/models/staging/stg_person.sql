@@ -1,3 +1,12 @@
+-- depends_on: registered for dbt's manifest DAG (sources are referenced inside check_table_exists-gated blocks below,
+-- which the static parser misses because run_query returns None at parse time).
+-- depends_on: {{ source('raw', 'institutional_header_current') }}
+-- depends_on: {{ source('raw', 'institutional_header_historical') }}
+-- depends_on: {{ source('raw', 'pharmacy_header_current') }}
+-- depends_on: {{ source('raw', 'pharmacy_header_historical') }}
+-- depends_on: {{ source('raw', 'professional_header_current') }}
+-- depends_on: {{ source('raw', 'professional_header_historical') }}
+
 -- Check if current or historical data exists (use institutional_header as representative)
 {% set has_current = check_table_exists('raw', 'institutional_header_current') %}
 {% set has_historical = check_table_exists('raw', 'institutional_header_historical') %}
@@ -132,7 +141,12 @@ deduped as (
         -- Prefer records with known gender
         case when gender_concept_id != 0 then 0 else 1 end,
         -- Prefer records with a location
-        case when location_id is not null then 0 else 1 end
+        case when location_id is not null then 0 else 1 end,
+        -- Deterministic tiebreakers: stable ordering when scores tie
+        coalesce(person_source_value, ''), coalesce(year_of_birth, 0),
+        coalesce(month_of_birth, 0), coalesce(day_of_birth, 0),
+        coalesce(gender_concept_id, 0), coalesce(location_id, 0),
+        coalesce(care_site_id, 0)
     ) as rn
   from all_persons
 )

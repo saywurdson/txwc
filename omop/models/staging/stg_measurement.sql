@@ -1,3 +1,14 @@
+-- depends_on: registered for dbt's manifest DAG (sources are referenced inside check_table_exists-gated blocks below,
+-- which the static parser misses because run_query returns None at parse time).
+-- depends_on: {{ source('raw', 'institutional_detail_current') }}
+-- depends_on: {{ source('raw', 'institutional_detail_historical') }}
+-- depends_on: {{ source('raw', 'institutional_header_current') }}
+-- depends_on: {{ source('raw', 'institutional_header_historical') }}
+-- depends_on: {{ source('raw', 'professional_detail_current') }}
+-- depends_on: {{ source('raw', 'professional_detail_historical') }}
+-- depends_on: {{ source('raw', 'professional_header_current') }}
+-- depends_on: {{ source('raw', 'professional_header_historical') }}
+
 {% set has_current = check_table_exists('raw', 'institutional_header_current') %}
 {% set has_historical = check_table_exists('raw', 'institutional_header_historical') %}
 
@@ -39,7 +50,7 @@ final_ihc as (
     where rn = 1
   )
   select
-    cast(hash(concat_ws('||', ihc.row_id, ihc.bill_id), 'xxhash64') % 1000000000 as varchar) as measurement_id,
+    cast(hash(concat_ws('||', ihc.row_id, ihc.bill_id), 'xxhash64')  % 1000000000 as integer) as measurement_id,
     {{ derive_person_id('ihc') }} as person_id,
     cast(null as integer) as measurement_concept_id,
     cast(ihc.reporting_period_start_date as date) as measurement_date,
@@ -57,7 +68,7 @@ final_ihc as (
       coalesce(ihc.rendering_bill_provider_first, ''),
       ihc.rendering_bill_provider_state_1,
       ihc.rendering_bill_provider_4
-    ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+    ), 'xxhash64')  % 1000000000 as integer) as provider_id,
     cast(ihc.bill_id as varchar) as visit_occurrence_id,
     -- Header-based ICD measurements don't have a corresponding detail line, so no visit_detail_id
     cast(null as varchar) as visit_detail_id,
@@ -97,7 +108,7 @@ final_phc as (
       and c.vocabulary_id in ('ICD10CM','ICD9CM')
   )
   select
-    cast(hash(concat_ws('||', phc.row_id, phc.bill_id), 'xxhash64') % 1000000000 as varchar) as measurement_id,
+    cast(hash(concat_ws('||', phc.row_id, phc.bill_id), 'xxhash64')  % 1000000000 as integer) as measurement_id,
     {{ derive_person_id('phc') }} as person_id,
     cast(null as integer) as measurement_concept_id,
     cast(phc.reporting_period_start_date as date) as measurement_date,
@@ -115,7 +126,7 @@ final_phc as (
       coalesce(phc.rendering_bill_provider_first, ''),
       phc.rendering_bill_provider_state_1,
       phc.rendering_bill_provider_4
-    ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+    ), 'xxhash64')  % 1000000000 as integer) as provider_id,
     cast(phc.bill_id as varchar) as visit_occurrence_id,
     -- Header-based ICD measurements don't have a corresponding detail line, so no visit_detail_id
     cast(null as varchar) as visit_detail_id,
@@ -136,7 +147,7 @@ final_phc as (
   {% set query %}
 institutional_detail_current as (
   select
-    cast(hash(concat_ws('||', idc.bill_id, idc.row_id), 'xxhash64') % 1000000000 as varchar) as measurement_id,
+    cast(hash(concat_ws('||', idc.bill_id, idc.row_id), 'xxhash64')  % 1000000000 as integer) as measurement_id,
     {{ derive_person_id('ihc') }} as person_id,
     cast(null as integer) as measurement_concept_id,
     cast(idc.service_line_from_date as date) as measurement_date,
@@ -154,10 +165,10 @@ institutional_detail_current as (
       coalesce(ihc.rendering_bill_provider_first, ''),
       ihc.rendering_bill_provider_state_1,
       ihc.rendering_bill_provider_4
-    ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+    ), 'xxhash64')  % 1000000000 as integer) as provider_id,
     cast(idc.bill_id as varchar) as visit_occurrence_id,
     -- Detail-based HCPCS measurements link to visit_detail via bill_id + row_id hash
-    cast(hash(concat_ws('||', idc.bill_id, idc.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
+    cast(hash(concat_ws('||', idc.bill_id, idc.row_id), 'xxhash64')  % 1000000000 as integer) as visit_detail_id,
     idc.hcpcs_line_procedure_billed as measurement_source_value,
     cast(null as integer) as measurement_source_concept_id,
     cast(null as varchar) as unit_source_value,
@@ -180,7 +191,7 @@ institutional_detail_current as (
   {% set query %}
 professional_detail_current as (
   select
-    cast(hash(concat_ws('||', prdc.bill_id, prdc.row_id), 'xxhash64') % 1000000000 as varchar) as measurement_id,
+    cast(hash(concat_ws('||', prdc.bill_id, prdc.row_id), 'xxhash64')  % 1000000000 as integer) as measurement_id,
     {{ derive_person_id('prhc') }} as person_id,
     cast(null as integer) as measurement_concept_id,
     cast(prdc.service_line_from_date as date) as measurement_date,
@@ -198,10 +209,10 @@ professional_detail_current as (
       coalesce(prhc.rendering_bill_provider_first, ''),
       prhc.rendering_bill_provider_state_1,
       prhc.rendering_bill_provider_4
-    ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+    ), 'xxhash64')  % 1000000000 as integer) as provider_id,
     cast(prdc.bill_id as varchar) as visit_occurrence_id,
     -- Detail-based HCPCS measurements link to visit_detail via bill_id + row_id hash
-    cast(hash(concat_ws('||', prdc.bill_id, prdc.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
+    cast(hash(concat_ws('||', prdc.bill_id, prdc.row_id), 'xxhash64')  % 1000000000 as integer) as visit_detail_id,
     prdc.hcpcs_line_procedure_billed as measurement_source_value,
     cast(null as integer) as measurement_source_concept_id,
     cast(null as varchar) as unit_source_value,
@@ -257,7 +268,7 @@ final_ihh as (
     where rn = 1
   )
   select
-    cast(hash(concat_ws('||', ihc.row_id, ihc.bill_id), 'xxhash64') % 1000000000 as varchar) as measurement_id,
+    cast(hash(concat_ws('||', ihc.row_id, ihc.bill_id), 'xxhash64')  % 1000000000 as integer) as measurement_id,
     {{ derive_person_id('ihc') }} as person_id,
     cast(null as integer) as measurement_concept_id,
     cast(ihc.reporting_period_start_date as date) as measurement_date,
@@ -275,7 +286,7 @@ final_ihh as (
       coalesce(ihc.rendering_bill_provider_first, ''),
       ihc.rendering_bill_provider_state_1,
       ihc.rendering_bill_provider_4
-    ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+    ), 'xxhash64')  % 1000000000 as integer) as provider_id,
     cast(ihc.bill_id as varchar) as visit_occurrence_id,
     cast(null as varchar) as visit_detail_id,
     unique_diag.measurement_source_value,
@@ -314,7 +325,7 @@ final_phh as (
       and c.vocabulary_id in ('ICD10CM','ICD9CM')
   )
   select
-    cast(hash(concat_ws('||', phc.row_id, phc.bill_id), 'xxhash64') % 1000000000 as varchar) as measurement_id,
+    cast(hash(concat_ws('||', phc.row_id, phc.bill_id), 'xxhash64')  % 1000000000 as integer) as measurement_id,
     {{ derive_person_id('phc') }} as person_id,
     cast(null as integer) as measurement_concept_id,
     cast(phc.reporting_period_start_date as date) as measurement_date,
@@ -332,7 +343,7 @@ final_phh as (
       coalesce(phc.rendering_bill_provider_first, ''),
       phc.rendering_bill_provider_state_1,
       phc.rendering_bill_provider_4
-    ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+    ), 'xxhash64')  % 1000000000 as integer) as provider_id,
     cast(phc.bill_id as varchar) as visit_occurrence_id,
     cast(null as varchar) as visit_detail_id,
     unpivot_cte.measurement_source_value,
@@ -352,7 +363,7 @@ final_phh as (
   {% set query %}
 institutional_detail_historical as (
   select
-    cast(hash(concat_ws('||', idc.bill_id, idc.row_id), 'xxhash64') % 1000000000 as varchar) as measurement_id,
+    cast(hash(concat_ws('||', idc.bill_id, idc.row_id), 'xxhash64')  % 1000000000 as integer) as measurement_id,
     {{ derive_person_id('ihc') }} as person_id,
     cast(null as integer) as measurement_concept_id,
     cast(idc.service_line_from_date as date) as measurement_date,
@@ -370,9 +381,9 @@ institutional_detail_historical as (
       coalesce(ihc.rendering_bill_provider_first, ''),
       ihc.rendering_bill_provider_state_1,
       ihc.rendering_bill_provider_4
-    ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+    ), 'xxhash64')  % 1000000000 as integer) as provider_id,
     cast(idc.bill_id as varchar) as visit_occurrence_id,
-    cast(hash(concat_ws('||', idc.bill_id, idc.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
+    cast(hash(concat_ws('||', idc.bill_id, idc.row_id), 'xxhash64')  % 1000000000 as integer) as visit_detail_id,
     idc.hcpcs_line_procedure_billed as measurement_source_value,
     cast(null as integer) as measurement_source_concept_id,
     cast(null as varchar) as unit_source_value,
@@ -395,7 +406,7 @@ institutional_detail_historical as (
   {% set query %}
 professional_detail_historical as (
   select
-    cast(hash(concat_ws('||', prdc.bill_id, prdc.row_id), 'xxhash64') % 1000000000 as varchar) as measurement_id,
+    cast(hash(concat_ws('||', prdc.bill_id, prdc.row_id), 'xxhash64')  % 1000000000 as integer) as measurement_id,
     {{ derive_person_id('prhc') }} as person_id,
     cast(null as integer) as measurement_concept_id,
     cast(prdc.service_line_from_date as date) as measurement_date,
@@ -413,9 +424,9 @@ professional_detail_historical as (
       coalesce(prhc.rendering_bill_provider_first, ''),
       prhc.rendering_bill_provider_state_1,
       prhc.rendering_bill_provider_4
-    ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+    ), 'xxhash64')  % 1000000000 as integer) as provider_id,
     cast(prdc.bill_id as varchar) as visit_occurrence_id,
-    cast(hash(concat_ws('||', prdc.bill_id, prdc.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
+    cast(hash(concat_ws('||', prdc.bill_id, prdc.row_id), 'xxhash64')  % 1000000000 as integer) as visit_detail_id,
     prdc.hcpcs_line_procedure_billed as measurement_source_value,
     cast(null as integer) as measurement_source_concept_id,
     cast(null as varchar) as unit_source_value,

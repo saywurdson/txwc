@@ -1,3 +1,16 @@
+-- depends_on: registered for dbt's manifest DAG (sources are referenced inside check_table_exists-gated blocks below,
+-- which the static parser misses because run_query returns None at parse time).
+-- depends_on: {{ source('raw', 'institutional_detail_current') }}
+-- depends_on: {{ source('raw', 'institutional_detail_historical') }}
+-- depends_on: {{ source('raw', 'institutional_header_current') }}
+-- depends_on: {{ source('raw', 'institutional_header_historical') }}
+-- depends_on: {{ source('raw', 'pharmacy_header_current') }}
+-- depends_on: {{ source('raw', 'pharmacy_header_historical') }}
+-- depends_on: {{ source('raw', 'professional_detail_current') }}
+-- depends_on: {{ source('raw', 'professional_detail_historical') }}
+-- depends_on: {{ source('raw', 'professional_header_current') }}
+-- depends_on: {{ source('raw', 'professional_header_historical') }}
+
 {% set has_current = check_table_exists('raw', 'institutional_header_current') %}
 {% set has_historical = check_table_exists('raw', 'institutional_header_historical') %}
 
@@ -64,7 +77,7 @@ final_ihc as (
     from recovered_observations
   )
   select
-    cast(hash(concat_ws('||', 'ihc', ihc.row_id, ihc.bill_id, all_observations.source_column), 'xxhash64') % 1000000000 as varchar) as observation_id,
+    cast(hash(concat_ws('||', 'ihc', ihc.row_id, ihc.bill_id, all_observations.source_column), 'xxhash64')  % 1000000000 as integer) as observation_id,
     {{ derive_person_id('ihc') }} as person_id,
     cast(null as integer) as observation_concept_id,
     cast(ihc.reporting_period_start_date as date) as observation_date,
@@ -80,7 +93,7 @@ final_ihc as (
       coalesce(ihc.rendering_bill_provider_first, ''),
       ihc.rendering_bill_provider_state_1,
       ihc.rendering_bill_provider_4
-    ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+    ), 'xxhash64')  % 1000000000 as integer) as provider_id,
     cast(ihc.bill_id as varchar) as visit_occurrence_id,
     -- Header-based ICD observations don't have a corresponding detail line, so no visit_detail_id
     cast(null as varchar) as visit_detail_id,
@@ -120,7 +133,7 @@ final_phc as (
       and c.vocabulary_id in ('ICD10CM','ICD9CM')
   )
   select
-    cast(hash(concat_ws('||', 'phc', phc.row_id, phc.bill_id, unpivot_cte.source_column), 'xxhash64') % 1000000000 as varchar) as observation_id,
+    cast(hash(concat_ws('||', 'phc', phc.row_id, phc.bill_id, unpivot_cte.source_column), 'xxhash64')  % 1000000000 as integer) as observation_id,
     {{ derive_person_id('phc') }} as person_id,
     cast(null as integer) as observation_concept_id,
     cast(phc.reporting_period_start_date as date) as observation_date,
@@ -136,7 +149,7 @@ final_phc as (
       coalesce(phc.rendering_bill_provider_first, ''),
       phc.rendering_bill_provider_state_1,
       phc.rendering_bill_provider_4
-    ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+    ), 'xxhash64')  % 1000000000 as integer) as provider_id,
     cast(phc.bill_id as varchar) as visit_occurrence_id,
     -- Header-based ICD observations don't have a corresponding detail line, so no visit_detail_id
     cast(null as varchar) as visit_detail_id,
@@ -157,7 +170,7 @@ final_phc as (
   {% set query %}
 institutional_detail_current as (
   select
-    cast(hash(concat_ws('||', 'idc_obs', idc.bill_id, idc.row_id), 'xxhash64') % 1000000000 as varchar) as observation_id,
+    cast(hash(concat_ws('||', 'idc_obs', idc.bill_id, idc.row_id), 'xxhash64')  % 1000000000 as integer) as observation_id,
     {{ derive_person_id('ihc') }} as person_id,
     cast(null as integer) as observation_concept_id,
     CASE WHEN idc.service_line_from_date = 'N' THEN NULL
@@ -175,10 +188,10 @@ institutional_detail_current as (
       coalesce(ihc.rendering_bill_provider_first, ''),
       ihc.rendering_bill_provider_state_1,
       ihc.rendering_bill_provider_4
-    ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+    ), 'xxhash64')  % 1000000000 as integer) as provider_id,
     cast(idc.bill_id as varchar) as visit_occurrence_id,
     -- Detail-based HCPCS observations link to visit_detail via bill_id + row_id hash
-    cast(hash(concat_ws('||', idc.bill_id, idc.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
+    cast(hash(concat_ws('||', idc.bill_id, idc.row_id), 'xxhash64')  % 1000000000 as integer) as visit_detail_id,
     idc.hcpcs_line_procedure_billed as observation_source_value,
     cast(null as integer) as observation_source_concept_id,
     cast(null as varchar) as unit_source_value,
@@ -201,7 +214,7 @@ institutional_detail_current as (
   {% set query %}
 professional_detail_current as (
   select
-    cast(hash(concat_ws('||', 'pdc_obs', prdc.bill_id, prdc.row_id), 'xxhash64') % 1000000000 as varchar) as observation_id,
+    cast(hash(concat_ws('||', 'pdc_obs', prdc.bill_id, prdc.row_id), 'xxhash64')  % 1000000000 as integer) as observation_id,
     {{ derive_person_id('prhc') }} as person_id,
     cast(null as integer) as observation_concept_id,
     cast(prdc.service_line_from_date as date) as observation_date,
@@ -217,10 +230,10 @@ professional_detail_current as (
       coalesce(prhc.rendering_bill_provider_first, ''),
       prhc.rendering_bill_provider_state_1,
       prhc.rendering_bill_provider_4
-    ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+    ), 'xxhash64')  % 1000000000 as integer) as provider_id,
     cast(prdc.bill_id as varchar) as visit_occurrence_id,
     -- Detail-based HCPCS observations link to visit_detail via bill_id + row_id hash
-    cast(hash(concat_ws('||', prdc.bill_id, prdc.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
+    cast(hash(concat_ws('||', prdc.bill_id, prdc.row_id), 'xxhash64')  % 1000000000 as integer) as visit_detail_id,
     prdc.hcpcs_line_procedure_billed as observation_source_value,
     cast(null as integer) as observation_source_concept_id,
     cast(null as varchar) as unit_source_value,
@@ -297,7 +310,7 @@ final_ihh as (
     from recovered_observations
   )
   select
-    cast(hash(concat_ws('||', 'ihh', ihc.row_id, ihc.bill_id, all_observations.source_column), 'xxhash64') % 1000000000 as varchar) as observation_id,
+    cast(hash(concat_ws('||', 'ihh', ihc.row_id, ihc.bill_id, all_observations.source_column), 'xxhash64')  % 1000000000 as integer) as observation_id,
     {{ derive_person_id('ihc') }} as person_id,
     cast(null as integer) as observation_concept_id,
     cast(ihc.reporting_period_start_date as date) as observation_date,
@@ -313,7 +326,7 @@ final_ihh as (
       coalesce(ihc.rendering_bill_provider_first, ''),
       ihc.rendering_bill_provider_state_1,
       ihc.rendering_bill_provider_4
-    ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+    ), 'xxhash64')  % 1000000000 as integer) as provider_id,
     cast(ihc.bill_id as varchar) as visit_occurrence_id,
     cast(null as varchar) as visit_detail_id,
     all_observations.observation_source_value,
@@ -352,7 +365,7 @@ final_phh as (
       and c.vocabulary_id in ('ICD10CM','ICD9CM')
   )
   select
-    cast(hash(concat_ws('||', 'phh', phc.row_id, phc.bill_id, unpivot_cte.source_column), 'xxhash64') % 1000000000 as varchar) as observation_id,
+    cast(hash(concat_ws('||', 'phh', phc.row_id, phc.bill_id, unpivot_cte.source_column), 'xxhash64')  % 1000000000 as integer) as observation_id,
     {{ derive_person_id('phc') }} as person_id,
     cast(null as integer) as observation_concept_id,
     cast(phc.reporting_period_start_date as date) as observation_date,
@@ -368,7 +381,7 @@ final_phh as (
       coalesce(phc.rendering_bill_provider_first, ''),
       phc.rendering_bill_provider_state_1,
       phc.rendering_bill_provider_4
-    ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+    ), 'xxhash64')  % 1000000000 as integer) as provider_id,
     cast(phc.bill_id as varchar) as visit_occurrence_id,
     cast(null as varchar) as visit_detail_id,
     unpivot_cte.observation_source_value,
@@ -388,7 +401,7 @@ final_phh as (
   {% set query %}
 institutional_detail_historical as (
   select
-    cast(hash(concat_ws('||', 'idh_obs', idc.bill_id, idc.row_id), 'xxhash64') % 1000000000 as varchar) as observation_id,
+    cast(hash(concat_ws('||', 'idh_obs', idc.bill_id, idc.row_id), 'xxhash64')  % 1000000000 as integer) as observation_id,
     {{ derive_person_id('ihc') }} as person_id,
     cast(null as integer) as observation_concept_id,
     CASE WHEN idc.service_line_from_date = 'N' THEN NULL
@@ -406,9 +419,9 @@ institutional_detail_historical as (
       coalesce(ihc.rendering_bill_provider_first, ''),
       ihc.rendering_bill_provider_state_1,
       ihc.rendering_bill_provider_4
-    ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+    ), 'xxhash64')  % 1000000000 as integer) as provider_id,
     cast(idc.bill_id as varchar) as visit_occurrence_id,
-    cast(hash(concat_ws('||', idc.bill_id, idc.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
+    cast(hash(concat_ws('||', idc.bill_id, idc.row_id), 'xxhash64')  % 1000000000 as integer) as visit_detail_id,
     idc.hcpcs_line_procedure_billed as observation_source_value,
     cast(null as integer) as observation_source_concept_id,
     cast(null as varchar) as unit_source_value,
@@ -431,7 +444,7 @@ institutional_detail_historical as (
   {% set query %}
 professional_detail_historical as (
   select
-    cast(hash(concat_ws('||', 'pdh_obs', prdc.bill_id, prdc.row_id), 'xxhash64') % 1000000000 as varchar) as observation_id,
+    cast(hash(concat_ws('||', 'pdh_obs', prdc.bill_id, prdc.row_id), 'xxhash64')  % 1000000000 as integer) as observation_id,
     {{ derive_person_id('prhc') }} as person_id,
     cast(null as integer) as observation_concept_id,
     cast(prdc.service_line_from_date as date) as observation_date,
@@ -447,9 +460,9 @@ professional_detail_historical as (
       coalesce(prhc.rendering_bill_provider_first, ''),
       prhc.rendering_bill_provider_state_1,
       prhc.rendering_bill_provider_4
-    ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+    ), 'xxhash64')  % 1000000000 as integer) as provider_id,
     cast(prdc.bill_id as varchar) as visit_occurrence_id,
-    cast(hash(concat_ws('||', prdc.bill_id, prdc.row_id), 'xxhash64') % 1000000000 as varchar) as visit_detail_id,
+    cast(hash(concat_ws('||', prdc.bill_id, prdc.row_id), 'xxhash64')  % 1000000000 as integer) as visit_detail_id,
     prdc.hcpcs_line_procedure_billed as observation_source_value,
     cast(null as integer) as observation_source_concept_id,
     cast(null as varchar) as unit_source_value,
@@ -477,7 +490,7 @@ professional_detail_historical as (
 -- Employee date of injury from all current headers
 injury_date_inst_current as (
   select
-    cast(hash(concat_ws('||', 'injury_inst_current', bill_id), 'xxhash64') % 1000000000 as varchar) as observation_id,
+    cast(hash(concat_ws('||', 'injury_inst_current', bill_id), 'xxhash64')  % 1000000000 as integer) as observation_id,
     {{ derive_person_id() }} as person_id,
     40771952 as observation_concept_id,
     cast(employee_date_of_injury as date) as observation_date,
@@ -491,7 +504,7 @@ injury_date_inst_current as (
     cast(hash(concat_ws('||', rendering_bill_provider_last,
       coalesce(rendering_bill_provider_first, ''),
       rendering_bill_provider_state_1, rendering_bill_provider_4
-    ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+    ), 'xxhash64')  % 1000000000 as integer) as provider_id,
     cast(bill_id as varchar) as visit_occurrence_id,
     cast(null as varchar) as visit_detail_id,
     'employee_date_of_injury' as observation_source_value,
@@ -506,7 +519,7 @@ injury_date_inst_current as (
 ),
 injury_date_prof_current as (
   select
-    cast(hash(concat_ws('||', 'injury_prof_current', bill_id), 'xxhash64') % 1000000000 as varchar) as observation_id,
+    cast(hash(concat_ws('||', 'injury_prof_current', bill_id), 'xxhash64')  % 1000000000 as integer) as observation_id,
     {{ derive_person_id() }} as person_id,
     40771952 as observation_concept_id,
     cast(employee_date_of_injury as date) as observation_date,
@@ -520,7 +533,7 @@ injury_date_prof_current as (
     cast(hash(concat_ws('||', rendering_bill_provider_last,
       coalesce(rendering_bill_provider_first, ''),
       rendering_bill_provider_state_1, rendering_bill_provider_4
-    ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+    ), 'xxhash64')  % 1000000000 as integer) as provider_id,
     cast(bill_id as varchar) as visit_occurrence_id,
     cast(null as varchar) as visit_detail_id,
     'employee_date_of_injury' as observation_source_value,
@@ -535,7 +548,7 @@ injury_date_prof_current as (
 ),
 injury_date_pharm_current as (
   select
-    cast(hash(concat_ws('||', 'injury_pharm_current', bill_id), 'xxhash64') % 1000000000 as varchar) as observation_id,
+    cast(hash(concat_ws('||', 'injury_pharm_current', bill_id), 'xxhash64')  % 1000000000 as integer) as observation_id,
     {{ derive_person_id() }} as person_id,
     40771952 as observation_concept_id,
     cast(employee_date_of_injury as date) as observation_date,
@@ -549,7 +562,7 @@ injury_date_pharm_current as (
     cast(hash(concat_ws('||', rendering_bill_provider_last,
       coalesce(rendering_bill_provider_first, ''),
       rendering_bill_provider_state_1, rendering_bill_provider_4
-    ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+    ), 'xxhash64')  % 1000000000 as integer) as provider_id,
     cast(bill_id as varchar) as visit_occurrence_id,
     cast(null as varchar) as visit_detail_id,
     'employee_date_of_injury' as observation_source_value,
@@ -570,7 +583,7 @@ injury_date_pharm_current as (
   {% set query %}
 injury_date_inst_historical as (
   select
-    cast(hash(concat_ws('||', 'injury_inst_historical', bill_id), 'xxhash64') % 1000000000 as varchar) as observation_id,
+    cast(hash(concat_ws('||', 'injury_inst_historical', bill_id), 'xxhash64')  % 1000000000 as integer) as observation_id,
     {{ derive_person_id() }} as person_id,
     40771952 as observation_concept_id,
     cast(employee_date_of_injury as date) as observation_date,
@@ -584,7 +597,7 @@ injury_date_inst_historical as (
     cast(hash(concat_ws('||', rendering_bill_provider_last,
       coalesce(rendering_bill_provider_first, ''),
       rendering_bill_provider_state_1, rendering_bill_provider_4
-    ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+    ), 'xxhash64')  % 1000000000 as integer) as provider_id,
     cast(bill_id as varchar) as visit_occurrence_id,
     cast(null as varchar) as visit_detail_id,
     'employee_date_of_injury' as observation_source_value,
@@ -599,7 +612,7 @@ injury_date_inst_historical as (
 ),
 injury_date_prof_historical as (
   select
-    cast(hash(concat_ws('||', 'injury_prof_historical', bill_id), 'xxhash64') % 1000000000 as varchar) as observation_id,
+    cast(hash(concat_ws('||', 'injury_prof_historical', bill_id), 'xxhash64')  % 1000000000 as integer) as observation_id,
     {{ derive_person_id() }} as person_id,
     40771952 as observation_concept_id,
     cast(employee_date_of_injury as date) as observation_date,
@@ -613,7 +626,7 @@ injury_date_prof_historical as (
     cast(hash(concat_ws('||', rendering_bill_provider_last,
       coalesce(rendering_bill_provider_first, ''),
       rendering_bill_provider_state_1, rendering_bill_provider_4
-    ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+    ), 'xxhash64')  % 1000000000 as integer) as provider_id,
     cast(bill_id as varchar) as visit_occurrence_id,
     cast(null as varchar) as visit_detail_id,
     'employee_date_of_injury' as observation_source_value,
@@ -628,7 +641,7 @@ injury_date_prof_historical as (
 ),
 injury_date_pharm_historical as (
   select
-    cast(hash(concat_ws('||', 'injury_pharm_historical', bill_id), 'xxhash64') % 1000000000 as varchar) as observation_id,
+    cast(hash(concat_ws('||', 'injury_pharm_historical', bill_id), 'xxhash64')  % 1000000000 as integer) as observation_id,
     {{ derive_person_id() }} as person_id,
     40771952 as observation_concept_id,
     cast(employee_date_of_injury as date) as observation_date,
@@ -642,7 +655,7 @@ injury_date_pharm_historical as (
     cast(hash(concat_ws('||', rendering_bill_provider_last,
       coalesce(rendering_bill_provider_first, ''),
       rendering_bill_provider_state_1, rendering_bill_provider_4
-    ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+    ), 'xxhash64')  % 1000000000 as integer) as provider_id,
     cast(bill_id as varchar) as visit_occurrence_id,
     cast(null as varchar) as visit_detail_id,
     'employee_date_of_injury' as observation_source_value,
@@ -666,7 +679,7 @@ injury_date_pharm_historical as (
   {% set query %}
 employer_fein_inst_current as (
   select
-    cast(hash(concat_ws('||', 'employer_fein_inst_current', bill_id), 'xxhash64') % 1000000000 as varchar) as observation_id,
+    cast(hash(concat_ws('||', 'employer_fein_inst_current', bill_id), 'xxhash64')  % 1000000000 as integer) as observation_id,
     {{ derive_person_id() }} as person_id,
     21492865 as observation_concept_id,  -- LOINC 'Employer name [Identifier]'
     cast(reporting_period_start_date as date) as observation_date,
@@ -680,7 +693,7 @@ employer_fein_inst_current as (
     cast(hash(concat_ws('||', rendering_bill_provider_last,
       coalesce(rendering_bill_provider_first, ''),
       rendering_bill_provider_state_1, rendering_bill_provider_4
-    ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+    ), 'xxhash64')  % 1000000000 as integer) as provider_id,
     cast(bill_id as varchar) as visit_occurrence_id,
     cast(null as varchar) as visit_detail_id,
     'employer_fein' as observation_source_value,
@@ -695,7 +708,7 @@ employer_fein_inst_current as (
 ),
 employer_fein_prof_current as (
   select
-    cast(hash(concat_ws('||', 'employer_fein_prof_current', bill_id), 'xxhash64') % 1000000000 as varchar) as observation_id,
+    cast(hash(concat_ws('||', 'employer_fein_prof_current', bill_id), 'xxhash64')  % 1000000000 as integer) as observation_id,
     {{ derive_person_id() }} as person_id,
     21492865 as observation_concept_id,  -- LOINC 'Employer name [Identifier]'
     cast(reporting_period_start_date as date) as observation_date,
@@ -709,7 +722,7 @@ employer_fein_prof_current as (
     cast(hash(concat_ws('||', rendering_bill_provider_last,
       coalesce(rendering_bill_provider_first, ''),
       rendering_bill_provider_state_1, rendering_bill_provider_4
-    ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+    ), 'xxhash64')  % 1000000000 as integer) as provider_id,
     cast(bill_id as varchar) as visit_occurrence_id,
     cast(null as varchar) as visit_detail_id,
     'employer_fein' as observation_source_value,
@@ -724,7 +737,7 @@ employer_fein_prof_current as (
 ),
 employer_fein_pharm_current as (
   select
-    cast(hash(concat_ws('||', 'employer_fein_pharm_current', bill_id), 'xxhash64') % 1000000000 as varchar) as observation_id,
+    cast(hash(concat_ws('||', 'employer_fein_pharm_current', bill_id), 'xxhash64')  % 1000000000 as integer) as observation_id,
     {{ derive_person_id() }} as person_id,
     21492865 as observation_concept_id,  -- LOINC 'Employer name [Identifier]'
     cast(reporting_period_start_date as date) as observation_date,
@@ -738,7 +751,7 @@ employer_fein_pharm_current as (
     cast(hash(concat_ws('||', rendering_bill_provider_last,
       coalesce(rendering_bill_provider_first, ''),
       rendering_bill_provider_state_1, rendering_bill_provider_4
-    ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+    ), 'xxhash64')  % 1000000000 as integer) as provider_id,
     cast(bill_id as varchar) as visit_occurrence_id,
     cast(null as varchar) as visit_detail_id,
     'employer_fein' as observation_source_value,
@@ -759,7 +772,7 @@ employer_fein_pharm_current as (
   {% set query %}
 employer_fein_inst_historical as (
   select
-    cast(hash(concat_ws('||', 'employer_fein_inst_historical', bill_id), 'xxhash64') % 1000000000 as varchar) as observation_id,
+    cast(hash(concat_ws('||', 'employer_fein_inst_historical', bill_id), 'xxhash64')  % 1000000000 as integer) as observation_id,
     {{ derive_person_id() }} as person_id,
     21492865 as observation_concept_id,  -- LOINC 'Employer name [Identifier]'
     cast(reporting_period_start_date as date) as observation_date,
@@ -773,7 +786,7 @@ employer_fein_inst_historical as (
     cast(hash(concat_ws('||', rendering_bill_provider_last,
       coalesce(rendering_bill_provider_first, ''),
       rendering_bill_provider_state_1, rendering_bill_provider_4
-    ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+    ), 'xxhash64')  % 1000000000 as integer) as provider_id,
     cast(bill_id as varchar) as visit_occurrence_id,
     cast(null as varchar) as visit_detail_id,
     'employer_fein' as observation_source_value,
@@ -788,7 +801,7 @@ employer_fein_inst_historical as (
 ),
 employer_fein_prof_historical as (
   select
-    cast(hash(concat_ws('||', 'employer_fein_prof_historical', bill_id), 'xxhash64') % 1000000000 as varchar) as observation_id,
+    cast(hash(concat_ws('||', 'employer_fein_prof_historical', bill_id), 'xxhash64')  % 1000000000 as integer) as observation_id,
     {{ derive_person_id() }} as person_id,
     21492865 as observation_concept_id,  -- LOINC 'Employer name [Identifier]'
     cast(reporting_period_start_date as date) as observation_date,
@@ -802,7 +815,7 @@ employer_fein_prof_historical as (
     cast(hash(concat_ws('||', rendering_bill_provider_last,
       coalesce(rendering_bill_provider_first, ''),
       rendering_bill_provider_state_1, rendering_bill_provider_4
-    ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+    ), 'xxhash64')  % 1000000000 as integer) as provider_id,
     cast(bill_id as varchar) as visit_occurrence_id,
     cast(null as varchar) as visit_detail_id,
     'employer_fein' as observation_source_value,
@@ -817,7 +830,7 @@ employer_fein_prof_historical as (
 ),
 employer_fein_pharm_historical as (
   select
-    cast(hash(concat_ws('||', 'employer_fein_pharm_historical', bill_id), 'xxhash64') % 1000000000 as varchar) as observation_id,
+    cast(hash(concat_ws('||', 'employer_fein_pharm_historical', bill_id), 'xxhash64')  % 1000000000 as integer) as observation_id,
     {{ derive_person_id() }} as person_id,
     21492865 as observation_concept_id,  -- LOINC 'Employer name [Identifier]'
     cast(reporting_period_start_date as date) as observation_date,
@@ -831,7 +844,7 @@ employer_fein_pharm_historical as (
     cast(hash(concat_ws('||', rendering_bill_provider_last,
       coalesce(rendering_bill_provider_first, ''),
       rendering_bill_provider_state_1, rendering_bill_provider_4
-    ), 'xxhash64') % 1000000000 as varchar) as provider_id,
+    ), 'xxhash64')  % 1000000000 as integer) as provider_id,
     cast(bill_id as varchar) as visit_occurrence_id,
     cast(null as varchar) as visit_detail_id,
     'employer_fein' as observation_source_value,
